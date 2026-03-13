@@ -4,6 +4,7 @@ import {
   Text,
   Pressable,
   FlatList,
+  ScrollView,
   Dimensions,
   ActivityIndicator,
   ViewToken,
@@ -16,7 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useCategoryFeed, type CategoryVideo } from "@/src/features/groups/useCategoryFeed";
+import { useCategoryFeed, useCategoriesWithVideos, type CategoryVideo } from "@/src/features/groups/useCategoryFeed";
 import { useDiscoverFeed } from "@/src/features/groups/useDiscoverFeed";
 import { useMyTournaments, useTournamentFeed } from "@/src/features/groups/useTournamentFeed";
 import { PUBLIC_CATEGORIES } from "@/src/features/groups/usePublicGroups";
@@ -346,14 +347,20 @@ export default function ExploreScreen() {
   const [activeTab, setActiveTab] = useState<ExploreTab>("decouvrir");
   const [activeIndex, setActiveIndex] = useState(0);
   const [isFocused, setIsFocused] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>("comedy");
+  const [categoryListOpen, setCategoryListOpen] = useState(false);
+  const [tournamentListOpen, setTournamentListOpen] = useState(false);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
 
-  // Hooks data par section
-  const discoverQuery = useDiscoverFeed();
-  const categoryQuery = useCategoryFeed(selectedCategory ?? "comedy");
+  // Hooks data par section — enabled uniquement quand l'onglet est actif
+  const discoverQuery = useDiscoverFeed({ enabled: activeTab === "decouvrir" });
+  const categoryQuery = useCategoryFeed(selectedCategory ?? "", { enabled: activeTab === "categories" && !!selectedCategory });
+  const { data: categoriesWithVideos } = useCategoriesWithVideos();
   const { data: myTournaments } = useMyTournaments();
-  const tournamentFeedQuery = useTournamentFeed(selectedTournamentId ?? "");
+
+  // Récupère le nom du groupe depuis myTournaments pour éviter une requête supplémentaire
+  const selectedTournament = (myTournaments ?? []).find((t) => t.id === selectedTournamentId);
+  const tournamentFeedQuery = useTournamentFeed(selectedTournamentId ?? "", selectedTournament?.group_name);
 
   // Sélection du bon feed selon l'onglet actif
   const activeQuery =
@@ -417,7 +424,23 @@ export default function ExploreScreen() {
               key={key}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setActiveTab(key);
+                if (key === "categories") {
+                  if (activeTab === "categories") {
+                    setCategoryListOpen((v) => !v);
+                  } else {
+                    setActiveTab(key);
+                    setCategoryListOpen(true);
+                  }
+                } else if (key === "tournois") {
+                  if (activeTab === "tournois") {
+                    setTournamentListOpen((v) => !v);
+                  } else {
+                    setActiveTab(key);
+                    setTournamentListOpen(true);
+                  }
+                } else {
+                  setActiveTab(key);
+                }
               }}
               style={{ paddingVertical: 10, paddingHorizontal: 4 }}
             >
@@ -448,15 +471,16 @@ export default function ExploreScreen() {
           ))}
         </View>
 
-        {/* Category pills (show when categories tab is active) */}
-        {activeTab === "categories" && (
+        {/* Category pills (show when categories tab is active and list is open) */}
+        {activeTab === "categories" && categoryListOpen && (
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
-            {PUBLIC_CATEGORIES.map((cat) => (
+            {PUBLIC_CATEGORIES.filter((cat) => !categoriesWithVideos || categoriesWithVideos.has(cat.key)).map((cat) => (
               <AnimatedPressable
                 key={cat.key}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   setSelectedCategory(cat.key);
+                  setCategoryListOpen(false);
                 }}
                 style={{
                   flexDirection: "row",
@@ -483,15 +507,21 @@ export default function ExploreScreen() {
           </View>
         )}
 
-        {/* Tournament pills (show when tournois tab is active) */}
-        {activeTab === "tournois" && (myTournaments ?? []).length > 0 && (
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+        {/* Tournament pills (show when tournois tab is active and list is open) */}
+        {activeTab === "tournois" && tournamentListOpen && (myTournaments ?? []).length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingVertical: 4 }}
+            style={{ marginTop: 12 }}
+          >
             {(myTournaments ?? []).map((t) => (
               <AnimatedPressable
                 key={t.id}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   setSelectedTournamentId(t.id);
+                  setTournamentListOpen(false);
                 }}
                 style={{
                   flexDirection: "row",
@@ -516,7 +546,7 @@ export default function ExploreScreen() {
                 </Text>
               </AnimatedPressable>
             ))}
-          </View>
+          </ScrollView>
         )}
       </View>
 
@@ -551,6 +581,7 @@ export default function ExploreScreen() {
         </View>
       ) : (
         <FlatList
+          style={{ flex: 1 }}
           data={videos}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}

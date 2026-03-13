@@ -39,17 +39,19 @@ const DEMO_GALLERY = [
 ];
 
 // ─── Video card for gallery grid ─────────────────────────────────
-function VideoGalleryCard({ title, emoji, views, date, thumbnailUrl, width }: {
+function VideoGalleryCard({ title, emoji, views, date, thumbnailUrl, width, onPress }: {
   title: string;
   emoji: string;
   views: string;
   date: string;
   thumbnailUrl: string | null;
   width: number;
+  onPress?: () => void;
 }) {
   const cardHeight = width * 1.25;
   return (
-    <View
+    <Pressable
+      onPress={onPress}
       style={{
         width,
         height: cardHeight,
@@ -126,7 +128,7 @@ function VideoGalleryCard({ title, emoji, views, date, thumbnailUrl, width }: {
           </Text>
         </View>
       </LinearGradient>
-    </View>
+    </Pressable>
   );
 }
 
@@ -515,16 +517,18 @@ export default function ProfileScreen() {
             <View>
               {/* Use real videos if available, otherwise demo */}
               {(() => {
-                const videos = (myVideos ?? []).length > 0
-                  ? (myVideos ?? []).map((v) => ({
+                const hasRealVideos = (myVideos ?? []).length > 0;
+                const videos = hasRealVideos
+                  ? (myVideos ?? []).map((v, index) => ({
                       id: v.id,
+                      index,
                       title: v.group?.name ?? "Vidéo",
                       emoji: "",
                       views: "—",
                       date: new Date(v.created_at).toLocaleDateString("fr-FR", { month: "short", year: "numeric" }).toUpperCase(),
                       thumbnail: v.thumbnail_url,
                     }))
-                  : DEMO_GALLERY;
+                  : DEMO_GALLERY.map((v, index) => ({ ...v, index, thumbnail: v.thumbnail }));
 
                 // Chunk into rows of 2
                 const rows: typeof videos[] = [];
@@ -543,6 +547,10 @@ export default function ProfileScreen() {
                         date={video.date}
                         thumbnailUrl={video.thumbnail}
                         width={CARD_WIDTH}
+                        onPress={hasRealVideos ? () => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          router.push({ pathname: "/feed/my-videos", params: { startIndex: String(video.index) } });
+                        } : undefined}
                       />
                     ))}
                     {/* Fill empty space if odd number */}

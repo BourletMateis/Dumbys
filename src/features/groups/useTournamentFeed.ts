@@ -52,12 +52,39 @@ export function useMyTournaments() {
       if (tourErr) throw tourErr;
       if (!tournaments || tournaments.length === 0) return [];
 
-      return tournaments.map((t) => ({
-        id: t.id,
-        title: t.title,
-        group_id: t.group_id,
-        group_name: groupMap.get(t.group_id) ?? "",
-      }));
+      const tournamentIds = tournaments.map((t) => t.id);
+
+      // Défis de ces tournois
+      const { data: challenges } = await supabase
+        .from("challenges")
+        .select("id, tournament_id")
+        .in("tournament_id", tournamentIds);
+
+      if (!challenges || challenges.length === 0) return [];
+
+      const challengeIds = challenges.map((c) => c.id);
+
+      // Vérifier lesquels ont au moins une vidéo
+      const { data: videoRows } = await supabase
+        .from("videos")
+        .select("challenge_id")
+        .in("challenge_id", challengeIds);
+
+      const challengeIdsWithVideos = new Set((videoRows ?? []).map((v) => v.challenge_id));
+      const tournamentIdsWithVideos = new Set(
+        challenges
+          .filter((c) => challengeIdsWithVideos.has(c.id))
+          .map((c) => c.tournament_id),
+      );
+
+      return tournaments
+        .filter((t) => tournamentIdsWithVideos.has(t.id))
+        .map((t) => ({
+          id: t.id,
+          title: t.title,
+          group_id: t.group_id,
+          group_name: groupMap.get(t.group_id) ?? "",
+        }));
     },
     enabled: !!user,
   });
@@ -66,7 +93,10 @@ export function useMyTournaments() {
 /**
  * Feed vidéos d'un tournoi — toutes les vidéos liées aux défis du tournoi
  */
-export function useTournamentFeed(tournamentId: string) {
+/**
+ * groupName est passé depuis useMyTournaments — évite une requête supplémentaire
+ */
+export function useTournamentFeed(tournamentId: string, groupName = "") {
   const user = useAuthStore((s) => s.user);
 
   return useQuery<CategoryVideo[]>({
@@ -74,7 +104,7 @@ export function useTournamentFeed(tournamentId: string) {
     queryFn: async () => {
       if (!user) throw new Error("Not authenticated");
 
-      // 1. Défis du tournoi
+      // 1. Défis du tournoi + vidéos en parallèle quand possible
       const { data: challenges, error: chalErr } = await supabase
         .from("challenges")
         .select("id")
@@ -105,15 +135,7 @@ export function useTournamentFeed(tournamentId: string) {
       if (usrErr) throw usrErr;
 
       const userMap = new Map((users ?? []).map((u) => [u.id, u]));
-
-      // Nom du groupe du tournoi pour l'affichage
-      const { data: tournament } = await supabase
-        .from("group_tournaments")
-        .select("title, group_id, groups(name)")
-        .eq("id", tournamentId)
-        .single();
-
-      const groupName = (tournament?.groups as any)?.name ?? "Tournoi";
+      const displayName = groupName || "Tournoi";
 
       return videos
         .map((v) => {
@@ -130,7 +152,7 @@ export function useTournamentFeed(tournamentId: string) {
             year: v.year ?? 0,
             created_at: v.created_at,
             submitter,
-            group: { id: v.group_id ?? "", name: groupName },
+            group: { id: v.group_id ?? "", name: displayName },
           };
         })
         .filter((v): v is CategoryVideo => v !== null);

@@ -71,9 +71,8 @@ export function useCreateGroupTournament() {
       return data as GroupTournament;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ["group-tournaments", variables.groupId],
-      });
+      queryClient.invalidateQueries({ queryKey: ["group-tournaments", variables.groupId] });
+      queryClient.invalidateQueries({ queryKey: ["my-tournaments"] });
     },
   });
 }
@@ -99,9 +98,8 @@ export function useDeleteGroupTournament() {
       return groupId;
     },
     onSuccess: (groupId) => {
-      queryClient.invalidateQueries({
-        queryKey: ["group-tournaments", groupId],
-      });
+      queryClient.invalidateQueries({ queryKey: ["group-tournaments", groupId] });
+      queryClient.invalidateQueries({ queryKey: ["my-tournaments"] });
     },
   });
 }

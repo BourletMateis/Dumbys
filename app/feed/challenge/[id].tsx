@@ -17,25 +17,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useCategoryFeed, type CategoryVideo } from "@/src/features/groups/useCategoryFeed";
+import { useChallengeVideos, type ChallengeVideo } from "@/src/features/groups/useChallengeVideos";
 import { useLikeCount, useHasLiked, useToggleLike } from "@/src/features/feed/useLikes";
 import { useCommentCount } from "@/src/features/feed/useComments";
-import { useJoinPublicGroup } from "@/src/features/groups/useGroupActions";
-import { PUBLIC_CATEGORIES } from "@/src/features/groups/usePublicGroups";
-import { Alert } from "react-native";
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
 
-function CategoryFeedItem({
+function ChallengeFeedItem({
   video,
   isActive,
 }: {
-  video: CategoryVideo;
+  video: ChallengeVideo;
   isActive: boolean;
 }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const joinGroup = useJoinPublicGroup();
   const [descExpanded, setDescExpanded] = useState(false);
 
   const { data: likeCount } = useLikeCount(video.id);
@@ -58,7 +54,7 @@ function CategoryFeedItem({
     }
   }, [isActive, player]);
 
-  // Hearts
+  // Double-tap like animation
   const [hearts, setHearts] = useState<
     { id: number; x: number; y: number; size: number; rotation: number; anim: Animated.Value }[]
   >([]);
@@ -89,11 +85,6 @@ function CategoryFeedItem({
     lastTap.current = now;
   };
 
-  const handleLike = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    toggleLike.mutate();
-  };
-
   const openComments = () => {
     router.push({
       pathname: "/video-comments/[id]",
@@ -107,43 +98,21 @@ function CategoryFeedItem({
     });
   };
 
-  const handleJoinGroup = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    joinGroup.mutate(video.group.id, {
-      onSuccess: () => {
-        router.push({ pathname: "/group/[id]", params: { id: video.group.id } });
-      },
-      onError: (err) => {
-        if (err.message.includes("already")) {
-          router.push({ pathname: "/group/[id]", params: { id: video.group.id } });
-        } else {
-          Alert.alert("Error", err.message);
-        }
-      },
-    });
-  };
-
   return (
     <Pressable
       onPress={handleTap}
       style={{ height: SCREEN_HEIGHT, width: SCREEN_WIDTH, backgroundColor: "#000" }}
     >
-      {/* Thumbnail fallback behind video */}
+      {/* Thumbnail behind video */}
       {video.thumbnail_url && (
         <Image
           source={{ uri: video.thumbnail_url }}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: SCREEN_WIDTH,
-            height: SCREEN_HEIGHT,
-          }}
+          style={{ position: "absolute", top: 0, left: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
           contentFit="cover"
         />
       )}
 
-      {/* Video player (expo-video) */}
+      {/* Video player */}
       {video.source_url && player ? (
         <VideoView
           player={player}
@@ -154,11 +123,11 @@ function CategoryFeedItem({
       ) : !video.source_url ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <Ionicons name="videocam-off-outline" size={48} color="#444" />
-          <Text style={{ color: "#555", fontSize: 13, marginTop: 8 }}>Video unavailable</Text>
+          <Text style={{ color: "#555", fontSize: 13, marginTop: 8 }}>Vidéo indisponible</Text>
         </View>
       ) : null}
 
-      {/* Hearts */}
+      {/* Hearts animation */}
       {hearts.map((h) => (
         <Animated.View
           key={h.id}
@@ -207,7 +176,10 @@ function CategoryFeedItem({
           )}
         </Pressable>
 
-        <Pressable onPress={handleLike} style={{ alignItems: "center" }}>
+        <Pressable
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); toggleLike.mutate(); }}
+          style={{ alignItems: "center" }}
+        >
           <Ionicons name={hasLiked ? "heart" : "heart-outline"} size={30} color={hasLiked ? "#ef4444" : "white"} />
           <Text style={{ color: "white", fontSize: 11, fontWeight: "600", marginTop: 2 }}>{likeCount ?? 0}</Text>
         </Pressable>
@@ -218,35 +190,25 @@ function CategoryFeedItem({
         </Pressable>
       </View>
 
-      {/* Bottom: TikTok-style info overlay */}
-      <View
-        style={{ position: "absolute", left: 0, right: 70, bottom: 0 }}
-        pointerEvents="box-none"
-      >
+      {/* Bottom overlay */}
+      <View style={{ position: "absolute", left: 0, right: 0, bottom: 0 }} pointerEvents="box-none">
         <LinearGradient
           colors={["transparent", "rgba(0,0,0,0.7)"]}
-          style={{
-            paddingHorizontal: 16,
-            paddingTop: 40,
-            paddingBottom: 36 + insets.bottom,
-          }}
+          style={{ paddingLeft: 16, paddingRight: 76, paddingTop: 40, paddingBottom: 36 + insets.bottom }}
           pointerEvents="box-none"
         >
-          {/* Username */}
           <Pressable onPress={() => router.push({ pathname: "/user/[id]", params: { id: video.submitter.id } })}>
             <Text style={{ color: "white", fontSize: 16, fontWeight: "700" }}>
               @{video.submitter.username}
             </Text>
           </Pressable>
 
-          {/* Title */}
           {video.title ? (
             <Text style={{ color: "white", fontSize: 15, fontWeight: "600", marginTop: 6 }} numberOfLines={1}>
               {video.title}
             </Text>
           ) : null}
 
-          {/* Description - expandable */}
           {video.description ? (
             <Pressable onPress={() => setDescExpanded(!descExpanded)} style={{ marginTop: 4 }}>
               {descExpanded ? (
@@ -254,66 +216,29 @@ function CategoryFeedItem({
                   <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, lineHeight: 18 }}>
                     {video.description}
                   </Text>
-                  <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 4 }}>
-                    Show less
-                  </Text>
                 </ScrollView>
               ) : (
-                <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
-                  <Text
-                    style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, lineHeight: 18, flex: 1 }}
-                    numberOfLines={2}
-                  >
-                    {video.description}
-                  </Text>
-                  {video.description.length > 80 && (
-                    <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginLeft: 4 }}>
-                      more
-                    </Text>
-                  )}
-                </View>
+                <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, lineHeight: 18 }} numberOfLines={2}>
+                  {video.description}
+                </Text>
               )}
             </Pressable>
           ) : null}
-
-          {/* Group pill — tap to join & open */}
-          <Pressable
-            onPress={handleJoinGroup}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              marginTop: 8,
-              backgroundColor: "rgba(255,255,255,0.15)",
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              borderRadius: 20,
-              alignSelf: "flex-start",
-            }}
-          >
-            <Ionicons name="people" size={14} color="white" />
-            <Text style={{ color: "white", fontSize: 13, fontWeight: "600" }} numberOfLines={1}>
-              {video.group.name}
-            </Text>
-            <View style={{ backgroundColor: "#3b82f6", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginLeft: 4 }}>
-              <Text style={{ color: "white", fontSize: 10, fontWeight: "700" }}>JOIN</Text>
-            </View>
-          </Pressable>
         </LinearGradient>
       </View>
     </Pressable>
   );
 }
 
-export default function CategoryFeedScreen() {
-  const { category } = useLocalSearchParams<{ category: string }>();
+export default function ChallengeFeedScreen() {
+  const { id, title, startIndex } = useLocalSearchParams<{ id: string; title?: string; startIndex?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const cat = PUBLIC_CATEGORIES.find((c) => c.key === category);
-  const { data: videos, isPending } = useCategoryFeed(category!);
+  const { data: videos, isPending } = useChallengeVideos(id!);
+  const [activeIndex, setActiveIndex] = useState(Number(startIndex ?? 0));
 
-  const [activeIndex, setActiveIndex] = useState(0);
+  const listRef = useRef<FlatList>(null);
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -325,6 +250,7 @@ export default function CategoryFeedScreen() {
   );
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
+  const initialIndex = Number(startIndex ?? 0);
 
   if (isPending) {
     return (
@@ -342,18 +268,15 @@ export default function CategoryFeedScreen() {
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={{ flex: 1, backgroundColor: "#000", alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
-          <Ionicons name={cat?.icon ?? "grid"} size={56} color="#444" />
+          <Ionicons name="videocam-outline" size={56} color="#444" />
           <Text style={{ color: "white", fontSize: 20, fontWeight: "700", marginTop: 16 }}>
-            No videos in {cat?.label ?? category} yet
-          </Text>
-          <Text style={{ color: "#666", fontSize: 14, marginTop: 8, textAlign: "center" }}>
-            Join a group and be the first to post!
+            Aucune vidéo pour ce défi
           </Text>
           <Pressable
             onPress={() => router.back()}
-            style={{ marginTop: 24, backgroundColor: "#3b82f6", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}
+            style={{ marginTop: 24, backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}
           >
-            <Text style={{ color: "white", fontWeight: "600" }}>Go back</Text>
+            <Text style={{ color: "white", fontWeight: "600" }}>Retour</Text>
           </Pressable>
         </View>
       </>
@@ -364,7 +287,7 @@ export default function CategoryFeedScreen() {
     <>
       <Stack.Screen options={{ headerShown: false, animation: "fade" }} />
 
-      {/* Header overlay: back + category name */}
+      {/* Header overlay */}
       <View
         style={{
           position: "absolute",
@@ -403,9 +326,9 @@ export default function CategoryFeedScreen() {
             borderRadius: 16,
           }}
         >
-          <Ionicons name={cat?.icon ?? "grid"} size={16} color={cat?.color ?? "white"} />
-          <Text style={{ color: "white", fontSize: 15, fontWeight: "700" }}>
-            {cat?.label ?? category}
+          <Ionicons name="flag" size={16} color="#FF2D7D" />
+          <Text style={{ color: "white", fontSize: 15, fontWeight: "700" }} numberOfLines={1}>
+            {title ?? "Défi"}
           </Text>
         </View>
 
@@ -426,13 +349,11 @@ export default function CategoryFeedScreen() {
 
       <FlatList
         style={{ flex: 1 }}
+        ref={listRef}
         data={videos}
         keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => (
-          <CategoryFeedItem
-            video={item}
-            isActive={index === activeIndex}
-          />
+          <ChallengeFeedItem video={item} isActive={index === activeIndex} />
         )}
         pagingEnabled
         showsVerticalScrollIndicator={false}
@@ -445,6 +366,7 @@ export default function CategoryFeedScreen() {
           offset: SCREEN_HEIGHT * index,
           index,
         })}
+        initialScrollIndex={initialIndex}
         windowSize={3}
         maxToRenderPerBatch={3}
         removeClippedSubviews={false}

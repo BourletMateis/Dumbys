@@ -777,6 +777,7 @@ export default function FeedScreen() {
       </View>
 
       <FlatList
+        style={{ flex: 1 }}
         data={videos ?? []}
         keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => (

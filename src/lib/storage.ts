@@ -6,7 +6,7 @@
  * the Web File API which isn't available in RN.
  */
 
-const WORKER_URL = process.env.EXPO_PUBLIC_STORAGE_WORKER_URL!;
+const WORKER_URL = (process.env.EXPO_PUBLIC_STORAGE_WORKER_URL ?? "").replace(/\/$/, "");
 const AUTH_SECRET = process.env.EXPO_PUBLIC_STORAGE_AUTH_SECRET!;
 
 /**

@@ -29,6 +29,7 @@ import { useCommentCount } from "@/src/features/feed/useComments";
 import { useGroupMembers, useRemoveMember, type GroupMember } from "@/src/features/groups/useGroupMembers";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { useRealtimeGroupVideos } from "@/src/features/groups/useRealtimeGroupVideos";
+import { useGroupTournaments, useCreateGroupTournament } from "@/src/features/groups/useGroupTournaments";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { BottomSheet } from "@/src/components/ui/BottomSheet";
@@ -250,12 +251,39 @@ export default function GroupScreen() {
   const deleteGroup = useDeleteGroup();
   const leaveGroup = useLeaveGroup();
 
+  const { data: tournaments } = useGroupTournaments(id!);
+  const createTournament = useCreateGroupTournament();
+
   const [isUploading, setIsUploading] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [showCreateTournament, setShowCreateTournament] = useState(false);
   const [pendingVideoUri, setPendingVideoUri] = useState<string | null>(null);
   const [uploadTitle, setUploadTitle] = useState("");
   const [uploadDesc, setUploadDesc] = useState("");
+  const [tournamentTitle, setTournamentTitle] = useState("");
+  const [tournamentDesc, setTournamentDesc] = useState("");
+  const [tournamentReward, setTournamentReward] = useState("");
+  const [isCreatingTournament, setIsCreatingTournament] = useState(false);
+
+  const handleCreateTournament = () => {
+    if (!tournamentTitle.trim()) return;
+    setIsCreatingTournament(true);
+    createTournament.mutate(
+      { groupId: id!, title: tournamentTitle.trim(), description: tournamentDesc.trim() || undefined, reward: tournamentReward.trim() || undefined },
+      {
+        onSuccess: (t) => {
+          setShowCreateTournament(false);
+          setTournamentTitle("");
+          setTournamentDesc("");
+          setTournamentReward("");
+          router.push({ pathname: "/tournament/[id]", params: { id: t.id } });
+        },
+        onError: (err) => Alert.alert("Erreur", err.message),
+        onSettled: () => setIsCreatingTournament(false),
+      },
+    );
+  };
 
   useRealtimeGroupVideos(id!, weekNumber, year);
 
@@ -571,6 +599,48 @@ export default function GroupScreen() {
             </View>
           )}
 
+          {/* ─── Tournois ──────────────────────────────────────── */}
+          <View style={{ marginBottom: 20 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.bold }}>
+                Tournois
+              </Text>
+              <AnimatedPressable
+                onPress={() => setShowCreateTournament(true)}
+                style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.sm, backgroundColor: PALETTE.fuchsia + "12", borderWidth: 1, borderColor: PALETTE.fuchsia + "20" }}
+              >
+                <Ionicons name="add" size={16} color={PALETTE.fuchsia} />
+                <Text style={{ color: PALETTE.fuchsia, fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold }}>Créer</Text>
+              </AnimatedPressable>
+            </View>
+
+            {(tournaments ?? []).length === 0 ? (
+              <View style={{ backgroundColor: "#F8F8FA", borderRadius: RADIUS.lg, padding: 20, alignItems: "center", borderWidth: 1, borderColor: "rgba(0,0,0,0.04)" }}>
+                <Ionicons name="trophy-outline" size={28} color="#CCC" />
+                <Text style={{ color: "#BBB", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, marginTop: 8 }}>Aucun tournoi pour l'instant</Text>
+              </View>
+            ) : (
+              (tournaments ?? []).map((t) => (
+                <AnimatedPressable
+                  key={t.id}
+                  onPress={() => router.push({ pathname: "/tournament/[id]", params: { id: t.id } })}
+                  style={{ ...CARD_STYLE, flexDirection: "row", alignItems: "center", padding: 14, marginBottom: 8, gap: 12 }}
+                >
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: PALETTE.fuchsia + "12", alignItems: "center", justifyContent: "center" }}>
+                    <Ionicons name="trophy" size={20} color={PALETTE.fuchsia} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.semibold }} numberOfLines={1}>{t.title}</Text>
+                    {t.reward ? (
+                      <Text style={{ color: PALETTE.jaune, fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.medium, marginTop: 2 }} numberOfLines={1}>🏅 {t.reward}</Text>
+                    ) : null}
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#CCC" />
+                </AnimatedPressable>
+              ))
+            )}
+          </View>
+
           {/* Phase banner */}
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.bold }}>
@@ -875,6 +945,59 @@ export default function GroupScreen() {
                   <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>Publier</Text>
                 </>
               )}
+            </AnimatedPressable>
+          </View>
+        </BottomSheet>
+
+        {/* Create Tournament Bottom Sheet */}
+        <BottomSheet
+          isOpen={showCreateTournament}
+          onClose={() => { setShowCreateTournament(false); setTournamentTitle(""); setTournamentDesc(""); setTournamentReward(""); }}
+          snapPoint={0.6}
+        >
+          <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
+            <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.bold, marginBottom: 20 }}>
+              Nouveau Tournoi
+            </Text>
+            <Text style={{ ...SECTION_HEADER_STYLE, marginBottom: 8 }}>Titre *</Text>
+            <TextInput
+              value={tournamentTitle}
+              onChangeText={setTournamentTitle}
+              placeholder="Ex: Kickflip Masters 🏆"
+              placeholderTextColor="#BBB"
+              style={{ ...INPUT_STYLE, marginBottom: 16 }}
+              maxLength={80}
+              autoFocus
+            />
+            <Text style={{ ...SECTION_HEADER_STYLE, marginBottom: 8 }}>Description (optionnel)</Text>
+            <TextInput
+              value={tournamentDesc}
+              onChangeText={setTournamentDesc}
+              placeholder="Décris le tournoi..."
+              placeholderTextColor="#BBB"
+              multiline
+              numberOfLines={2}
+              style={{ ...INPUT_STYLE, marginBottom: 16, minHeight: 64, textAlignVertical: "top" }}
+              maxLength={200}
+            />
+            <Text style={{ ...SECTION_HEADER_STYLE, marginBottom: 8 }}>Récompense (optionnel)</Text>
+            <TextInput
+              value={tournamentReward}
+              onChangeText={setTournamentReward}
+              placeholder="Ex: Pizza pour l'équipe 🍕"
+              placeholderTextColor="#BBB"
+              style={{ ...INPUT_STYLE, marginBottom: 24 }}
+              maxLength={100}
+            />
+            <AnimatedPressable
+              onPress={handleCreateTournament}
+              disabled={!tournamentTitle.trim() || isCreatingTournament}
+              style={{ backgroundColor: tournamentTitle.trim() ? PALETTE.fuchsia : "#DDD", paddingVertical: 16, borderRadius: RADIUS.md, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+            >
+              {isCreatingTournament ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="trophy-outline" size={20} color="#FFFFFF" />}
+              <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>
+                {isCreatingTournament ? "Création..." : "Créer le tournoi"}
+              </Text>
             </AnimatedPressable>
           </View>
         </BottomSheet>

@@ -24,10 +24,53 @@ export type CategoryVideo = {
 };
 
 /**
+ * Returns the set of category keys that have at least one video in a public group.
+ */
+export function useCategoriesWithVideos() {
+  const user = useAuthStore((s) => s.user);
+
+  return useQuery<Set<string>>({
+    queryKey: ["categories-with-videos"],
+    queryFn: async () => {
+      // Get public groups with a category
+      const { data: groups, error: grpErr } = await supabase
+        .from("groups")
+        .select("id, category")
+        .eq("is_public", true)
+        .not("category", "is", null);
+
+      if (grpErr) throw grpErr;
+      if (!groups || groups.length === 0) return new Set<string>();
+
+      const groupIds = groups.map((g) => g.id);
+      const groupCategoryMap = new Map(groups.map((g) => [g.id, g.category as string]));
+
+      // Find which of those groups have at least one video
+      const { data: videoGroups, error: vidErr } = await supabase
+        .from("videos")
+        .select("group_id")
+        .in("group_id", groupIds);
+
+      if (vidErr) throw vidErr;
+
+      const result = new Set<string>();
+      for (const v of videoGroups ?? []) {
+        if (v.group_id) {
+          const cat = groupCategoryMap.get(v.group_id);
+          if (cat) result.add(cat);
+        }
+      }
+      return result;
+    },
+    enabled: !!user,
+  });
+}
+
+/**
  * Fetch all videos from public groups in a given category.
  * Used for the TikTok-style category feed.
  */
-export function useCategoryFeed(category: string) {
+export function useCategoryFeed(category: string, options?: { enabled?: boolean }) {
   const user = useAuthStore((s) => s.user);
 
   return useQuery<CategoryVideo[]>({
@@ -97,6 +140,6 @@ export function useCategoryFeed(category: string) {
         })
         .filter((v): v is CategoryVideo => v !== null);
     },
-    enabled: !!user && !!category,
+    enabled: !!user && !!category && (options?.enabled ?? true),
   });
 }

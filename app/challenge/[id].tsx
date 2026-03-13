@@ -450,14 +450,21 @@ export default function ChallengeScreen() {
           )}
 
           {/* Liste vidéos */}
-          {(videos ?? []).map((video) => (
+          {(videos ?? []).map((video, index) => (
             <VideoCard
               key={video.id}
               video={video}
               isOwn={video.submitter.id === user?.id}
               onDelete={() => handleDelete(video)}
               onPress={() => {
-                // Lire la vidéo en plein écran
+                router.push({
+                  pathname: "/feed/challenge/[id]",
+                  params: {
+                    id: id!,
+                    title: challenge?.title ?? "Défi",
+                    startIndex: String(index),
+                  },
+                });
               }}
             />
           ))}

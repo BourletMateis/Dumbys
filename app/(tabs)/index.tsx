@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
   Pressable,
+  TextInput,
   ActivityIndicator,
   Alert,
   ScrollView,
@@ -16,22 +17,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMyGroups, type GroupWithRole } from "@/src/features/groups/useMyGroups";
-import {
-  usePublicGroups,
-  type PublicGroup,
-} from "@/src/features/groups/usePublicGroups";
-import { useChallengeStats } from "@/src/features/groups/useChallengeStats";
-import { useJoinPublicGroup } from "@/src/features/groups/useGroupActions";
+import { useCreateGroup } from "@/src/features/groups/useGroupActions";
+import { useMyTournaments } from "@/src/features/groups/useTournamentFeed";
+import { BottomSheet } from "@/src/components/ui/BottomSheet";
 import { useUserProfile } from "@/src/features/profile/useUserProfile";
-import { useTimelineLogic } from "@/src/hooks/useTimelineLogic";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
-import { Avatar } from "@/src/components/ui/Avatar";
 import {
-  COLORS,
   PALETTE,
-  GRADIENTS,
   RADIUS,
-  SPACING,
   FONT,
   FONT_FAMILY,
 } from "@/src/theme";
@@ -196,30 +189,35 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { data: profile } = useUserProfile();
   const { data: myGroups, isPending: groupsPending, refetch, isRefetching } = useMyGroups();
-  const { data: publicGroups } = usePublicGroups();
-  const joinGroup = useJoinPublicGroup();
-  const { weekNumber, phase } = useTimelineLogic();
 
-  // Challenge stats for public groups
-  const publicGroupIds = useMemo(() => (publicGroups ?? []).map((g) => g.id), [publicGroups]);
-  const { data: statsMap } = useChallengeStats(publicGroupIds);
+  const { data: myTournaments, isPending: tournamentsPending } = useMyTournaments();
+  const createGroup = useCreateGroup();
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupDesc, setNewGroupDesc] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
 
   const username = profile?.username ?? "Alex";
   const groups = myGroups ?? [];
 
-  const handleJoin = (groupId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    joinGroup.mutate(groupId, {
-      onSuccess: () => router.push({ pathname: "/feed/[groupId]", params: { groupId } }),
-      onError: (err) => {
-        if (err.message.includes("already")) {
-          router.push({ pathname: "/feed/[groupId]", params: { groupId } });
-        } else {
-          Alert.alert("Erreur", err.message);
-        }
+  const handleCreateGroup = () => {
+    if (!newGroupName.trim()) return;
+    setIsCreating(true);
+    createGroup.mutate(
+      { name: newGroupName.trim(), description: newGroupDesc.trim() || undefined, isPublic: false },
+      {
+        onSuccess: (group) => {
+          setShowCreateGroup(false);
+          setNewGroupName("");
+          setNewGroupDesc("");
+          router.push({ pathname: "/group/[id]", params: { id: group.id } });
+        },
+        onError: (err) => Alert.alert("Erreur", err.message),
+        onSettled: () => setIsCreating(false),
       },
-    });
+    );
   };
+
 
   return (
     <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -309,12 +307,15 @@ export default function HomeScreen() {
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                // Navigate to explore
+                setShowCreateGroup(true);
               }}
             >
-              <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: PALETTE.sarcelle, textTransform: "uppercase" }}>
-                VOIR TOUT
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <Ionicons name="add-circle-outline" size={18} color={PALETTE.sarcelle} />
+                <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: PALETTE.sarcelle, textTransform: "uppercase" }}>
+                  CRÉER
+                </Text>
+              </View>
             </Pressable>
           </View>
 
@@ -339,7 +340,7 @@ export default function HomeScreen() {
                       group={group}
                       onPress={() => {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        router.push({ pathname: "/feed/[groupId]", params: { groupId: group.id } });
+                        router.push({ pathname: "/group/[id]", params: { id: group.id } });
                       }}
                     />
                   ))
@@ -355,133 +356,151 @@ export default function HomeScreen() {
         </View>
 
         {/* ─── Tournois Actifs ──────────────────────────────────── */}
-        <View style={{ paddingHorizontal: 20 }}>
+        <View style={{ marginBottom: 32 }}>
           {/* Section header */}
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16, paddingHorizontal: 20 }}>
             <Text style={{ fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
-              Tournois Actifs
+              Mes Tournois
             </Text>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: PALETTE.fuchsia }} />
-              <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: PALETTE.sarcelle, textTransform: "uppercase" }}>
-                EN DIRECT
-              </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: PALETTE.fuchsia }} />
+                <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: PALETTE.sarcelle, textTransform: "uppercase" }}>
+                  EN DIRECT
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/tournaments");
+                }}
+              >
+                <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: PALETTE.fuchsia, textTransform: "uppercase" }}>
+                  DÉCOUVRIR
+                </Text>
+              </Pressable>
             </View>
           </View>
 
-          {/* Tournament card (dark) */}
-          {(() => {
-            // Pick first public group as featured tournament, or use demo
-            const featured = (publicGroups ?? []).find((g) => g.is_member) ?? (publicGroups ?? [])[0];
-            const stats = featured ? statsMap?.get(featured.id) : null;
-            const videoCount = stats?.video_count ?? 3;
-            const totalDefis = 5;
-
-            return (
-              <View
-                style={{
-                  borderRadius: 24,
-                  overflow: "hidden",
-                }}
+          {tournamentsPending ? (
+            <View style={{ alignItems: "center", paddingVertical: 32 }}>
+              <ActivityIndicator color={PALETTE.sarcelle} />
+            </View>
+          ) : (myTournaments ?? []).length === 0 ? (
+            <View style={{ marginHorizontal: 20, borderRadius: 20, overflow: "hidden" }}>
+              <LinearGradient
+                colors={["#1A1A2E", "#16213E"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ padding: 24, borderRadius: 24, alignItems: "center" }}
               >
-                <LinearGradient
-                  colors={["#1A1A2E", "#16213E"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{
-                    padding: 24,
-                    borderRadius: 24,
+                <Ionicons name="trophy-outline" size={40} color="rgba(255,255,255,0.3)" />
+                <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, marginTop: 12, textAlign: "center" }}>
+                  Aucun tournoi pour l'instant.{"\n"}Crée un groupe et lance ton premier tournoi !
+                </Text>
+              </LinearGradient>
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
+              decelerationRate="fast"
+              snapToInterval={SCREEN_WIDTH * 0.78 + 14}
+              snapToAlignment="start"
+            >
+              {(myTournaments ?? []).map((t) => (
+                <AnimatedPressable
+                  key={t.id}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    router.push({ pathname: "/tournament/[id]", params: { id: t.id } });
                   }}
+                  style={{ width: SCREEN_WIDTH * 0.78, borderRadius: 20, overflow: "hidden" }}
                 >
-                  {/* Top row: title + rank badge */}
-                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                    <Text
-                      style={{ fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.extrabold, color: "#FFFFFF", flex: 1 }}
-                      numberOfLines={1}
-                    >
-                      {featured?.name ?? "Défis de l'Été Extrême"}
-                    </Text>
-                    <View
-                      style={{
-                        backgroundColor: PALETTE.fuchsia,
-                        paddingHorizontal: 12,
-                        paddingVertical: 5,
-                        borderRadius: 14,
-                        marginLeft: 10,
-                      }}
-                    >
-                      <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.black, color: "#FFFFFF", textTransform: "uppercase" }}>
-                        RANG #{42}
+                  <LinearGradient
+                    colors={["#1A1A2E", "#16213E"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{ padding: 20, borderRadius: 20 }}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                      <Text
+                        style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold, color: "#FFFFFF", flex: 1 }}
+                        numberOfLines={1}
+                      >
+                        {t.title}
                       </Text>
+                      <View style={{ backgroundColor: PALETTE.fuchsia, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginLeft: 10 }}>
+                        <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.black, color: "#FFFFFF", textTransform: "uppercase" }}>
+                          ACTIF
+                        </Text>
+                      </View>
                     </View>
-                  </View>
-
-                  {/* Organizer */}
-                  <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "rgba(255,255,255,0.5)", marginBottom: 20 }}>
-                    Organisé par Dumbys Off.
-                  </Text>
-
-                  {/* Progression */}
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 1 }}>
-                      PROGRESSION
+                    <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular, color: "rgba(255,255,255,0.5)", marginBottom: 16 }}>
+                      {t.group_name}
                     </Text>
-                    <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                      {videoCount} / {totalDefis} DÉFIS
-                    </Text>
-                  </View>
-
-                  {/* Progress bar */}
-                  <View
-                    style={{
-                      height: 8,
-                      backgroundColor: "rgba(255,255,255,0.12)",
-                      borderRadius: 4,
-                      marginBottom: 24,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <LinearGradient
-                      colors={[PALETTE.fuchsia, "#FF6B6B"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={{
-                        height: "100%",
-                        width: `${(videoCount / totalDefis) * 100}%`,
-                        borderRadius: 4,
-                      }}
-                    />
-                  </View>
-
-                  {/* CTA button */}
-                  <AnimatedPressable
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                      if (featured) {
-                        if (featured.is_member) {
-                          router.push({ pathname: "/feed/[groupId]", params: { groupId: featured.id } });
-                        } else {
-                          handleJoin(featured.id);
-                        }
-                      }
-                    }}
-                    style={{
-                      backgroundColor: "#FFFFFF",
-                      paddingVertical: 16,
-                      borderRadius: 16,
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                      RELEVER LE PROCHAIN DÉFI
-                    </Text>
-                  </AnimatedPressable>
-                </LinearGradient>
-              </View>
-            );
-          })()}
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "flex-end" }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,0.1)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }}>
+                        <Ionicons name="arrow-forward" size={14} color="white" />
+                        <Text style={{ color: "white", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold }}>Voir les défis</Text>
+                      </View>
+                    </View>
+                  </LinearGradient>
+                </AnimatedPressable>
+              ))}
+            </ScrollView>
+          )}
         </View>
       </ScrollView>
+
+      {/* Create Group Bottom Sheet */}
+      <BottomSheet isOpen={showCreateGroup} onClose={() => { setShowCreateGroup(false); setNewGroupName(""); setNewGroupDesc(""); }} snapPoint={0.5}>
+        <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
+          <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.bold, marginBottom: 20 }}>
+            Créer un groupe
+          </Text>
+          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#B0B0B0", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8 }}>
+            NOM DU GROUPE *
+          </Text>
+          <TextInput
+            value={newGroupName}
+            onChangeText={setNewGroupName}
+            placeholder="Ex: Les Champions 🏆"
+            placeholderTextColor="#CCC"
+            style={{ backgroundColor: "#F8F8FA", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#1A1A1A", borderWidth: 1, borderColor: "rgba(0,0,0,0.06)", marginBottom: 16 }}
+            maxLength={60}
+            autoFocus
+          />
+          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#B0B0B0", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8 }}>
+            DESCRIPTION (optionnel)
+          </Text>
+          <TextInput
+            value={newGroupDesc}
+            onChangeText={setNewGroupDesc}
+            placeholder="Décris ton groupe..."
+            placeholderTextColor="#CCC"
+            multiline
+            numberOfLines={2}
+            style={{ backgroundColor: "#F8F8FA", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#1A1A1A", borderWidth: 1, borderColor: "rgba(0,0,0,0.06)", marginBottom: 24, minHeight: 72, textAlignVertical: "top" }}
+            maxLength={200}
+          />
+          <AnimatedPressable
+            onPress={handleCreateGroup}
+            disabled={!newGroupName.trim() || isCreating}
+            style={{ backgroundColor: newGroupName.trim() ? PALETTE.sarcelle : "#DDD", paddingVertical: 16, borderRadius: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+          >
+            {isCreating ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Ionicons name="people-outline" size={20} color="#FFFFFF" />
+            )}
+            <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>
+              {isCreating ? "Création..." : "Créer le groupe"}
+            </Text>
+          </AnimatedPressable>
+        </View>
+      </BottomSheet>
     </View>
   );
 }

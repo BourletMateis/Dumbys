@@ -17,9 +17,12 @@ import * as VideoThumbnails from "expo-video-thumbnails";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMyGroups, type GroupWithRole } from "@/src/features/groups/useMyGroups";
 import { useUploadGroupVideo } from "@/src/features/groups/useUploadGroupVideo";
+import { useCreateGroup } from "@/src/features/groups/useGroupActions";
+import { useCreateGroupTournament } from "@/src/features/groups/useGroupTournaments";
 import { useTimelineLogic } from "@/src/hooks/useTimelineLogic";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { Avatar } from "@/src/components/ui/Avatar";
+import { BottomSheet } from "@/src/components/ui/BottomSheet";
 import {
   PALETTE,
   RADIUS,
@@ -48,6 +51,9 @@ export default function UploadScreen() {
   const uploadMutation = useUploadGroupVideo();
   const { weekNumber, year, canUpload } = useTimelineLogic();
 
+  const createGroup = useCreateGroup();
+  const createTournament = useCreateGroupTournament();
+
   const [activeTab, setActiveTab] = useState<UploadTab>("deposer");
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
@@ -55,6 +61,18 @@ export default function UploadScreen() {
   const [tournamentVisibility, setTournamentVisibility] = useState<TournamentVisibility>("public");
   const [challengeName, setChallengeName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+
+  // Create group sheet
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupDesc, setNewGroupDesc] = useState("");
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+
+  // Tournament creation
+  const [tournamentGroupId, setTournamentGroupId] = useState<string | null>(null);
+  const [tournamentDesc, setTournamentDesc] = useState("");
+  const [tournamentReward, setTournamentReward] = useState("");
+  const [isCreatingTournament, setIsCreatingTournament] = useState(false);
 
   const privateGroups: GroupWithRole[] = (myGroups ?? []).filter((g) => !g.is_public);
 
@@ -86,6 +104,48 @@ export default function UploadScreen() {
     setThumbnailUri(null);
     setSelectedGroupId(null);
     setChallengeName("");
+  };
+
+  const handleCreateGroup = () => {
+    if (!newGroupName.trim()) return;
+    setIsCreatingGroup(true);
+    createGroup.mutate(
+      { name: newGroupName.trim(), description: newGroupDesc.trim() || undefined, isPublic: false },
+      {
+        onSuccess: () => {
+          setShowCreateGroup(false);
+          setNewGroupName("");
+          setNewGroupDesc("");
+          Alert.alert("Groupe créé !", "Ton groupe a été créé avec succès.");
+        },
+        onError: (err) => Alert.alert("Erreur", err.message),
+        onSettled: () => setIsCreatingGroup(false),
+      },
+    );
+  };
+
+  const handleCreateTournament = () => {
+    if (!challengeName.trim() || !tournamentGroupId) return;
+    setIsCreatingTournament(true);
+    createTournament.mutate(
+      {
+        groupId: tournamentGroupId,
+        title: challengeName.trim(),
+        description: tournamentDesc.trim() || undefined,
+        reward: tournamentReward.trim() || undefined,
+      },
+      {
+        onSuccess: () => {
+          setChallengeName("");
+          setTournamentDesc("");
+          setTournamentReward("");
+          setTournamentGroupId(null);
+          Alert.alert("Tournoi créé !", "Ton tournoi a été créé. Accède-y depuis la page du groupe.");
+        },
+        onError: (err) => Alert.alert("Erreur", err.message),
+        onSettled: () => setIsCreatingTournament(false),
+      },
+    );
   };
 
   const handlePublish = () => {
@@ -322,7 +382,7 @@ export default function UploadScreen() {
           >
             {/* Create button */}
             <AnimatedPressable
-              onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowCreateGroup(true); }}
               style={{ alignItems: "center", width: 68 }}
             >
               <View
@@ -482,111 +542,122 @@ export default function UploadScreen() {
               {"Créer un Tournoi 🏆"}
             </Text>
 
-            {/* Public / Privé toggle */}
-            <View style={{ flexDirection: "row", gap: 12, marginBottom: 24 }}>
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setTournamentVisibility("public");
-                }}
-                style={{
-                  flex: 1,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                  paddingVertical: 12,
-                  borderRadius: 25,
-                  backgroundColor: tournamentVisibility === "public" ? PALETTE.sarcelle : "transparent",
-                  borderWidth: tournamentVisibility === "public" ? 0 : 1.5,
-                  borderColor: "#E0E0E0",
-                }}
-              >
-                <Ionicons
-                  name="globe-outline"
-                  size={16}
-                  color={tournamentVisibility === "public" ? "#FFFFFF" : "#999"}
-                />
-                <Text
-                  style={{
-                    fontSize: FONT.sizes.base,
-                    fontFamily: FONT_FAMILY.bold,
-                    color: tournamentVisibility === "public" ? "#FFFFFF" : "#999",
-                  }}
-                >
-                  Public
-                </Text>
-              </Pressable>
+            {/* Group selector */}
+            <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#B0B0B0", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 10 }}>
+              GROUPE *
+            </Text>
+            {(myGroups ?? []).length === 0 ? (
+              <Text style={{ color: "#CCC", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, marginBottom: 16 }}>
+                Crée d'abord un groupe ci-dessus.
+              </Text>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 20 }}>
+                {(myGroups ?? []).map((g) => (
+                  <Pressable
+                    key={g.id}
+                    onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setTournamentGroupId(g.id); }}
+                    style={{
+                      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+                      backgroundColor: tournamentGroupId === g.id ? PALETTE.sarcelle : "#F2F2F2",
+                      borderWidth: tournamentGroupId === g.id ? 0 : 1, borderColor: "#E0E0E0",
+                    }}
+                  >
+                    <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.semibold, color: tournamentGroupId === g.id ? "#FFFFFF" : "#666" }} numberOfLines={1}>
+                      {g.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
 
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setTournamentVisibility("private");
-                }}
-                style={{
-                  flex: 1,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                  paddingVertical: 12,
-                  borderRadius: 25,
-                  backgroundColor: tournamentVisibility === "private" ? PALETTE.sarcelle : "transparent",
-                  borderWidth: tournamentVisibility === "private" ? 0 : 1.5,
-                  borderColor: "#E0E0E0",
-                }}
-              >
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={16}
-                  color={tournamentVisibility === "private" ? "#FFFFFF" : "#999"}
-                />
-                <Text
-                  style={{
-                    fontSize: FONT.sizes.base,
-                    fontFamily: FONT_FAMILY.bold,
-                    color: tournamentVisibility === "private" ? "#FFFFFF" : "#999",
-                  }}
-                >
-                  Privé
-                </Text>
-              </Pressable>
-            </View>
-
-            {/* Nom du challenge */}
-            <Text
-              style={{
-                fontSize: FONT.sizes.xs,
-                fontFamily: FONT_FAMILY.bold,
-                color: "#B0B0B0",
-                textTransform: "uppercase",
-                letterSpacing: 1.2,
-                marginBottom: 10,
-              }}
-            >
-              NOM DU CHALLENGE
+            {/* Nom du tournoi */}
+            <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#B0B0B0", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 10 }}>
+              NOM DU TOURNOI *
             </Text>
             <TextInput
               value={challengeName}
               onChangeText={setChallengeName}
               placeholder="Ex: Kickflip Masters ✏️"
               placeholderTextColor="#CCCCCC"
-              style={{
-                backgroundColor: "#F8F8FA",
-                borderRadius: 14,
-                paddingHorizontal: 18,
-                paddingVertical: 14,
-                fontSize: FONT.sizes.lg,
-                fontFamily: FONT_FAMILY.regular,
-                color: "#1A1A1A",
-                borderWidth: 1,
-                borderColor: "rgba(0,0,0,0.05)",
-              }}
+              style={{ backgroundColor: "#F8F8FA", borderRadius: 14, paddingHorizontal: 18, paddingVertical: 14, fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.regular, color: "#1A1A1A", borderWidth: 1, borderColor: "rgba(0,0,0,0.05)", marginBottom: 16 }}
               maxLength={60}
             />
+
+            {/* Récompense */}
+            <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#B0B0B0", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 10 }}>
+              RÉCOMPENSE (optionnel)
+            </Text>
+            <TextInput
+              value={tournamentReward}
+              onChangeText={setTournamentReward}
+              placeholder="Ex: Pizza pour l'équipe 🍕"
+              placeholderTextColor="#CCCCCC"
+              style={{ backgroundColor: "#F8F8FA", borderRadius: 14, paddingHorizontal: 18, paddingVertical: 14, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#1A1A1A", borderWidth: 1, borderColor: "rgba(0,0,0,0.05)", marginBottom: 24 }}
+              maxLength={100}
+            />
+
+            {/* Submit */}
+            <AnimatedPressable
+              onPress={handleCreateTournament}
+              disabled={!challengeName.trim() || !tournamentGroupId || isCreatingTournament}
+              style={{ backgroundColor: challengeName.trim() && tournamentGroupId ? PALETTE.fuchsia : "#DDD", paddingVertical: 16, borderRadius: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+            >
+              {isCreatingTournament ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Ionicons name="trophy-outline" size={20} color="#FFFFFF" />
+              )}
+              <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>
+                {isCreatingTournament ? "Création..." : "Créer le tournoi"}
+              </Text>
+            </AnimatedPressable>
           </View>
         </View>
       </ScrollView>
+
+      {/* Create Group Bottom Sheet */}
+      <BottomSheet isOpen={showCreateGroup} onClose={() => { setShowCreateGroup(false); setNewGroupName(""); setNewGroupDesc(""); }} snapPoint={0.5}>
+        <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
+          <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.bold, marginBottom: 20 }}>
+            Créer un groupe
+          </Text>
+          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#B0B0B0", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8 }}>
+            NOM DU GROUPE *
+          </Text>
+          <TextInput
+            value={newGroupName}
+            onChangeText={setNewGroupName}
+            placeholder="Ex: Les Champions 🏆"
+            placeholderTextColor="#CCC"
+            style={{ backgroundColor: "#F8F8FA", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#1A1A1A", borderWidth: 1, borderColor: "rgba(0,0,0,0.06)", marginBottom: 16 }}
+            maxLength={60}
+            autoFocus
+          />
+          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#B0B0B0", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8 }}>
+            DESCRIPTION (optionnel)
+          </Text>
+          <TextInput
+            value={newGroupDesc}
+            onChangeText={setNewGroupDesc}
+            placeholder="Décris ton groupe..."
+            placeholderTextColor="#CCC"
+            multiline
+            numberOfLines={2}
+            style={{ backgroundColor: "#F8F8FA", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#1A1A1A", borderWidth: 1, borderColor: "rgba(0,0,0,0.06)", marginBottom: 24, minHeight: 72, textAlignVertical: "top" }}
+            maxLength={200}
+          />
+          <AnimatedPressable
+            onPress={handleCreateGroup}
+            disabled={!newGroupName.trim() || isCreatingGroup}
+            style={{ backgroundColor: newGroupName.trim() ? PALETTE.sarcelle : "#DDD", paddingVertical: 16, borderRadius: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+          >
+            {isCreatingGroup ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="people-outline" size={20} color="#FFFFFF" />}
+            <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>
+              {isCreatingGroup ? "Création..." : "Créer le groupe"}
+            </Text>
+          </AnimatedPressable>
+        </View>
+      </BottomSheet>
     </View>
   );
 }
