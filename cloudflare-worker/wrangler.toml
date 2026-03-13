@@ -1,0 +1,13 @@
+name = "dumbaward-storage"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "dumbaward"
+
+[vars]
+ALLOWED_ORIGIN = "*"
+
+# Set this secret via: wrangler secret put AUTH_SECRET
+# Use the same value as EXPO_PUBLIC_STORAGE_AUTH_SECRET in your .env

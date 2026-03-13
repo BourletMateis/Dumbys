@@ -1,71 +1,161 @@
-import React from 'react';
-import { SymbolView } from 'expo-symbols';
-import { Link, Tabs } from 'expo-router';
-import { Platform, Pressable } from 'react-native';
+import { Tabs } from "expo-router";
+import { View, Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import { COLORS, GRADIENTS, RADIUS, SPACING } from "@/src/theme";
+import { useTheme } from "@/src/providers/ThemeProvider";
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+const TABS: readonly { name: string; icon: keyof typeof Ionicons.glyphMap; iconOutline: keyof typeof Ionicons.glyphMap; isCenter?: boolean }[] = [
+  { name: "index", icon: "globe", iconOutline: "globe-outline" },
+  { name: "explore", icon: "lock-closed", iconOutline: "lock-closed-outline" },
+  { name: "upload", icon: "add", iconOutline: "add", isCenter: true },
+  { name: "friends", icon: "people", iconOutline: "people-outline" },
+  { name: "profile", icon: "person-circle", iconOutline: "person-circle-outline" },
+];
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+  const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'chevron.left.forwardslash.chevron.right',
-                android: 'code',
-                web: 'code',
-              }}
-              tintColor={color}
-              size={28}
-            />
-          ),
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable style={{ marginRight: 15 }}>
-                {({ pressed }) => (
-                  <SymbolView
-                    name={{ ios: 'info.circle', android: 'info', web: 'info' }}
-                    size={25}
-                    tintColor={Colors[colorScheme].text}
-                    style={{ opacity: pressed ? 0.5 : 1 }}
+    <View
+      style={{
+        position: "absolute",
+        bottom: Math.max(insets.bottom, 12),
+        left: SPACING.lg,
+        right: SPACING.lg,
+      }}
+    >
+      <BlurView
+        intensity={60}
+        tint={isDark ? "dark" : "light"}
+        style={{
+          flexDirection: "row",
+          borderRadius: RADIUS["3xl"],
+          overflow: "hidden",
+          borderWidth: 1,
+          borderColor: colors.borderLight,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            flex: 1,
+            paddingVertical: SPACING.md,
+            paddingHorizontal: SPACING.sm,
+            backgroundColor: colors.elevated + "CC",
+            alignItems: "center",
+          }}
+        >
+          {state.routes.map((route, index) => {
+            const tab = TABS.find((t) => t.name === route.name);
+            if (!tab) return null;
+
+            const isFocused = state.index === index;
+
+            const onPress = () => {
+              Haptics.impactAsync(
+                tab.isCenter
+                  ? Haptics.ImpactFeedbackStyle.Medium
+                  : Haptics.ImpactFeedbackStyle.Light,
+              );
+              const event = navigation.emit({
+                type: "tabPress",
+                target: route.key,
+                canPreventDefault: true,
+              });
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            };
+
+            // Big center "+" button
+            if (tab.isCenter) {
+              return (
+                <Pressable
+                  key={route.key}
+                  onPress={onPress}
+                  style={{
+                    flex: 1,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <LinearGradient
+                    colors={
+                      isFocused
+                        ? [...GRADIENTS.brandAccent]
+                        : [...GRADIENTS.brand]
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{
+                      width: 50,
+                      height: 38,
+                      borderRadius: RADIUS.md,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Ionicons name="add" size={26} color={colors.textPrimary} />
+                  </LinearGradient>
+                </Pressable>
+              );
+            }
+
+            return (
+              <Pressable
+                key={route.key}
+                onPress={onPress}
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingVertical: SPACING.xs,
+                  gap: 3,
+                }}
+              >
+                <Ionicons
+                  name={isFocused ? tab.icon : tab.iconOutline}
+                  size={24}
+                  color={isFocused ? COLORS.brand : colors.textTertiary}
+                />
+                {isFocused && (
+                  <View
+                    style={{
+                      width: 4,
+                      height: 4,
+                      borderRadius: RADIUS.full,
+                      backgroundColor: COLORS.accent,
+                    }}
                   />
                 )}
               </Pressable>
-            </Link>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="two"
-        options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'chevron.left.forwardslash.chevron.right',
-                android: 'code',
-                web: 'code',
-              }}
-              tintColor={color}
-              size={28}
-            />
-          ),
-        }}
-      />
+            );
+          })}
+        </View>
+      </BlurView>
+    </View>
+  );
+}
+
+export default function TabLayout() {
+  return (
+    <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="explore" />
+      <Tabs.Screen name="upload" />
+      <Tabs.Screen name="friends" />
+      <Tabs.Screen name="profile" />
     </Tabs>
   );
 }
