@@ -5,8 +5,9 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
-  FlatList,
+  ScrollView,
   RefreshControl,
+  Dimensions,
 } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -14,545 +15,473 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useMyGroups, type GroupWithRole } from "@/src/features/groups/useMyGroups";
 import {
   usePublicGroups,
   type PublicGroup,
 } from "@/src/features/groups/usePublicGroups";
 import { useChallengeStats } from "@/src/features/groups/useChallengeStats";
 import { useJoinPublicGroup } from "@/src/features/groups/useGroupActions";
+import { useUserProfile } from "@/src/features/profile/useUserProfile";
 import { useTimelineLogic } from "@/src/hooks/useTimelineLogic";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
+import { Avatar } from "@/src/components/ui/Avatar";
 import {
   COLORS,
+  PALETTE,
   GRADIENTS,
   RADIUS,
   SPACING,
   FONT,
   FONT_FAMILY,
-  CARD_STYLE,
-  SECTION_HEADER_STYLE,
-  HEADER_BUTTON_STYLE,
 } from "@/src/theme";
-import { useTheme } from "@/src/providers/ThemeProvider";
 
-function daysUntilNextPhase(phase: string, dayOfWeek: number): string {
-  if (phase === "upload") {
-    const daysLeft = 5 - dayOfWeek;
-    return daysLeft === 0 ? "Last day!" : `${daysLeft}d left`;
-  }
-  if (phase === "vote") {
-    const daysLeft = dayOfWeek === 6 ? 1 : 0;
-    return daysLeft === 0 ? "Last day!" : "1d left";
-  }
-  return "Today";
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const GROUP_CARD_WIDTH = SCREEN_WIDTH * 0.72;
+
+// ─── Decorative blob ────────────────────────────────────────────
+function Blob({ size, color, top, left, right, bottom }: {
+  size: number; color: string;
+  top?: number; left?: number; right?: number; bottom?: number;
+}) {
+  return (
+    <View
+      style={{
+        position: "absolute",
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: color,
+        opacity: 0.12,
+        top, left, right, bottom,
+      }}
+    />
+  );
 }
 
-const PHASE_CONFIG = {
-  upload: {
-    gradient: GRADIENTS.uploadPhase,
-    icon: "flame" as const,
-    title: "Upload your video",
-    subtitle: "Record or pick your funniest video",
-  },
-  vote: {
-    gradient: GRADIENTS.votePhase,
-    icon: "checkmark-circle" as const,
-    title: "Vote for the best!",
-    subtitle: "Watch all videos and pick your favorite",
-  },
-  podium: {
-    gradient: GRADIENTS.podiumPhase,
-    icon: "trophy" as const,
-    title: "Results are in!",
-    subtitle: "Check who won this week",
-  },
-};
+// ─── Group card (horizontal scroll) ─────────────────────────────
+function GroupCard({
+  group,
+  onPress,
+}: {
+  group: GroupWithRole;
+  onPress: () => void;
+}) {
+  // Deterministic color from group name
+  const GROUP_COLORS = [PALETTE.sarcelle, PALETTE.fuchsia, "#3B82F6", "#22C55E", "#F59E0B", "#8B5CF6"];
+  let hash = 0;
+  for (let i = 0; i < group.name.length; i++) {
+    hash = group.name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const avatarColor = GROUP_COLORS[Math.abs(hash) % GROUP_COLORS.length];
+  const initial = group.name.charAt(0).toUpperCase();
 
-type ChallengeFilter = "hot" | "new" | "joined";
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      style={{
+        width: GROUP_CARD_WIDTH,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 20,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: "rgba(0,0,0,0.06)",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        elevation: 2,
+      }}
+    >
+      {/* Top row: avatar + info */}
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 14 }}>
+        {/* Avatar circle */}
+        {group.cover_url ? (
+          <Image
+            source={{ uri: group.cover_url }}
+            style={{ width: 48, height: 48, borderRadius: 24 }}
+            contentFit="cover"
+          />
+        ) : (
+          <View
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              backgroundColor: avatarColor + "18",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold, color: avatarColor }}>
+              {initial}
+            </Text>
+          </View>
+        )}
+
+        <View style={{ marginLeft: 12, flex: 1 }}>
+          <Text
+            style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: "#1A1A1A" }}
+            numberOfLines={1}
+          >
+            {group.name}
+          </Text>
+          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold, color: "#AAA", textTransform: "uppercase", letterSpacing: 0.8, marginTop: 2 }}>
+            {group.member_count} MEMBRES • ACTIF
+          </Text>
+        </View>
+      </View>
+
+      {/* Description */}
+      {group.description ? (
+        <Text
+          style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#666", lineHeight: 20, marginBottom: 14 }}
+          numberOfLines={2}
+        >
+          {group.description}
+        </Text>
+      ) : null}
+
+      {/* Member avatars row */}
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        {/* Stack of small circles */}
+        {[0, 1, 2, 3].map((i) => (
+          <View
+            key={i}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: GROUP_COLORS[(Math.abs(hash) + i) % GROUP_COLORS.length] + "30",
+              borderWidth: 2,
+              borderColor: "#FFFFFF",
+              marginLeft: i > 0 ? -8 : 0,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name="person" size={12} color={GROUP_COLORS[(Math.abs(hash) + i) % GROUP_COLORS.length]} />
+          </View>
+        ))}
+        {group.member_count > 4 && (
+          <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.semibold, color: PALETTE.sarcelle, marginLeft: 6 }}>
+            +{group.member_count - 4}
+          </Text>
+        )}
+      </View>
+    </AnimatedPressable>
+  );
+}
+
+// ─── Demo data for when no groups exist ─────────────────────────
+const DEMO_GROUPS_DATA = [
+  {
+    id: "demo1",
+    name: "Les Branque-Héros",
+    description: "Le groupe où la bêtise est un art. On relève des défis improbable...",
+    member_count: 12,
+    is_public: false,
+  },
+  {
+    id: "demo2",
+    name: "Challenge Crew",
+    description: "Uniquement des défis fous et de la synchro...",
+    member_count: 8,
+    is_public: false,
+  },
+];
 
 export default function HomeScreen() {
-  const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { phase, weekNumber, dayOfWeek } = useTimelineLogic();
-  const {
-    data: groups,
-    isPending,
-    refetch,
-    isRefetching,
-  } = usePublicGroups();
+  const { data: profile } = useUserProfile();
+  const { data: myGroups, isPending: groupsPending, refetch, isRefetching } = useMyGroups();
+  const { data: publicGroups } = usePublicGroups();
   const joinGroup = useJoinPublicGroup();
+  const { weekNumber, phase } = useTimelineLogic();
 
-  const [filter, setFilter] = useState<ChallengeFilter>("hot");
+  // Challenge stats for public groups
+  const publicGroupIds = useMemo(() => (publicGroups ?? []).map((g) => g.id), [publicGroups]);
+  const { data: statsMap } = useChallengeStats(publicGroupIds);
 
-  // Get challenge stats for all groups
-  const groupIds = useMemo(() => (groups ?? []).map((g) => g.id), [groups]);
-  const { data: statsMap } = useChallengeStats(groupIds);
-
-  // Filter & sort challenges
-  const challenges = useMemo(() => {
-    let list = groups ?? [];
-
-    if (filter === "joined") {
-      list = list.filter((g) => g.is_member);
-    }
-
-    if (filter === "hot") {
-      list = [...list].sort((a, b) => {
-        const aCount = statsMap?.get(a.id)?.video_count ?? 0;
-        const bCount = statsMap?.get(b.id)?.video_count ?? 0;
-        if (bCount !== aCount) return bCount - aCount;
-        return b.member_count - a.member_count;
-      });
-    } else if (filter === "new") {
-      list = [...list].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      );
-    }
-
-    return list;
-  }, [groups, filter, statsMap]);
+  const username = profile?.username ?? "Alex";
+  const groups = myGroups ?? [];
 
   const handleJoin = (groupId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     joinGroup.mutate(groupId, {
-      onSuccess: () => {
-        router.push({ pathname: "/feed/[groupId]", params: { groupId } });
-      },
+      onSuccess: () => router.push({ pathname: "/feed/[groupId]", params: { groupId } }),
       onError: (err) => {
         if (err.message.includes("already")) {
           router.push({ pathname: "/feed/[groupId]", params: { groupId } });
         } else {
-          Alert.alert("Error", err.message);
+          Alert.alert("Erreur", err.message);
         }
       },
     });
   };
 
-  const config = PHASE_CONFIG[phase as keyof typeof PHASE_CONFIG] ?? PHASE_CONFIG.upload;
-  const countdown = daysUntilNextPhase(phase, dayOfWeek);
+  return (
+    <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+      {/* Decorative blobs */}
+      <Blob size={200} color={PALETTE.sarcelle} top={-40} right={-60} />
+      <Blob size={160} color={PALETTE.fuchsia} top={300} left={-70} />
 
-  const FILTERS: { key: ChallengeFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { key: "hot", label: "Hot", icon: "flame" },
-    { key: "new", label: "New", icon: "sparkles" },
-    { key: "joined", label: "Joined", icon: "checkmark-circle" },
-  ];
-
-  const renderChallenge = ({ item: group }: { item: PublicGroup }) => {
-    const stats = statsMap?.get(group.id);
-    const videoCount = stats?.video_count ?? 0;
-    const thumbnail = stats?.latest_thumbnail ?? null;
-
-    return (
-      <AnimatedPressable
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          if (group.is_member) {
-            router.push({ pathname: "/feed/[groupId]", params: { groupId: group.id } });
-          } else {
-            handleJoin(group.id);
-          }
-        }}
-        style={{
-          ...CARD_STYLE,
-          overflow: "hidden",
-          marginBottom: SPACING.lg,
-          borderColor: group.is_member
-            ? colors.borderBrand
-            : colors.border,
-        }}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={PALETTE.sarcelle} />
+        }
       >
-        {/* Thumbnail / gradient header */}
-        {thumbnail ? (
-          <View style={{ height: 150, position: "relative" }}>
-            <Image
-              source={{ uri: thumbnail }}
-              style={{ width: "100%", height: "100%" }}
-              contentFit="cover"
-            />
-            <LinearGradient
-              colors={GRADIENTS.overlay as any}
-              style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 70,
-              }}
-            />
-            {videoCount > 0 && (
-              <View
-                style={{
-                  position: "absolute",
-                  top: SPACING.base,
-                  right: SPACING.base,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: SPACING.xs,
-                  backgroundColor: colors.overlay,
-                  paddingHorizontal: SPACING.base,
-                  paddingVertical: SPACING.sm,
-                  borderRadius: RADIUS.xs,
-                }}
-              >
-                <Ionicons name="flame" size={12} color={COLORS.error} />
-                <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.sm, fontWeight: FONT.weights.bold }}>
-                  {videoCount}
-                </Text>
-              </View>
-            )}
-            {group.is_member && (
-              <View
-                style={{
-                  position: "absolute",
-                  top: SPACING.base,
-                  left: SPACING.base,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: SPACING.xs,
-                  backgroundColor: "rgba(255,45,125,0.85)",
-                  paddingHorizontal: SPACING.base,
-                  paddingVertical: SPACING.sm,
-                  borderRadius: RADIUS.xs,
-                }}
-              >
-                <Ionicons name="checkmark-circle" size={12} color={colors.textPrimary} />
-                <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.xs, fontWeight: FONT.weights.bold }}>
-                  Joined
-                </Text>
-              </View>
-            )}
-          </View>
-        ) : (
+        {/* ─── Top bar ──────────────────────────────────────────── */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingTop: insets.top + 8,
+            paddingHorizontal: 20,
+            paddingBottom: 8,
+          }}
+        >
+          {/* Logo */}
           <View
             style={{
-              height: 110,
-              backgroundColor: colors.glass,
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: PALETTE.fuchsia + "15",
               alignItems: "center",
               justifyContent: "center",
-              position: "relative",
             }}
           >
-            <Ionicons name="trophy" size={36} color={colors.textMuted} />
-            {videoCount > 0 && (
-              <View
-                style={{
-                  position: "absolute",
-                  top: SPACING.base,
-                  right: SPACING.base,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: SPACING.xs,
-                  backgroundColor: colors.overlay,
-                  paddingHorizontal: SPACING.base,
-                  paddingVertical: SPACING.sm,
-                  borderRadius: RADIUS.xs,
-                }}
-              >
-                <Ionicons name="flame" size={12} color={COLORS.error} />
-                <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.sm, fontWeight: FONT.weights.bold }}>
-                  {videoCount}
-                </Text>
-              </View>
-            )}
-            {group.is_member && (
-              <View
-                style={{
-                  position: "absolute",
-                  top: SPACING.base,
-                  left: SPACING.base,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: SPACING.xs,
-                  backgroundColor: "rgba(255,45,125,0.85)",
-                  paddingHorizontal: SPACING.base,
-                  paddingVertical: SPACING.sm,
-                  borderRadius: RADIUS.xs,
-                }}
-              >
-                <Ionicons name="checkmark-circle" size={12} color={colors.textPrimary} />
-                <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.xs, fontWeight: FONT.weights.bold }}>
-                  Joined
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Challenge info */}
-        <View style={{ padding: SPACING.lg }}>
-          <Text
-            style={{ color: colors.textPrimary, fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold }}
-            numberOfLines={2}
-          >
-            {group.name}
-          </Text>
-          {group.description && (
-            <Text
-              style={{ color: colors.textSecondary, fontSize: FONT.sizes.md, marginTop: SPACING.xs, lineHeight: 19 }}
-              numberOfLines={2}
-            >
-              {group.description}
+            <Text style={{ fontSize: 22, fontFamily: FONT_FAMILY.black, color: PALETTE.fuchsia }}>
+              D
             </Text>
-          )}
-
-          {/* Prize / Goal */}
-          {(group.prize || group.goal_description) && (
-            <View style={{ marginTop: SPACING.md, gap: SPACING.xs }}>
-              {group.goal_description && (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.sm }}>
-                  <Ionicons name="flag" size={12} color={COLORS.warning} />
-                  <Text style={{ color: COLORS.warning, fontSize: FONT.sizes.sm, fontWeight: FONT.weights.medium }} numberOfLines={1}>
-                    {group.goal_description}
-                  </Text>
-                </View>
-              )}
-              {group.prize && (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.sm }}>
-                  <Ionicons name="gift" size={12} color={COLORS.accent} />
-                  <Text style={{ color: COLORS.accent, fontSize: FONT.sizes.sm, fontWeight: FONT.weights.medium }} numberOfLines={1}>
-                    {group.prize}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* Stats row */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: SPACING.lg,
-              marginTop: SPACING.base,
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.sm }}>
-              <Ionicons name="people" size={14} color={colors.textTertiary} />
-              <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.md, fontWeight: FONT.weights.medium }}>
-                {group.member_count} participant{group.member_count !== 1 ? "s" : ""}
-              </Text>
-            </View>
-            {videoCount > 0 && (
-              <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.sm }}>
-                <Ionicons name="flame" size={14} color={COLORS.error} />
-                <Text style={{ color: COLORS.error, fontSize: FONT.sizes.md, fontWeight: FONT.weights.semibold }}>
-                  {videoCount} this week
-                </Text>
-              </View>
-            )}
           </View>
 
-          {/* Join button */}
-          {!group.is_member && (
-            <Pressable
-              onPress={() => handleJoin(group.id)}
-              disabled={joinGroup.isPending}
-              style={{ marginTop: SPACING.lg, borderRadius: RADIUS.md, overflow: "hidden" }}
-            >
-              <LinearGradient
-                colors={GRADIENTS.brandAccent as any}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{
-                  paddingVertical: SPACING.base,
-                  borderRadius: RADIUS.md,
-                  alignItems: "center",
-                  flexDirection: "row",
-                  justifyContent: "center",
-                  gap: SPACING.sm,
-                }}
-              >
-                <Ionicons name="flash" size={16} color={colors.textPrimary} />
-                <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.base, fontWeight: FONT.weights.bold }}>
-                  Join Challenge
-                </Text>
-              </LinearGradient>
+          {/* Search + Notification */}
+          <View style={{ flexDirection: "row", gap: 16, alignItems: "center" }}>
+            <Pressable hitSlop={8}>
+              <Ionicons name="search-outline" size={24} color="#333" />
             </Pressable>
-          )}
-        </View>
-      </AnimatedPressable>
-    );
-  };
-
-  const ListHeader = (
-    <>
-      {/* Header */}
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: SPACING.xl }}>
-        <Text style={{ color: COLORS.accent, fontSize: FONT.sizes["4xl"], fontFamily: FONT_FAMILY.black }}>
-          Dumbys
-        </Text>
-        <Pressable style={HEADER_BUTTON_STYLE as any}>
-          <Ionicons name="notifications-outline" size={20} color={colors.textTertiary} />
-        </Pressable>
-      </View>
-
-      {/* Phase Banner */}
-      <LinearGradient
-        colors={config.gradient as any}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ borderRadius: RADIUS.xl, padding: SPACING.xl, marginBottom: SPACING["2xl"] }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: SPACING.md }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.md }}>
-            <Ionicons name={config.icon} size={18} color={colors.textPrimary} />
-            <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.base, fontWeight: FONT.weights.bold }}>
-              Week {weekNumber}
-            </Text>
-          </View>
-          <View style={{ backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: SPACING.base, paddingVertical: SPACING.xs, borderRadius: RADIUS.full }}>
-            <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.xs, fontWeight: FONT.weights.bold }}>{countdown}</Text>
-          </View>
-        </View>
-
-        <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.extrabold, marginBottom: SPACING.xs }}>
-          {config.title}
-        </Text>
-        <Text style={{ color: "rgba(255,255,255,0.65)", fontSize: FONT.sizes.md }}>
-          {config.subtitle}
-        </Text>
-
-        {/* Timeline dots */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.xs, marginTop: SPACING.lg }}>
-          {["M", "T", "W", "T", "F", "S", "S"].map((day, i) => {
-            const dayIndex = i === 0 ? 1 : i === 1 ? 2 : i === 2 ? 3 : i === 3 ? 4 : i === 4 ? 5 : i === 5 ? 6 : 0;
-            const isToday = dayIndex === dayOfWeek;
-            const isPast = (dayOfWeek === 0 ? 7 : dayOfWeek) > (dayIndex === 0 ? 7 : dayIndex);
-            return (
-              <View key={i} style={{ flex: 1, alignItems: "center" }}>
+            <Pressable hitSlop={8}>
+              <View style={{ position: "relative" }}>
+                <Ionicons name="notifications-outline" size={24} color="#333" />
+                {/* Red notification dot */}
                 <View
                   style={{
-                    width: isToday ? 28 : 24,
-                    height: isToday ? 28 : 24,
-                    borderRadius: RADIUS.full,
-                    backgroundColor: isToday
-                      ? colors.textPrimary
-                      : isPast
-                        ? "rgba(255,255,255,0.25)"
-                        : "rgba(255,255,255,0.08)",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    position: "absolute",
+                    top: -2,
+                    right: -2,
+                    width: 10,
+                    height: 10,
+                    borderRadius: 5,
+                    backgroundColor: PALETTE.fuchsia,
+                    borderWidth: 2,
+                    borderColor: "#FFFFFF",
                   }}
-                >
-                  <Text
-                    style={{
-                      color: isToday ? config.gradient[0] : "rgba(255,255,255,0.7)",
-                      fontSize: FONT.sizes.xs,
-                      fontWeight: FONT.weights.bold,
-                    }}
-                  >
-                    {day}
-                  </Text>
-                </View>
+                />
               </View>
-            );
-          })}
+            </Pressable>
+          </View>
         </View>
-      </LinearGradient>
 
-      {/* Filter chips */}
-      <View style={{ flexDirection: "row", gap: SPACING.md, marginBottom: SPACING.xl }}>
-        {FILTERS.map((f) => (
-          <AnimatedPressable
-            key={f.key}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setFilter(f.key);
-            }}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: SPACING.sm,
-              paddingHorizontal: SPACING.lg,
-              paddingVertical: SPACING.base,
-              borderRadius: RADIUS.sm,
-              backgroundColor:
-                filter === f.key ? COLORS.brand : colors.glass,
-              borderWidth: 1,
-              borderColor:
-                filter === f.key ? colors.borderBrand : colors.border,
-            }}
-          >
-            <Ionicons
-              name={f.icon}
-              size={14}
-              color={
-                filter === f.key
-                  ? colors.textPrimary
-                  : f.key === "hot"
-                    ? COLORS.error
-                    : colors.textTertiary
-              }
-            />
-            <Text
-              style={{
-                color: filter === f.key ? colors.textPrimary : colors.textSecondary,
-                fontSize: FONT.sizes.base,
-                fontWeight: FONT.weights.semibold,
+        {/* ─── Greeting ─────────────────────────────────────────── */}
+        <View style={{ paddingHorizontal: 20, marginTop: 20, marginBottom: 28 }}>
+          <Text style={{ fontSize: FONT.sizes["4xl"], fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
+            {"Salut " + username + " ! 🤘"}
+          </Text>
+          <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#999", marginTop: 4 }}>
+            {"Prêt pour un nouveau défi aujourd'hui ?"}
+          </Text>
+        </View>
+
+        {/* ─── Mes Groupes ──────────────────────────────────────── */}
+        <View style={{ marginBottom: 32 }}>
+          {/* Section header */}
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, marginBottom: 16 }}>
+            <Text style={{ fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
+              Mes Groupes
+            </Text>
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                // Navigate to explore
               }}
             >
-              {f.label}
-            </Text>
-          </AnimatedPressable>
-        ))}
-      </View>
+              <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: PALETTE.sarcelle, textTransform: "uppercase" }}>
+                VOIR TOUT
+              </Text>
+            </Pressable>
+          </View>
 
-      {/* Section header */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.sm, marginBottom: SPACING.lg }}>
-        <Ionicons name="globe" size={12} color={colors.textTertiary} />
-        <Text style={SECTION_HEADER_STYLE as any}>
-          Public Challenges
-        </Text>
-      </View>
-    </>
-  );
-
-  return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <FlatList
-        data={challenges}
-        keyExtractor={(item) => item.id}
-        renderItem={renderChallenge}
-        ListHeaderComponent={ListHeader}
-        ListEmptyComponent={
-          isPending ? (
-            <View style={{ alignItems: "center", paddingVertical: SPACING["5xl"] }}>
-              <ActivityIndicator size="large" color={COLORS.brand} />
+          {/* Horizontal scroll of group cards */}
+          {groupsPending ? (
+            <View style={{ alignItems: "center", paddingVertical: 40 }}>
+              <ActivityIndicator size="large" color={PALETTE.sarcelle} />
             </View>
           ) : (
-            <View style={{ alignItems: "center", paddingVertical: SPACING["5xl"], paddingHorizontal: SPACING["3xl"] }}>
-              <Ionicons name="globe-outline" size={48} color={colors.textMuted} />
-              <Text
-                style={{
-                  color: colors.textTertiary,
-                  fontSize: FONT.sizes.lg,
-                  fontWeight: FONT.weights.semibold,
-                  marginTop: SPACING.base,
-                  textAlign: "center",
-                }}
-              >
-                {filter === "joined"
-                  ? "You haven't joined any public challenges yet"
-                  : "No public challenges available"}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
+              decelerationRate="fast"
+              snapToInterval={GROUP_CARD_WIDTH + 14}
+              snapToAlignment="start"
+            >
+              {groups.length > 0
+                ? groups.map((group) => (
+                    <GroupCard
+                      key={group.id}
+                      group={group}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        router.push({ pathname: "/feed/[groupId]", params: { groupId: group.id } });
+                      }}
+                    />
+                  ))
+                : DEMO_GROUPS_DATA.map((demo) => (
+                    <GroupCard
+                      key={demo.id}
+                      group={demo as any}
+                      onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                    />
+                  ))}
+            </ScrollView>
+          )}
+        </View>
+
+        {/* ─── Tournois Actifs ──────────────────────────────────── */}
+        <View style={{ paddingHorizontal: 20 }}>
+          {/* Section header */}
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <Text style={{ fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
+              Tournois Actifs
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: PALETTE.fuchsia }} />
+              <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: PALETTE.sarcelle, textTransform: "uppercase" }}>
+                EN DIRECT
               </Text>
             </View>
-          )
-        }
-        contentContainerStyle={{
-          paddingTop: insets.top + SPACING.md,
-          paddingHorizontal: SPACING.lg,
-          paddingBottom: 120,
-        }}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={COLORS.brand}
-          />
-        }
-        showsVerticalScrollIndicator={false}
-      />
+          </View>
+
+          {/* Tournament card (dark) */}
+          {(() => {
+            // Pick first public group as featured tournament, or use demo
+            const featured = (publicGroups ?? []).find((g) => g.is_member) ?? (publicGroups ?? [])[0];
+            const stats = featured ? statsMap?.get(featured.id) : null;
+            const videoCount = stats?.video_count ?? 3;
+            const totalDefis = 5;
+
+            return (
+              <View
+                style={{
+                  borderRadius: 24,
+                  overflow: "hidden",
+                }}
+              >
+                <LinearGradient
+                  colors={["#1A1A2E", "#16213E"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    padding: 24,
+                    borderRadius: 24,
+                  }}
+                >
+                  {/* Top row: title + rank badge */}
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                    <Text
+                      style={{ fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.extrabold, color: "#FFFFFF", flex: 1 }}
+                      numberOfLines={1}
+                    >
+                      {featured?.name ?? "Défis de l'Été Extrême"}
+                    </Text>
+                    <View
+                      style={{
+                        backgroundColor: PALETTE.fuchsia,
+                        paddingHorizontal: 12,
+                        paddingVertical: 5,
+                        borderRadius: 14,
+                        marginLeft: 10,
+                      }}
+                    >
+                      <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.black, color: "#FFFFFF", textTransform: "uppercase" }}>
+                        RANG #{42}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Organizer */}
+                  <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "rgba(255,255,255,0.5)", marginBottom: 20 }}>
+                    Organisé par Dumbys Off.
+                  </Text>
+
+                  {/* Progression */}
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 1 }}>
+                      PROGRESSION
+                    </Text>
+                    <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      {videoCount} / {totalDefis} DÉFIS
+                    </Text>
+                  </View>
+
+                  {/* Progress bar */}
+                  <View
+                    style={{
+                      height: 8,
+                      backgroundColor: "rgba(255,255,255,0.12)",
+                      borderRadius: 4,
+                      marginBottom: 24,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <LinearGradient
+                      colors={[PALETTE.fuchsia, "#FF6B6B"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={{
+                        height: "100%",
+                        width: `${(videoCount / totalDefis) * 100}%`,
+                        borderRadius: 4,
+                      }}
+                    />
+                  </View>
+
+                  {/* CTA button */}
+                  <AnimatedPressable
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      if (featured) {
+                        if (featured.is_member) {
+                          router.push({ pathname: "/feed/[groupId]", params: { groupId: featured.id } });
+                        } else {
+                          handleJoin(featured.id);
+                        }
+                      }
+                    }}
+                    style={{
+                      backgroundColor: "#FFFFFF",
+                      paddingVertical: 16,
+                      borderRadius: 16,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      RELEVER LE PROCHAIN DÉFI
+                    </Text>
+                  </AnimatedPressable>
+                </LinearGradient>
+              </View>
+            );
+          })()}
+        </View>
+      </ScrollView>
     </View>
   );
 }
