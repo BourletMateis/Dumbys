@@ -11,6 +11,27 @@ export type GroupStatus = "private" | "pending_public" | "approved_public";
 export type GroupRole = "owner" | "admin" | "member";
 export type ChallengeType = "private" | "public";
 
+// V4 — Challenges
+export interface Challenge {
+  id: string;
+  tournament_id: string;
+  title: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+// V4 — Group Tournaments
+export interface GroupTournament {
+  id: string;
+  group_id: string;
+  title: string;
+  description: string | null;
+  reward: string | null;
+  created_by: string;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -163,6 +184,7 @@ export interface Database {
           id: string;
           submitter_id: string;
           group_id: string | null;
+          challenge_id: string | null;
           category_id: string | null;
           source_url: string | null;
           video_path: string | null;
@@ -178,6 +200,7 @@ export interface Database {
           id?: string;
           submitter_id: string;
           group_id?: string | null;
+          challenge_id?: string | null;
           category_id?: string | null;
           source_url?: string | null;
           video_path?: string | null;
@@ -193,6 +216,7 @@ export interface Database {
           id?: string;
           submitter_id?: string;
           group_id?: string | null;
+          challenge_id?: string | null;
           category_id?: string | null;
           source_url?: string | null;
           video_path?: string | null;
@@ -313,6 +337,63 @@ export interface Database {
           year?: number;
           rank?: number;
           vote_count?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      group_tournaments: {
+        Row: {
+          id: string;
+          group_id: string;
+          title: string;
+          description: string | null;
+          reward: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          group_id: string;
+          title: string;
+          description?: string | null;
+          reward?: string | null;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          group_id?: string;
+          title?: string;
+          description?: string | null;
+          reward?: string | null;
+          created_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      challenges: {
+        Row: {
+          id: string;
+          tournament_id: string;
+          title: string;
+          description: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tournament_id: string;
+          title: string;
+          description?: string | null;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          tournament_id?: string;
+          title?: string;
+          description?: string | null;
+          created_by?: string;
           created_at?: string;
         };
         Relationships: [];

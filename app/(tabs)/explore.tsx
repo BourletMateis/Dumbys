@@ -17,6 +17,8 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCategoryFeed, type CategoryVideo } from "@/src/features/groups/useCategoryFeed";
+import { useDiscoverFeed } from "@/src/features/groups/useDiscoverFeed";
+import { useMyTournaments, useTournamentFeed } from "@/src/features/groups/useTournamentFeed";
 import { PUBLIC_CATEGORIES } from "@/src/features/groups/usePublicGroups";
 import { useLikeCount, useHasLiked, useToggleLike } from "@/src/features/feed/useLikes";
 import { useCommentCount } from "@/src/features/feed/useComments";
@@ -345,10 +347,22 @@ export default function ExploreScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isFocused, setIsFocused] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
 
-  // Default to first category for "decouvrir"
-  const feedCategory = selectedCategory ?? "comedy";
-  const { data: videos, isPending, refetch } = useCategoryFeed(feedCategory);
+  // Hooks data par section
+  const discoverQuery = useDiscoverFeed();
+  const categoryQuery = useCategoryFeed(selectedCategory ?? "comedy");
+  const { data: myTournaments } = useMyTournaments();
+  const tournamentFeedQuery = useTournamentFeed(selectedTournamentId ?? "");
+
+  // Sélection du bon feed selon l'onglet actif
+  const activeQuery =
+    activeTab === "decouvrir" ? discoverQuery
+    : activeTab === "categories" ? categoryQuery
+    : tournamentFeedQuery;
+
+  const videos = activeQuery.data;
+  const isPending = activeQuery.isPending;
 
   // Track screen focus to pause videos when navigating away
   useFocusEffect(
@@ -468,10 +482,60 @@ export default function ExploreScreen() {
             ))}
           </View>
         )}
+
+        {/* Tournament pills (show when tournois tab is active) */}
+        {activeTab === "tournois" && (myTournaments ?? []).length > 0 && (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+            {(myTournaments ?? []).map((t) => (
+              <AnimatedPressable
+                key={t.id}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setSelectedTournamentId(t.id);
+                }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  backgroundColor: selectedTournamentId === t.id ? PALETTE.fuchsia : "rgba(255,255,255,0.12)",
+                  paddingHorizontal: 12,
+                  paddingVertical: 7,
+                  borderRadius: 16,
+                }}
+              >
+                <Ionicons name="trophy-outline" size={14} color={selectedTournamentId === t.id ? "#FFF" : PALETTE.jaune} />
+                <Text
+                  style={{
+                    fontSize: FONT.sizes.xs,
+                    fontFamily: FONT_FAMILY.semibold,
+                    color: selectedTournamentId === t.id ? "#FFF" : "rgba(255,255,255,0.8)",
+                  }}
+                  numberOfLines={1}
+                >
+                  {t.title}
+                </Text>
+              </AnimatedPressable>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* ── Video Feed ── */}
-      {isPending ? (
+      {activeTab === "tournois" && !selectedTournamentId ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 }}>
+          <Ionicons name="trophy-outline" size={56} color="#555" />
+          <Text style={{ color: "#888", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold, marginTop: 16, textAlign: "center" }}>
+            {(myTournaments ?? []).length === 0
+              ? "Aucun tournoi disponible"
+              : "Sélectionne un tournoi"}
+          </Text>
+          <Text style={{ color: "#666", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, marginTop: 6, textAlign: "center" }}>
+            {(myTournaments ?? []).length === 0
+              ? "Rejoins un groupe pour voir ses tournois."
+              : "Choisis un tournoi ci-dessus pour voir ses vidéos."}
+          </Text>
+        </View>
+      ) : isPending ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator size="large" color={PALETTE.sarcelle} />
         </View>
