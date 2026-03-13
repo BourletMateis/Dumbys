@@ -168,19 +168,19 @@ export const FONT = {
   },
 } as const;
 
-// ─── Reusable Style Patterns ────────────────────────────────────
+// ─── Reusable Style Patterns (Light Theme) ─────────────────────
 export const CARD_STYLE = {
-  backgroundColor: COLORS.card,
+  backgroundColor: "#FFFFFF",
   borderRadius: RADIUS.xl,
   borderWidth: 1,
-  borderColor: COLORS.border,
+  borderColor: "rgba(0,0,0,0.06)",
 } as const;
 
 export const INPUT_STYLE = {
-  backgroundColor: COLORS.glassLight,
+  backgroundColor: "rgba(0,0,0,0.04)",
   borderWidth: 1,
-  borderColor: COLORS.border,
-  color: COLORS.textPrimary,
+  borderColor: "rgba(0,0,0,0.06)",
+  color: "#1A1A1A",
   paddingHorizontal: 18,
   paddingVertical: 15,
   borderRadius: RADIUS.md,
@@ -188,7 +188,7 @@ export const INPUT_STYLE = {
 } as const;
 
 export const SECTION_HEADER_STYLE = {
-  color: COLORS.textTertiary,
+  color: "#999999",
   fontSize: FONT.sizes.xs,
   fontWeight: FONT.weights.bold,
   textTransform: "uppercase" as const,
@@ -199,11 +199,11 @@ export const HEADER_BUTTON_STYLE = {
   width: 40,
   height: 40,
   borderRadius: RADIUS.sm,
-  backgroundColor: COLORS.glass,
+  backgroundColor: "rgba(0,0,0,0.04)",
   alignItems: "center" as const,
   justifyContent: "center" as const,
   borderWidth: 1,
-  borderColor: COLORS.border,
+  borderColor: "rgba(0,0,0,0.06)",
 };
 
 // Avatar color palette (deterministic from username hash)

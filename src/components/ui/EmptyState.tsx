@@ -1,7 +1,6 @@
 import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, RADIUS, FONT, FONT_FAMILY } from "@/src/theme";
-import { useTheme } from "@/src/providers/ThemeProvider";
+import { PALETTE, RADIUS, FONT, FONT_FAMILY } from "@/src/theme";
 
 type EmptyStateProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -18,8 +17,6 @@ export function EmptyState({
   actionLabel,
   onAction,
 }: EmptyStateProps) {
-  const { colors } = useTheme();
-
   return (
     <View style={{ alignItems: "center", justifyContent: "center", paddingVertical: 64, paddingHorizontal: 32 }}>
       <View
@@ -27,17 +24,17 @@ export function EmptyState({
           width: 80,
           height: 80,
           borderRadius: 40,
-          backgroundColor: "rgba(255,45,125,0.12)",
+          backgroundColor: PALETTE.sarcelle + "15",
           alignItems: "center",
           justifyContent: "center",
           marginBottom: 20,
         }}
       >
-        <Ionicons name={icon} size={36} color={COLORS.brand} />
+        <Ionicons name={icon} size={36} color={PALETTE.sarcelle} />
       </View>
       <Text
         style={{
-          color: colors.textPrimary,
+          color: "#1A1A1A",
           fontSize: FONT.sizes.lg,
           fontFamily: FONT_FAMILY.bold,
           textAlign: "center",
@@ -49,8 +46,9 @@ export function EmptyState({
       {subtitle && (
         <Text
           style={{
-            color: colors.textSecondary,
+            color: "#999",
             fontSize: FONT.sizes.sm,
+            fontFamily: FONT_FAMILY.regular,
             textAlign: "center",
             marginBottom: 24,
           }}
@@ -62,7 +60,7 @@ export function EmptyState({
         <Pressable
           onPress={onAction}
           style={({ pressed }) => ({
-            backgroundColor: COLORS.brand,
+            backgroundColor: PALETTE.sarcelle,
             paddingHorizontal: 24,
             paddingVertical: 12,
             borderRadius: RADIUS.full,

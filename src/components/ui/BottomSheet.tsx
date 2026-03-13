@@ -21,15 +21,14 @@ import {
   GestureDetector,
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
-import { COLORS, RADIUS } from "@/src/theme";
-import { useTheme } from "@/src/providers/ThemeProvider";
+import { RADIUS } from "@/src/theme";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 type BottomSheetProps = {
   isOpen: boolean;
   onClose: () => void;
-  snapPoint?: number; // percentage of screen height (default 0.5)
+  snapPoint?: number;
   children: React.ReactNode;
 };
 
@@ -39,7 +38,6 @@ export function BottomSheet({
   snapPoint = 0.5,
   children,
 }: BottomSheetProps) {
-  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const backdropOpacity = useSharedValue(0);
@@ -49,41 +47,27 @@ export function BottomSheet({
 
   useEffect(() => {
     if (isOpen) {
-      translateY.value = withSpring(maxTranslate, {
-        damping: 25,
-        stiffness: 200,
-      });
+      translateY.value = withSpring(maxTranslate, { damping: 25, stiffness: 200 });
       backdropOpacity.value = withTiming(1, { duration: 200 });
     } else {
-      translateY.value = withSpring(SCREEN_HEIGHT, {
-        damping: 25,
-        stiffness: 200,
-      });
+      translateY.value = withSpring(SCREEN_HEIGHT, { damping: 25, stiffness: 200 });
       backdropOpacity.value = withTiming(0, { duration: 200 });
     }
   }, [isOpen]);
 
   const gesture = Gesture.Pan()
-    .onStart(() => {
-      context.value = translateY.value;
-    })
+    .onStart(() => { context.value = translateY.value; })
     .onUpdate((event) => {
       const newY = context.value + event.translationY;
       translateY.value = Math.max(newY, maxTranslate);
     })
     .onEnd((event) => {
       if (event.translationY > 100 || event.velocityY > 500) {
-        translateY.value = withSpring(SCREEN_HEIGHT, {
-          damping: 25,
-          stiffness: 200,
-        });
+        translateY.value = withSpring(SCREEN_HEIGHT, { damping: 25, stiffness: 200 });
         backdropOpacity.value = withTiming(0, { duration: 200 });
         runOnJS(onClose)();
       } else {
-        translateY.value = withSpring(maxTranslate, {
-          damping: 25,
-          stiffness: 200,
-        });
+        translateY.value = withSpring(maxTranslate, { damping: 25, stiffness: 200 });
       }
     });
 
@@ -98,32 +82,16 @@ export function BottomSheet({
   if (!isOpen) return null;
 
   return (
-    <Modal
-      visible={isOpen}
-      transparent
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={onClose}
-    >
+    <Modal visible={isOpen} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         {/* Backdrop */}
         <Animated.View
           style={[
-            {
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: colors.overlay,
-            },
+            { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.35)" },
             backdropStyle,
           ]}
         >
-          <Pressable
-            style={{ flex: 1 }}
-            onPress={onClose}
-          />
+          <Pressable style={{ flex: 1 }} onPress={onClose} />
         </Animated.View>
 
         {/* Sheet */}
@@ -135,29 +103,24 @@ export function BottomSheet({
                 left: 0,
                 right: 0,
                 height: SCREEN_HEIGHT,
-                backgroundColor: colors.elevated,
+                backgroundColor: "#FFFFFF",
                 borderTopLeftRadius: RADIUS.xl,
                 borderTopRightRadius: RADIUS.xl,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: -4 },
+                shadowOpacity: 0.08,
+                shadowRadius: 12,
+                elevation: 12,
               },
               sheetStyle,
             ]}
           >
             {/* Handle */}
             <View style={{ alignItems: "center", paddingTop: 12, paddingBottom: 8 }}>
-              <View
-                style={{
-                  width: 40,
-                  height: 4,
-                  borderRadius: 2,
-                  backgroundColor: colors.textMuted,
-                }}
-              />
+              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: "#D0D0D0" }} />
             </View>
 
-            <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : undefined}
-              style={{ flex: 1 }}
-            >
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
               <ScrollView
                 bounces={false}
                 showsVerticalScrollIndicator={false}

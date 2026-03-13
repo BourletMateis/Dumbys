@@ -29,8 +29,7 @@ import { useTimelineLogic } from "@/src/hooks/useTimelineLogic";
 import { supabase } from "@/src/lib/supabase";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { BottomSheet } from "@/src/components/ui/BottomSheet";
-import { COLORS, GRADIENTS, RADIUS, FONT, FONT_FAMILY, INPUT_STYLE, SECTION_HEADER_STYLE } from "@/src/theme";
-import { useTheme } from "@/src/providers/ThemeProvider";
+import { PALETTE, COLORS, GRADIENTS, RADIUS, FONT, FONT_FAMILY, INPUT_STYLE, SECTION_HEADER_STYLE } from "@/src/theme";
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -51,7 +50,6 @@ function FeedItem({
   onVote: () => void;
   forcePaused?: boolean;
 }) {
-  const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [descExpanded, setDescExpanded] = useState(false);
@@ -78,7 +76,6 @@ function FeedItem({
     }
   }, [isActive, isPaused, forcePaused, player]);
 
-  // Reset pause state when becoming inactive
   useEffect(() => {
     if (!isActive) setIsPaused(false);
   }, [isActive]);
@@ -92,7 +89,6 @@ function FeedItem({
     ]).start();
   };
 
-  // Spammable hearts
   const [hearts, setHearts] = useState<
     { id: number; x: number; y: number; size: number; rotation: number; anim: Animated.Value }[]
   >([]);
@@ -133,7 +129,6 @@ function FeedItem({
     lastTap.current = now;
 
     if (isDoubleTap) {
-      // Cancel pending single-tap action
       if (singleTapTimer.current) {
         clearTimeout(singleTapTimer.current);
         singleTapTimer.current = null;
@@ -144,7 +139,6 @@ function FeedItem({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       spawnHeart();
     } else {
-      // Delay single-tap to distinguish from double-tap
       singleTapTimer.current = setTimeout(() => {
         singleTapTimer.current = null;
         setIsPaused((prev) => !prev);
@@ -174,7 +168,7 @@ function FeedItem({
   return (
     <Pressable
       onPress={handleTap}
-      style={{ height: SCREEN_HEIGHT, width: SCREEN_WIDTH, backgroundColor: colors.bg }}
+      style={{ height: SCREEN_HEIGHT, width: SCREEN_WIDTH, backgroundColor: "#000" }}
     >
       {/* Thumbnail fallback behind video */}
       {video.thumbnail_url && (
@@ -191,7 +185,7 @@ function FeedItem({
         />
       )}
 
-      {/* Video player (expo-video) */}
+      {/* Video player */}
       {video.source_url && player ? (
         <VideoView
           player={player}
@@ -201,12 +195,12 @@ function FeedItem({
         />
       ) : !video.source_url ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <Ionicons name="videocam-off-outline" size={48} color={colors.textMuted} />
-          <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.md, marginTop: 8 }}>Video unavailable</Text>
+          <Ionicons name="videocam-off-outline" size={48} color="#666" />
+          <Text style={{ color: "#999", fontSize: FONT.sizes.md, fontFamily: FONT_FAMILY.regular, marginTop: 8 }}>Vidéo indisponible</Text>
         </View>
       ) : null}
 
-      {/* Spammable heart animations */}
+      {/* Heart animations */}
       {hearts.map((h) => (
         <Animated.View
           key={h.id}
@@ -236,7 +230,7 @@ function FeedItem({
             ],
           }}
         >
-          <Ionicons name="heart" size={h.size} color={COLORS.error} />
+          <Ionicons name="heart" size={h.size} color="#F43F5E" />
         </Animated.View>
       ))}
 
@@ -267,12 +261,12 @@ function FeedItem({
             width: 72,
             height: 72,
             borderRadius: 36,
-            backgroundColor: colors.overlay,
+            backgroundColor: "rgba(0,0,0,0.55)",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Ionicons name={isPaused ? "play" : "pause"} size={36} color={colors.textPrimary} />
+          <Ionicons name={isPaused ? "play" : "pause"} size={36} color="#FFFFFF" />
         </View>
       </Animated.View>
 
@@ -301,7 +295,7 @@ function FeedItem({
                 height: 46,
                 borderRadius: 23,
                 borderWidth: 2,
-                borderColor: colors.textPrimary,
+                borderColor: "#FFFFFF",
               }}
             />
           ) : (
@@ -310,14 +304,14 @@ function FeedItem({
                 width: 46,
                 height: 46,
                 borderRadius: 23,
-                backgroundColor: COLORS.brand,
+                backgroundColor: PALETTE.sarcelle,
                 alignItems: "center",
                 justifyContent: "center",
                 borderWidth: 2,
-                borderColor: colors.textPrimary,
+                borderColor: "#FFFFFF",
               }}
             >
-              <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.lg, fontWeight: FONT.weights.bold }}>
+              <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>
                 {video.submitter.username.charAt(0).toUpperCase()}
               </Text>
             </View>
@@ -331,7 +325,7 @@ function FeedItem({
               width: 46,
               height: 46,
               borderRadius: RADIUS.full,
-              backgroundColor: hasLiked ? "rgba(244,63,94,0.2)" : colors.glass,
+              backgroundColor: hasLiked ? "rgba(244,63,94,0.2)" : "rgba(255,255,255,0.15)",
               alignItems: "center",
               justifyContent: "center",
             }}
@@ -339,10 +333,10 @@ function FeedItem({
             <Ionicons
               name={hasLiked ? "heart" : "heart-outline"}
               size={26}
-              color={hasLiked ? COLORS.error : colors.textPrimary}
+              color={hasLiked ? "#F43F5E" : "#FFFFFF"}
             />
           </View>
-          <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.xs, fontWeight: FONT.weights.semibold, marginTop: 3 }}>
+          <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold, marginTop: 3 }}>
             {likeCount ?? 0}
           </Text>
         </Pressable>
@@ -354,14 +348,14 @@ function FeedItem({
               width: 46,
               height: 46,
               borderRadius: RADIUS.full,
-              backgroundColor: colors.glass,
+              backgroundColor: "rgba(255,255,255,0.15)",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Ionicons name="chatbubble-outline" size={24} color={colors.textPrimary} />
+            <Ionicons name="chatbubble-outline" size={24} color="#FFFFFF" />
           </View>
-          <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.xs, fontWeight: FONT.weights.semibold, marginTop: 3 }}>
+          <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold, marginTop: 3 }}>
             {commentCount ?? 0}
           </Text>
         </Pressable>
@@ -380,20 +374,18 @@ function FeedItem({
                 width: 46,
                 height: 46,
                 borderRadius: RADIUS.full,
-                backgroundColor: isVoted ? COLORS.brand : colors.glass,
+                backgroundColor: isVoted ? PALETTE.sarcelle : "rgba(255,255,255,0.15)",
                 alignItems: "center",
                 justifyContent: "center",
-                borderWidth: isVoted ? 0 : 1,
-                borderColor: colors.border,
               }}
             >
               <Ionicons
                 name={isVoted ? "checkmark-circle" : "trophy-outline"}
                 size={24}
-                color={colors.textPrimary}
+                color="#FFFFFF"
               />
             </View>
-            <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.xs, fontWeight: FONT.weights.semibold, marginTop: 3 }}>
+            <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold, marginTop: 3 }}>
               {voteCount}
             </Text>
           </Pressable>
@@ -407,14 +399,14 @@ function FeedItem({
                 width: 46,
                 height: 46,
                 borderRadius: RADIUS.full,
-                backgroundColor: "rgba(251,191,36,0.12)",
+                backgroundColor: "rgba(251,191,36,0.2)",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Ionicons name="trophy" size={24} color={COLORS.warning} />
+              <Ionicons name="trophy" size={24} color={PALETTE.jaune} />
             </View>
-            <Text style={{ color: COLORS.warning, fontSize: FONT.sizes.xs, fontWeight: FONT.weights.semibold, marginTop: 3 }}>
+            <Text style={{ color: PALETTE.jaune, fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold, marginTop: 3 }}>
               {voteCount}
             </Text>
           </View>
@@ -447,7 +439,7 @@ function FeedItem({
               router.push({ pathname: "/user/[id]", params: { id: video.submitter.id } })
             }
           >
-            <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.lg, fontWeight: FONT.weights.bold }}>
+            <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>
               @{video.submitter.username}
             </Text>
           </Pressable>
@@ -456,9 +448,9 @@ function FeedItem({
           {video.title ? (
             <Text
               style={{
-                color: colors.textPrimary,
+                color: "#FFFFFF",
                 fontSize: FONT.sizes.base,
-                fontWeight: FONT.weights.semibold,
+                fontFamily: FONT_FAMILY.semibold,
                 marginTop: 6,
               }}
               numberOfLines={1}
@@ -479,24 +471,24 @@ function FeedItem({
                   showsVerticalScrollIndicator={false}
                   nestedScrollEnabled
                 >
-                  <Text style={{ color: colors.textSecondary, fontSize: FONT.sizes.md, lineHeight: 18 }}>
+                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: FONT.sizes.md, lineHeight: 18 }}>
                     {video.description}
                   </Text>
-                  <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.sm, marginTop: 4 }}>
-                    Show less
+                  <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: FONT.sizes.sm, marginTop: 4 }}>
+                    Voir moins
                   </Text>
                 </ScrollView>
               ) : (
                 <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
                   <Text
-                    style={{ color: colors.textSecondary, fontSize: FONT.sizes.md, lineHeight: 18, flex: 1 }}
+                    style={{ color: "rgba(255,255,255,0.8)", fontSize: FONT.sizes.md, lineHeight: 18, flex: 1 }}
                     numberOfLines={2}
                   >
                     {video.description}
                   </Text>
                   {video.description.length > 80 && (
-                    <Text style={{ color: COLORS.accent, fontSize: FONT.sizes.sm, marginLeft: 4 }}>
-                      more
+                    <Text style={{ color: PALETTE.sarcelle, fontSize: FONT.sizes.sm, marginLeft: 4 }}>
+                      plus
                     </Text>
                   )}
                 </View>
@@ -510,7 +502,6 @@ function FeedItem({
 }
 
 export default function FeedScreen() {
-  const { colors } = useTheme();
   const { groupId, startIndex, userId, videoIds: videoIdsParam } = useLocalSearchParams<{
     groupId: string;
     startIndex: string;
@@ -529,12 +520,10 @@ export default function FeedScreen() {
     year,
   );
 
-  // For user mode, fetch user's videos directly
   const [userVideos, setUserVideos] = useState<GroupVideo[] | null>(null);
   useEffect(() => {
     if (!isUserMode || !userId) return;
     (async () => {
-      // Parse video IDs passed as param
       const ids: string[] = videoIdsParam ? JSON.parse(videoIdsParam) : [];
       if (ids.length === 0) {
         setUserVideos([]);
@@ -551,7 +540,6 @@ export default function FeedScreen() {
         return;
       }
 
-      // Fetch submitter info
       const { data: userRow } = await supabase
         .from("users")
         .select("id, username, avatar_url")
@@ -606,7 +594,6 @@ export default function FeedScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [feedPaused, setFeedPaused] = useState(false);
 
-  // Resume playback when returning to this screen
   useFocusEffect(
     useCallback(() => {
       setFeedPaused(false);
@@ -617,7 +604,7 @@ export default function FeedScreen() {
     setShowUploadPicker(false);
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("Permission required", "Allow access to your gallery.");
+      Alert.alert("Permission requise", "Autorise l'accès à ta galerie.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -633,7 +620,7 @@ export default function FeedScreen() {
     setShowUploadPicker(false);
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("Permission required", "Allow camera access to record.");
+      Alert.alert("Permission requise", "Autorise l'accès à la caméra.");
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -665,7 +652,7 @@ export default function FeedScreen() {
           setUploadDesc("");
         },
         onSettled: () => setIsUploading(false),
-        onError: (err) => Alert.alert("Upload failed", err.message),
+        onError: (err) => Alert.alert("Échec de l'upload", err.message),
       },
     );
   };
@@ -688,12 +675,12 @@ export default function FeedScreen() {
         <View
           style={{
             flex: 1,
-            backgroundColor: colors.bg,
+            backgroundColor: "#000",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <ActivityIndicator size="large" color={COLORS.brand} />
+          <ActivityIndicator size="large" color={PALETTE.sarcelle} />
         </View>
       </>
     );
@@ -725,54 +712,44 @@ export default function FeedScreen() {
               width: 42,
               height: 42,
               borderRadius: RADIUS.full,
-              backgroundColor: COLORS.overlayLight,
+              backgroundColor: "rgba(0,0,0,0.4)",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+            <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
           </Pressable>
 
           {canUpload && !isUserMode && (
-            <LinearGradient
-              colors={GRADIENTS.brand as unknown as string[]}
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setShowUploadPicker(true);
+              }}
               style={{
                 width: 42,
                 height: 42,
                 borderRadius: RADIUS.full,
+                backgroundColor: PALETTE.sarcelle,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  setShowUploadPicker(true);
-                }}
-                style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: RADIUS.full,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Ionicons name="add" size={24} color={colors.textPrimary} />
-              </Pressable>
-            </LinearGradient>
+              <Ionicons name="add" size={24} color="#FFFFFF" />
+            </Pressable>
           )}
         </View>
 
         {/* Counter */}
         <View
           style={{
-            backgroundColor: colors.overlay,
+            backgroundColor: "rgba(0,0,0,0.45)",
             paddingHorizontal: 14,
             paddingVertical: 5,
             borderRadius: RADIUS.full,
           }}
         >
-          <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.md, fontWeight: FONT.weights.semibold }}>
+          <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.md, fontFamily: FONT_FAMILY.semibold }}>
             {activeIndex + 1} / {(videos ?? []).length}
           </Text>
         </View>
@@ -788,12 +765,12 @@ export default function FeedScreen() {
               width: 42,
               height: 42,
               borderRadius: RADIUS.full,
-              backgroundColor: COLORS.overlayLight,
+              backgroundColor: "rgba(0,0,0,0.4)",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Ionicons name="information-circle-outline" size={24} color={colors.textPrimary} />
+            <Ionicons name="information-circle-outline" size={24} color="#FFFFFF" />
           </Pressable>
         )}
         {isUserMode && <View style={{ width: 42 }} />}
@@ -844,8 +821,8 @@ export default function FeedScreen() {
         snapPoint={0.35}
       >
         <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
-          <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes["2xl"], fontWeight: FONT.weights.bold, marginBottom: 20 }}>
-            Add a video
+          <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.bold, marginBottom: 20 }}>
+            Ajouter une vidéo
           </Text>
           <AnimatedPressable
             onPress={handlePickVideo}
@@ -854,19 +831,19 @@ export default function FeedScreen() {
               alignItems: "center",
               gap: 14,
               padding: 16,
-              backgroundColor: colors.glass,
+              backgroundColor: "#F8F8FA",
               borderRadius: RADIUS.lg,
               marginBottom: 10,
               borderWidth: 1,
-              borderColor: colors.border,
+              borderColor: "rgba(0,0,0,0.04)",
             }}
           >
-            <View style={{ width: 44, height: 44, borderRadius: RADIUS.sm, backgroundColor: "rgba(255,45,125,0.15)", alignItems: "center", justifyContent: "center" }}>
-              <Ionicons name="images" size={22} color={COLORS.brand} />
+            <View style={{ width: 44, height: 44, borderRadius: RADIUS.sm, backgroundColor: PALETTE.sarcelle + "15", alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="images" size={22} color={PALETTE.sarcelle} />
             </View>
             <View>
-              <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.lg, fontWeight: FONT.weights.semibold }}>Choose from Gallery</Text>
-              <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.md }}>Pick a video from your library</Text>
+              <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold }}>Choisir de la galerie</Text>
+              <Text style={{ color: "#999", fontSize: FONT.sizes.md, fontFamily: FONT_FAMILY.regular }}>Sélectionne une vidéo</Text>
             </View>
           </AnimatedPressable>
           <AnimatedPressable
@@ -876,18 +853,18 @@ export default function FeedScreen() {
               alignItems: "center",
               gap: 14,
               padding: 16,
-              backgroundColor: colors.glass,
+              backgroundColor: "#F8F8FA",
               borderRadius: RADIUS.lg,
               borderWidth: 1,
-              borderColor: colors.border,
+              borderColor: "rgba(0,0,0,0.04)",
             }}
           >
-            <View style={{ width: 44, height: 44, borderRadius: RADIUS.sm, backgroundColor: "rgba(255,45,125,0.15)", alignItems: "center", justifyContent: "center" }}>
-              <Ionicons name="videocam" size={22} color={COLORS.brandLight} />
+            <View style={{ width: 44, height: 44, borderRadius: RADIUS.sm, backgroundColor: PALETTE.fuchsia + "15", alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="videocam" size={22} color={PALETTE.fuchsia} />
             </View>
             <View>
-              <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.lg, fontWeight: FONT.weights.semibold }}>Record a Video</Text>
-              <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.md }}>Max 60 seconds</Text>
+              <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold }}>Filmer une vidéo</Text>
+              <Text style={{ color: "#999", fontSize: FONT.sizes.md, fontFamily: FONT_FAMILY.regular }}>60 secondes max</Text>
             </View>
           </AnimatedPressable>
         </View>
@@ -904,18 +881,18 @@ export default function FeedScreen() {
         snapPoint={0.5}
       >
         <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
-          <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes["2xl"], fontWeight: FONT.weights.bold, marginBottom: 20 }}>
-            New Post
+          <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.bold, marginBottom: 20 }}>
+            Nouveau Post
           </Text>
 
-          <Text style={[SECTION_HEADER_STYLE, { marginBottom: 8 }]}>
-            Title (optional)
+          <Text style={{ ...SECTION_HEADER_STYLE, marginBottom: 8 }}>
+            Titre (optionnel)
           </Text>
           <TextInput
             value={uploadTitle}
             onChangeText={setUploadTitle}
-            placeholder="Give your video a name..."
-            placeholderTextColor={colors.textMuted}
+            placeholder="Donne un nom à ta vidéo..."
+            placeholderTextColor="#BBB"
             style={{
               ...INPUT_STYLE,
               marginBottom: 16,
@@ -923,14 +900,14 @@ export default function FeedScreen() {
             maxLength={100}
           />
 
-          <Text style={[SECTION_HEADER_STYLE, { marginBottom: 8 }]}>
-            Description (optional)
+          <Text style={{ ...SECTION_HEADER_STYLE, marginBottom: 8 }}>
+            Description (optionnel)
           </Text>
           <TextInput
             value={uploadDesc}
             onChangeText={setUploadDesc}
-            placeholder="What's happening in this video?"
-            placeholderTextColor={colors.textMuted}
+            placeholder="Qu'est-ce qui se passe dans cette vidéo ?"
+            placeholderTextColor="#BBB"
             multiline
             numberOfLines={3}
             style={{
@@ -945,30 +922,27 @@ export default function FeedScreen() {
           <AnimatedPressable
             onPress={doUpload}
             disabled={isUploading}
+            style={{
+              backgroundColor: PALETTE.sarcelle,
+              paddingVertical: 16,
+              borderRadius: RADIUS.md,
+              alignItems: "center",
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: 8,
+            }}
           >
-            <LinearGradient
-              colors={GRADIENTS.brand as unknown as string[]}
-              style={{
-                paddingVertical: 16,
-                borderRadius: RADIUS.md,
-                alignItems: "center",
-                flexDirection: "row",
-                justifyContent: "center",
-                gap: 8,
-              }}
-            >
-              {isUploading ? (
-                <>
-                  <ActivityIndicator color={colors.textPrimary} />
-                  <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.lg, fontWeight: FONT.weights.bold }}>Uploading...</Text>
-                </>
-              ) : (
-                <>
-                  <Ionicons name="arrow-up-circle" size={20} color={colors.textPrimary} />
-                  <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.lg, fontWeight: FONT.weights.bold }}>Publish</Text>
-                </>
-              )}
-            </LinearGradient>
+            {isUploading ? (
+              <>
+                <ActivityIndicator color="#FFFFFF" />
+                <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>Upload en cours...</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="arrow-up-circle" size={20} color="#FFFFFF" />
+                <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>Publier</Text>
+              </>
+            )}
           </AnimatedPressable>
         </View>
       </BottomSheet>

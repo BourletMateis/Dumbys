@@ -1,6 +1,8 @@
 import { View, Text, Pressable, ActivityIndicator } from "react-native";
-import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
+import { Avatar } from "@/src/components/ui/Avatar";
+import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
+import { PALETTE, FONT, FONT_FAMILY } from "@/src/theme";
 import type { UserRow } from "./useSearchUsers";
 
 type FriendStatus = "none" | "pending_sent" | "pending_received" | "accepted";
@@ -14,24 +16,29 @@ type Props = {
 
 export function UserSearchResult({ user, status, onAdd, isLoading }: Props) {
   return (
-    <View className="flex-row items-center px-4 py-3 bg-white dark:bg-neutral-900 border-b border-neutral-100 dark:border-neutral-800">
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        backgroundColor: "#FFFFFF",
+        borderBottomWidth: 1,
+        borderBottomColor: "rgba(0,0,0,0.04)",
+      }}
+    >
       {/* Avatar */}
-      {user.avatar_url ? (
-        <Image
-          source={{ uri: user.avatar_url }}
-          style={{ width: 40, height: 40, borderRadius: 20 }}
-        />
-      ) : (
-        <View className="w-10 h-10 rounded-full bg-blue-500 items-center justify-center">
-          <Text className="text-white font-bold">
-            {user.username.charAt(0).toUpperCase()}
-          </Text>
-        </View>
-      )}
+      <Avatar url={user.avatar_url} username={user.username} size={44} />
 
       {/* Username */}
       <Text
-        className="flex-1 ml-3 text-neutral-900 dark:text-white font-medium text-base"
+        style={{
+          flex: 1,
+          marginLeft: 12,
+          color: "#1A1A1A",
+          fontFamily: FONT_FAMILY.semibold,
+          fontSize: FONT.sizes.lg,
+        }}
         numberOfLines={1}
       >
         {user.username}
@@ -39,39 +46,47 @@ export function UserSearchResult({ user, status, onAdd, isLoading }: Props) {
 
       {/* Action */}
       {status === "none" && (
-        <Pressable
+        <AnimatedPressable
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             onAdd();
           }}
           disabled={isLoading}
-          className="bg-blue-500 px-4 py-2 rounded-xl active:opacity-80 disabled:opacity-50"
+          style={{
+            backgroundColor: PALETTE.sarcelle,
+            paddingHorizontal: 18,
+            paddingVertical: 8,
+            borderRadius: 14,
+            opacity: isLoading ? 0.6 : 1,
+          }}
         >
           {isLoading ? (
-            <ActivityIndicator color="white" size="small" />
+            <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
-            <Text className="text-white text-sm font-semibold">Add</Text>
+            <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold }}>
+              Ajouter
+            </Text>
           )}
-        </Pressable>
+        </AnimatedPressable>
       )}
       {status === "pending_sent" && (
-        <View className="bg-neutral-200 dark:bg-neutral-700 px-4 py-2 rounded-xl">
-          <Text className="text-neutral-500 dark:text-neutral-400 text-sm font-medium">
-            Pending
+        <View style={{ backgroundColor: "#F2F2F2", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 14 }}>
+          <Text style={{ color: "#BBB", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.semibold }}>
+            Envoyé
           </Text>
         </View>
       )}
       {status === "pending_received" && (
-        <View className="bg-orange-100 dark:bg-orange-900/30 px-4 py-2 rounded-xl">
-          <Text className="text-orange-600 dark:text-orange-400 text-sm font-medium">
-            Responds to you
+        <View style={{ backgroundColor: PALETTE.sarcelle + "15", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 14 }}>
+          <Text style={{ color: PALETTE.sarcelle, fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.semibold }}>
+            Te demande
           </Text>
         </View>
       )}
       {status === "accepted" && (
-        <View className="bg-green-100 dark:bg-green-900/30 px-4 py-2 rounded-xl">
-          <Text className="text-green-600 dark:text-green-400 text-sm font-medium">
-            Friends
+        <View style={{ backgroundColor: "#10B981" + "15", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 14 }}>
+          <Text style={{ color: "#10B981", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.semibold }}>
+            Ami
           </Text>
         </View>
       )}

@@ -11,7 +11,6 @@ import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   usePublicProfile,
@@ -28,8 +27,7 @@ import { useAuthStore } from "@/src/store/useAuthStore";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { EmptyState } from "@/src/components/ui/EmptyState";
-import { COLORS, GRADIENTS, RADIUS, FONT, FONT_FAMILY, SECTION_HEADER_STYLE, HEADER_BUTTON_STYLE } from "@/src/theme";
-import { useTheme } from "@/src/providers/ThemeProvider";
+import { PALETTE, RADIUS, FONT, FONT_FAMILY } from "@/src/theme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GRID_GAP = 2;
@@ -37,14 +35,13 @@ const GRID_COLS = 3;
 const TILE_SIZE = (SCREEN_WIDTH - GRID_GAP * (GRID_COLS - 1)) / GRID_COLS;
 
 function formatJoinDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
+  return new Date(dateStr).toLocaleDateString("fr-FR", {
     month: "long",
     year: "numeric",
   });
 }
 
 function VideoTile({ video, index, allVideoIds, userId }: { video: PublicVideo; index: number; allVideoIds: string[]; userId: string }) {
-  const { colors } = useTheme();
   const router = useRouter();
 
   return (
@@ -63,7 +60,7 @@ function VideoTile({ video, index, allVideoIds, userId }: { video: PublicVideo; 
       style={{
         width: TILE_SIZE,
         height: TILE_SIZE,
-        backgroundColor: colors.card,
+        backgroundColor: "#F5F5F5",
         borderRadius: RADIUS.xs,
         overflow: "hidden",
       }}
@@ -76,7 +73,7 @@ function VideoTile({ video, index, allVideoIds, userId }: { video: PublicVideo; 
         />
       ) : (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <Ionicons name="play" size={24} color={colors.textMuted} />
+          <Ionicons name="play" size={24} color="#BBB" />
         </View>
       )}
     </AnimatedPressable>
@@ -84,12 +81,11 @@ function VideoTile({ video, index, allVideoIds, userId }: { video: PublicVideo; 
 }
 
 function StatItem({ value, label }: { value: number; label: string }) {
-  const { colors } = useTheme();
   return (
     <View style={{ alignItems: "center", flex: 1 }}>
       <Text
         style={{
-          color: colors.textPrimary,
+          color: "#1A1A1A",
           fontSize: FONT.sizes["2xl"],
           fontFamily: FONT_FAMILY.extrabold,
         }}
@@ -98,8 +94,9 @@ function StatItem({ value, label }: { value: number; label: string }) {
       </Text>
       <Text
         style={{
-          color: colors.textTertiary,
+          color: "#999",
           fontSize: FONT.sizes.sm,
+          fontFamily: FONT_FAMILY.regular,
           marginTop: 4,
         }}
       >
@@ -110,7 +107,6 @@ function StatItem({ value, label }: { value: number; label: string }) {
 }
 
 export default function UserProfileScreen() {
-  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -139,9 +135,9 @@ export default function UserProfileScreen() {
   if (isPending) {
     return (
       <>
-        <Stack.Screen options={{ title: "Profile", headerShown: false }} />
-        <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator size="large" color={COLORS.brand} />
+        <Stack.Screen options={{ title: "Profil", headerShown: false }} />
+        <View style={{ flex: 1, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={PALETTE.sarcelle} />
         </View>
       </>
     );
@@ -150,10 +146,10 @@ export default function UserProfileScreen() {
   if (isError || !profile) {
     return (
       <>
-        <Stack.Screen options={{ title: "Profile", headerShown: false }} />
-        <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: COLORS.error, fontSize: FONT.sizes.lg, fontWeight: FONT.weights.semibold }}>
-            User not found
+        <Stack.Screen options={{ title: "Profil", headerShown: false }} />
+        <View style={{ flex: 1, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: "#F43F5E", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold }}>
+            Utilisateur introuvable
           </Text>
         </View>
       </>
@@ -163,7 +159,7 @@ export default function UserProfileScreen() {
   return (
     <>
       <Stack.Screen options={{ title: "", headerShown: false }} />
-      <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
         {/* Custom header with back button */}
         <View
           style={{
@@ -176,9 +172,18 @@ export default function UserProfileScreen() {
         >
           <Pressable
             onPress={() => router.back()}
-            style={HEADER_BUTTON_STYLE as any}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: RADIUS.sm,
+              backgroundColor: "rgba(0,0,0,0.04)",
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: "rgba(0,0,0,0.06)",
+            }}
           >
-            <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
+            <Ionicons name="chevron-back" size={20} color="#1A1A1A" />
           </Pressable>
         </View>
 
@@ -189,14 +194,13 @@ export default function UserProfileScreen() {
         >
           {/* Profile Header */}
           <View style={{ alignItems: "center", paddingTop: 12, paddingBottom: 28, paddingHorizontal: 16 }}>
-            {/* Avatar with subtle border */}
             <View
               style={{
                 width: 104,
                 height: 104,
                 borderRadius: 52,
                 borderWidth: 2,
-                borderColor: colors.borderLight,
+                borderColor: "rgba(0,0,0,0.08)",
                 alignItems: "center",
                 justifyContent: "center",
               }}
@@ -209,7 +213,7 @@ export default function UserProfileScreen() {
             </View>
             <Text
               style={{
-                color: colors.textPrimary,
+                color: "#1A1A1A",
                 fontSize: FONT.sizes["3xl"],
                 fontFamily: FONT_FAMILY.extrabold,
                 marginTop: 16,
@@ -219,12 +223,13 @@ export default function UserProfileScreen() {
             </Text>
             <Text
               style={{
-                color: colors.textTertiary,
+                color: "#999",
                 fontSize: FONT.sizes.md,
+                fontFamily: FONT_FAMILY.regular,
                 marginTop: 4,
               }}
             >
-              Joined {formatJoinDate(profile.created_at)}
+              Membre depuis {formatJoinDate(profile.created_at)}
             </Text>
 
             {/* Follow Button */}
@@ -237,24 +242,24 @@ export default function UserProfileScreen() {
                   paddingHorizontal: 32,
                   paddingVertical: 12,
                   borderRadius: RADIUS.md,
-                  backgroundColor: colors.glass,
+                  backgroundColor: "rgba(0,0,0,0.04)",
                   borderWidth: 1,
-                  borderColor: colors.border,
+                  borderColor: "rgba(0,0,0,0.06)",
                   minWidth: 140,
                   alignItems: "center",
                 }}
               >
                 {toggleFollow.isPending ? (
-                  <ActivityIndicator size="small" color={colors.textSecondary} />
+                  <ActivityIndicator size="small" color="#666" />
                 ) : (
                   <Text
                     style={{
-                      color: colors.textSecondary,
+                      color: "#666",
                       fontSize: FONT.sizes.base,
-                      fontWeight: FONT.weights.bold,
+                      fontFamily: FONT_FAMILY.bold,
                     }}
                   >
-                    Following
+                    Abonné
                   </Text>
                 )}
               </AnimatedPressable>
@@ -267,37 +272,30 @@ export default function UserProfileScreen() {
                   borderRadius: RADIUS.md,
                   minWidth: 140,
                   overflow: "hidden",
+                  backgroundColor: PALETTE.sarcelle,
+                  paddingHorizontal: 32,
+                  paddingVertical: 12,
+                  alignItems: "center",
                 }}
               >
-                <LinearGradient
-                  colors={GRADIENTS.brand}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{
-                    paddingHorizontal: 32,
-                    paddingVertical: 12,
-                    alignItems: "center",
-                  }}
-                >
-                  {toggleFollow.isPending ? (
-                    <ActivityIndicator size="small" color={colors.textPrimary} />
-                  ) : (
-                    <Text
-                      style={{
-                        color: colors.textPrimary,
-                        fontSize: FONT.sizes.base,
-                        fontWeight: FONT.weights.bold,
-                      }}
-                    >
-                      Follow
-                    </Text>
-                  )}
-                </LinearGradient>
+                {toggleFollow.isPending ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text
+                    style={{
+                      color: "#FFFFFF",
+                      fontSize: FONT.sizes.base,
+                      fontFamily: FONT_FAMILY.bold,
+                    }}
+                  >
+                    Suivre
+                  </Text>
+                )}
               </AnimatedPressable>
             )}
           </View>
 
-          {/* Stats - Glass Card */}
+          {/* Stats Card */}
           <View
             style={{
               flexDirection: "row",
@@ -305,34 +303,34 @@ export default function UserProfileScreen() {
               marginHorizontal: 16,
               marginBottom: 28,
               paddingVertical: 20,
-              backgroundColor: colors.glass,
+              backgroundColor: "#F8F8FA",
               borderRadius: RADIUS.xl,
               borderWidth: 1,
-              borderColor: colors.border,
+              borderColor: "rgba(0,0,0,0.06)",
             }}
           >
-            <StatItem value={(videos ?? []).length} label="Videos" />
-            <StatItem value={followerCount ?? 0} label="Followers" />
-            <StatItem value={followingCount ?? 0} label="Following" />
+            <StatItem value={(videos ?? []).length} label="Vidéos" />
+            <StatItem value={followerCount ?? 0} label="Abonnés" />
+            <StatItem value={followingCount ?? 0} label="Abonnements" />
           </View>
 
           {/* Video grid header */}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, marginBottom: 12 }}>
-            <Ionicons name="grid" size={14} color={COLORS.brand} />
-            <Text style={SECTION_HEADER_STYLE}>
-              Videos
+            <Ionicons name="grid" size={14} color={PALETTE.sarcelle} />
+            <Text style={{ color: "#999", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, textTransform: "uppercase", letterSpacing: 1.5 }}>
+              Vidéos
             </Text>
           </View>
 
           {/* Videos */}
           {videosPending && (
             <View style={{ alignItems: "center", paddingVertical: 32 }}>
-              <ActivityIndicator size="large" color={COLORS.brand} />
+              <ActivityIndicator size="large" color={PALETTE.sarcelle} />
             </View>
           )}
 
           {!videosPending && (videos ?? []).length === 0 && (
-            <EmptyState icon="videocam-outline" title="No videos yet" />
+            <EmptyState icon="videocam-outline" title="Pas encore de vidéos" />
           )}
 
           {!videosPending && (videos ?? []).length > 0 && (

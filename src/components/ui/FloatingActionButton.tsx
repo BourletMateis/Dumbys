@@ -6,7 +6,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { Pressable } from "react-native";
-import { COLORS, RADIUS } from "@/src/theme";
+import { PALETTE, RADIUS } from "@/src/theme";
 
 type FABProps = {
   onPress: () => void;
@@ -35,38 +35,29 @@ export function FloatingActionButton({
   return (
     <Animated.View
       style={[
-        {
-          position: "absolute",
-          right: 20,
-          bottom,
-          zIndex: 50,
-        },
+        { position: "absolute", right: 20, bottom, zIndex: 50 },
         animatedStyle,
       ]}
     >
       <Pressable
         onPress={handlePress}
-        onPressIn={() => {
-          scale.value = withSpring(0.9, { damping: 15, stiffness: 300 });
-        }}
-        onPressOut={() => {
-          scale.value = withSpring(1, { damping: 15, stiffness: 300 });
-        }}
+        onPressIn={() => { scale.value = withSpring(0.9, { damping: 15, stiffness: 300 }); }}
+        onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 300 }); }}
         style={{
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: COLORS.brand,
+          backgroundColor: PALETTE.sarcelle,
           alignItems: "center",
           justifyContent: "center",
-          shadowColor: "rgba(255,45,125,0.35)",
+          shadowColor: PALETTE.sarcelle,
           shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 1,
+          shadowOpacity: 0.35,
           shadowRadius: 12,
           elevation: 8,
         }}
       >
-        <Ionicons name={icon} size={28} color="white" />
+        <Ionicons name={icon} size={28} color="#FFFFFF" />
       </Pressable>
     </Animated.View>
   );

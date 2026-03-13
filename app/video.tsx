@@ -2,28 +2,41 @@ import { View, ActivityIndicator, Pressable, Text } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { PALETTE, FONT, FONT_FAMILY } from "@/src/theme";
 
 export default function VideoScreen() {
   const { url } = useLocalSearchParams<{ url: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   if (!url) {
     return (
-      <View className="flex-1 bg-black items-center justify-center">
-        <Text className="text-white">No video URL</Text>
+      <View style={{ flex: 1, backgroundColor: "#000", alignItems: "center", justifyContent: "center" }}>
+        <Ionicons name="videocam-off-outline" size={48} color="#666" />
+        <Text style={{ color: "#999", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold, marginTop: 12 }}>
+          Pas de vidéo
+        </Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-black">
+    <View style={{ flex: 1, backgroundColor: "#000" }}>
       {/* Close button */}
-      <View className="absolute top-14 left-4 z-10">
+      <View style={{ position: "absolute", top: insets.top + 8, left: 16, zIndex: 10 }}>
         <Pressable
           onPress={() => router.back()}
-          className="bg-black/60 w-10 h-10 rounded-full items-center justify-center"
+          style={{
+            width: 42,
+            height: 42,
+            borderRadius: 21,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
         >
-          <Ionicons name="close" size={24} color="white" />
+          <Ionicons name="close" size={24} color="#FFFFFF" />
         </Pressable>
       </View>
 
@@ -34,8 +47,8 @@ export default function VideoScreen() {
         mediaPlaybackRequiresUserAction={false}
         startInLoadingState
         renderLoading={() => (
-          <View className="absolute inset-0 items-center justify-center bg-black">
-            <ActivityIndicator size="large" color="white" />
+          <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center", backgroundColor: "#000" }}>
+            <ActivityIndicator size="large" color={PALETTE.sarcelle} />
           </View>
         )}
       />

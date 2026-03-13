@@ -8,15 +8,12 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
-import { COLORS, GRADIENTS, RADIUS, FONT, FONT_FAMILY, SPACING, INPUT_STYLE } from "@/src/theme";
-import { useTheme } from "@/src/providers/ThemeProvider";
+import { PALETTE, RADIUS, FONT, FONT_FAMILY, SPACING } from "@/src/theme";
 
 export default function LoginScreen() {
-  const { colors } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
@@ -36,20 +33,28 @@ export default function LoginScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={[COLORS.brandDark, colors.bg, colors.bg]}
-      locations={[0, 0.45, 1]}
-      style={{ flex: 1 }}
-    >
-      {/* Subtle brand overlay glow at top */}
-      <LinearGradient
-        colors={["rgba(255,45,125,0.15)", "transparent"]}
+    <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+      {/* Decorative sarcelle blob */}
+      <View
         style={{
           position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 300,
+          top: -60,
+          right: -40,
+          width: 200,
+          height: 200,
+          borderRadius: 100,
+          backgroundColor: PALETTE.sarcelle + "12",
+        }}
+      />
+      <View
+        style={{
+          position: "absolute",
+          bottom: 80,
+          left: -60,
+          width: 160,
+          height: 160,
+          borderRadius: 80,
+          backgroundColor: PALETTE.fuchsia + "08",
         }}
       />
 
@@ -62,7 +67,7 @@ export default function LoginScreen() {
           <View style={{ marginBottom: SPACING["5xl"] + 16, alignItems: "center" }}>
             <Text
               style={{
-                color: COLORS.accent,
+                color: PALETTE.sarcelle,
                 fontSize: FONT.sizes["5xl"] + 14,
                 fontFamily: FONT_FAMILY.black,
                 textAlign: "center",
@@ -73,7 +78,7 @@ export default function LoginScreen() {
             </Text>
             <Text
               style={{
-                color: colors.textSecondary,
+                color: "#999",
                 fontSize: FONT.sizes.sm,
                 fontFamily: FONT_FAMILY.semibold,
                 textAlign: "center",
@@ -97,20 +102,20 @@ export default function LoginScreen() {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: SPACING.base,
-                  backgroundColor: colors.textPrimary,
+                  backgroundColor: "#1A1A1A",
                   paddingVertical: SPACING.lg + 2,
                   borderRadius: RADIUS.md,
                 }}
               >
-                <Ionicons name="logo-apple" size={22} color={colors.bg} />
+                <Ionicons name="logo-apple" size={22} color="#FFFFFF" />
                 <Text
                   style={{
-                    color: colors.bg,
+                    color: "#FFFFFF",
                     fontSize: FONT.sizes.lg,
                     fontFamily: FONT_FAMILY.semibold,
                   }}
                 >
-                  Continue with Apple
+                  Continuer avec Apple
                 </Text>
               </AnimatedPressable>
             )}
@@ -123,22 +128,22 @@ export default function LoginScreen() {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: SPACING.base,
-                backgroundColor: colors.glass,
+                backgroundColor: "#FFFFFF",
                 paddingVertical: SPACING.lg + 2,
                 borderRadius: RADIUS.md,
                 borderWidth: 1,
-                borderColor: colors.borderLight,
+                borderColor: "rgba(0,0,0,0.10)",
               }}
             >
               <Ionicons name="logo-google" size={20} color="#EA4335" />
               <Text
                 style={{
-                  color: colors.textPrimary,
+                  color: "#1A1A1A",
                   fontSize: FONT.sizes.lg,
                   fontFamily: FONT_FAMILY.semibold,
                 }}
               >
-                Continue with Google
+                Continuer avec Google
               </Text>
             </AnimatedPressable>
           </View>
@@ -151,18 +156,18 @@ export default function LoginScreen() {
               marginBottom: SPACING["3xl"],
             }}
           >
-            <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+            <View style={{ flex: 1, height: 1, backgroundColor: "rgba(0,0,0,0.08)" }} />
             <Text
               style={{
                 marginHorizontal: SPACING.lg,
-                color: colors.textMuted,
+                color: "#BBB",
                 fontSize: FONT.sizes.md,
                 fontFamily: FONT_FAMILY.medium,
               }}
             >
-              or
+              ou
             </Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+            <View style={{ flex: 1, height: 1, backgroundColor: "rgba(0,0,0,0.08)" }} />
           </View>
 
           {/* Email + Password */}
@@ -171,20 +176,40 @@ export default function LoginScreen() {
               value={email}
               onChangeText={setEmail}
               placeholder="Email"
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor="#BBB"
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
-              style={INPUT_STYLE}
+              style={{
+                backgroundColor: "rgba(0,0,0,0.04)",
+                borderWidth: 1,
+                borderColor: "rgba(0,0,0,0.06)",
+                color: "#1A1A1A",
+                paddingHorizontal: 18,
+                paddingVertical: 15,
+                borderRadius: RADIUS.md,
+                fontSize: FONT.sizes.lg,
+                fontFamily: FONT_FAMILY.regular,
+              }}
             />
             <TextInput
               value={password}
               onChangeText={setPassword}
-              placeholder="Password"
-              placeholderTextColor={colors.textMuted}
+              placeholder="Mot de passe"
+              placeholderTextColor="#BBB"
               secureTextEntry
               autoCapitalize="none"
-              style={INPUT_STYLE}
+              style={{
+                backgroundColor: "rgba(0,0,0,0.04)",
+                borderWidth: 1,
+                borderColor: "rgba(0,0,0,0.06)",
+                color: "#1A1A1A",
+                paddingHorizontal: 18,
+                paddingVertical: 15,
+                borderRadius: RADIUS.md,
+                fontSize: FONT.sizes.lg,
+                fontFamily: FONT_FAMILY.regular,
+              }}
             />
             <AnimatedPressable
               onPress={handleSubmit}
@@ -193,33 +218,25 @@ export default function LoginScreen() {
                 borderRadius: RADIUS.md,
                 overflow: "hidden",
                 opacity: !email.trim() || !password.trim() ? 0.5 : 1,
+                backgroundColor: PALETTE.sarcelle,
+                paddingVertical: SPACING.lg + 2,
+                alignItems: "center",
               }}
             >
-              <LinearGradient
-                colors={[...GRADIENTS.brand]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{
-                  paddingVertical: SPACING.lg + 2,
-                  alignItems: "center",
-                  borderRadius: RADIUS.md,
-                }}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color={colors.textPrimary} />
-                ) : (
-                  <Text
-                    style={{
-                      color: colors.textPrimary,
-                      fontSize: FONT.sizes.lg,
-                      fontFamily: FONT_FAMILY.bold,
-                      letterSpacing: 0.3,
-                    }}
-                  >
-                    {isSignUp ? "Sign Up" : "Sign In"}
-                  </Text>
-                )}
-              </LinearGradient>
+              {isLoading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text
+                  style={{
+                    color: "#FFFFFF",
+                    fontSize: FONT.sizes.lg,
+                    fontFamily: FONT_FAMILY.bold,
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  {isSignUp ? "S'inscrire" : "Se connecter"}
+                </Text>
+              )}
             </AnimatedPressable>
           </View>
 
@@ -231,10 +248,10 @@ export default function LoginScreen() {
             }}
             style={{ marginTop: SPACING["3xl"], alignItems: "center" }}
           >
-            <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.base }}>
-              {isSignUp ? "Already have an account? " : "Don't have an account? "}
-              <Text style={{ color: COLORS.accent, fontWeight: FONT.weights.semibold }}>
-                {isSignUp ? "Sign In" : "Sign Up"}
+            <Text style={{ color: "#999", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular }}>
+              {isSignUp ? "Déjà un compte ? " : "Pas encore de compte ? "}
+              <Text style={{ color: PALETTE.sarcelle, fontFamily: FONT_FAMILY.semibold }}>
+                {isSignUp ? "Se connecter" : "S'inscrire"}
               </Text>
             </Text>
           </AnimatedPressable>
@@ -244,16 +261,16 @@ export default function LoginScreen() {
             <View
               style={{
                 marginTop: SPACING.lg,
-                backgroundColor: colors.glass,
+                backgroundColor: "rgba(244,63,94,0.06)",
                 padding: SPACING.lg,
                 borderRadius: RADIUS.sm,
                 borderWidth: 1,
-                borderColor: "rgba(244,63,94,0.2)",
+                borderColor: "rgba(244,63,94,0.15)",
               }}
             >
               <Text
                 style={{
-                  color: COLORS.error,
+                  color: "#F43F5E",
                   fontSize: FONT.sizes.md,
                   textAlign: "center",
                   fontFamily: FONT_FAMILY.medium,
@@ -265,6 +282,6 @@ export default function LoginScreen() {
           )}
         </View>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }

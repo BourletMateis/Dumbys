@@ -10,7 +10,6 @@ import {
   Share,
   RefreshControl,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,8 +33,7 @@ import { Avatar } from "@/src/components/ui/Avatar";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { BottomSheet } from "@/src/components/ui/BottomSheet";
 import { EmptyState } from "@/src/components/ui/EmptyState";
-import { COLORS, GRADIENTS, RADIUS, FONT, FONT_FAMILY, SPACING, CARD_STYLE, INPUT_STYLE, SECTION_HEADER_STYLE, HEADER_BUTTON_STYLE } from "@/src/theme";
-import { useTheme } from "@/src/providers/ThemeProvider";
+import { PALETTE, RADIUS, FONT, FONT_FAMILY, SPACING, CARD_STYLE, INPUT_STYLE, SECTION_HEADER_STYLE } from "@/src/theme";
 
 function VideoItem({
   video,
@@ -58,7 +56,6 @@ function VideoItem({
   index: number;
   groupId: string;
 }) {
-  const { colors } = useTheme();
   const router = useRouter();
 
   const { data: likeCount } = useLikeCount(video.id);
@@ -121,7 +118,7 @@ function VideoItem({
             >
               <View
                 style={{
-                  backgroundColor: colors.overlay,
+                  backgroundColor: "rgba(0,0,0,0.35)",
                   width: 56,
                   height: 56,
                   borderRadius: RADIUS.full,
@@ -129,13 +126,13 @@ function VideoItem({
                   justifyContent: "center",
                 }}
               >
-                <Ionicons name="play" size={28} color={colors.textPrimary} />
+                <Ionicons name="play" size={28} color="#FFFFFF" />
               </View>
             </View>
           </View>
         ) : (
-          <View style={{ width: "100%", height: 200, backgroundColor: colors.elevated, alignItems: "center", justifyContent: "center", borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl }}>
-            <Ionicons name="play" size={28} color={colors.textMuted} />
+          <View style={{ width: "100%", height: 200, backgroundColor: "#F5F5F5", alignItems: "center", justifyContent: "center", borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl }}>
+            <Ionicons name="play" size={28} color="#BBB" />
           </View>
         )}
       </AnimatedPressable>
@@ -148,13 +145,13 @@ function VideoItem({
             style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}
           >
             <Avatar url={video.submitter.avatar_url} username={video.submitter.username} size={32} />
-            <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.base, fontWeight: FONT.weights.semibold }} numberOfLines={1}>
+            <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.semibold }} numberOfLines={1}>
               {video.submitter.username}
             </Text>
           </Pressable>
           {isOwnVideo && (
             <Pressable onPress={onDelete} hitSlop={8}>
-              <Ionicons name="trash-outline" size={16} color={COLORS.error} />
+              <Ionicons name="trash-outline" size={16} color="#F43F5E" />
             </Pressable>
           )}
         </View>
@@ -165,19 +162,19 @@ function VideoItem({
             <Ionicons
               name={hasLiked ? "heart" : "heart-outline"}
               size={22}
-              color={hasLiked ? COLORS.error : colors.textTertiary}
+              color={hasLiked ? "#F43F5E" : "#999"}
             />
             {(likeCount ?? 0) > 0 && (
-              <Text style={{ color: hasLiked ? COLORS.error : colors.textTertiary, fontSize: FONT.sizes.sm, fontWeight: FONT.weights.semibold }}>
+              <Text style={{ color: hasLiked ? "#F43F5E" : "#999", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.semibold }}>
                 {likeCount}
               </Text>
             )}
           </Pressable>
 
           <Pressable onPress={openComments} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <Ionicons name="chatbubble-outline" size={20} color={colors.textTertiary} />
+            <Ionicons name="chatbubble-outline" size={20} color="#999" />
             {(commentCount ?? 0) > 0 && (
-              <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.sm, fontWeight: FONT.weights.semibold }}>{commentCount}</Text>
+              <Text style={{ color: "#999", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.semibold }}>{commentCount}</Text>
             )}
           </Pressable>
 
@@ -195,17 +192,17 @@ function VideoItem({
                 paddingVertical: 6,
                 borderRadius: RADIUS.sm,
                 marginLeft: "auto",
-                backgroundColor: isVoted ? COLORS.brand : colors.glass,
+                backgroundColor: isVoted ? PALETTE.sarcelle : "rgba(0,0,0,0.04)",
                 borderWidth: isVoted ? 0 : 1,
-                borderColor: isVoted ? "transparent" : colors.border,
+                borderColor: isVoted ? "transparent" : "rgba(0,0,0,0.06)",
               }}
             >
               <Ionicons
                 name={isVoted ? "checkmark-circle" : "trophy-outline"}
                 size={16}
-                color={isVoted ? colors.textPrimary : colors.textTertiary}
+                color={isVoted ? "#FFFFFF" : "#999"}
               />
-              <Text style={{ color: isVoted ? colors.textPrimary : colors.textTertiary, fontSize: FONT.sizes.sm, fontWeight: FONT.weights.semibold }}>
+              <Text style={{ color: isVoted ? "#FFFFFF" : "#999", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.semibold }}>
                 {voteCount}
               </Text>
             </AnimatedPressable>
@@ -213,16 +210,16 @@ function VideoItem({
 
           {!canVote && voteCount > 0 && (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginLeft: "auto" }}>
-              <Ionicons name="trophy" size={14} color={COLORS.warning} />
-              <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.sm }}>{voteCount}</Text>
+              <Ionicons name="trophy" size={14} color={PALETTE.jaune} />
+              <Text style={{ color: "#999", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular }}>{voteCount}</Text>
             </View>
           )}
         </View>
 
         {(commentCount ?? 0) > 0 && (
           <Pressable onPress={openComments} style={{ marginTop: 8 }}>
-            <Text style={{ color: colors.textMuted, fontSize: FONT.sizes.sm }}>
-              View all {commentCount} comment{(commentCount ?? 0) !== 1 ? "s" : ""}
+            <Text style={{ color: "#BBB", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular }}>
+              Voir les {commentCount} commentaire{(commentCount ?? 0) !== 1 ? "s" : ""}
             </Text>
           </Pressable>
         )}
@@ -232,7 +229,6 @@ function VideoItem({
 }
 
 export default function GroupScreen() {
-  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -269,12 +265,12 @@ export default function GroupScreen() {
 
   const handleDeleteGroup = () => {
     Alert.alert(
-      "Delete challenge",
-      "This will permanently delete the challenge and all its content. Are you sure?",
+      "Supprimer le défi",
+      "Cela supprimera définitivement le défi et tout son contenu. Es-tu sûr ?",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Annuler", style: "cancel" },
         {
-          text: "Delete",
+          text: "Supprimer",
           style: "destructive",
           onPress: () => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -286,10 +282,10 @@ export default function GroupScreen() {
   };
 
   const handleLeaveGroup = () => {
-    Alert.alert("Leave challenge", "Are you sure you want to leave?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert("Quitter le défi", "Es-tu sûr de vouloir quitter ?", [
+      { text: "Annuler", style: "cancel" },
       {
-        text: "Leave",
+        text: "Quitter",
         style: "destructive",
         onPress: () => leaveGroup.mutate(id!, { onSuccess: () => router.back() }),
       },
@@ -297,9 +293,9 @@ export default function GroupScreen() {
   };
 
   const handleRemoveMember = (member: GroupMember) => {
-    Alert.alert("Remove member", `Remove ${member.username}?`, [
-      { text: "Cancel", style: "cancel" },
-      { text: "Remove", style: "destructive", onPress: () => removeMember.mutate(member.id) },
+    Alert.alert("Retirer le membre", `Retirer ${member.username} ?`, [
+      { text: "Annuler", style: "cancel" },
+      { text: "Retirer", style: "destructive", onPress: () => removeMember.mutate(member.id) },
     ]);
   };
 
@@ -322,7 +318,7 @@ export default function GroupScreen() {
           setUploadDesc("");
         },
         onSettled: () => setIsUploading(false),
-        onError: (err) => Alert.alert("Upload failed", err.message),
+        onError: (err) => Alert.alert("Échec de l'upload", err.message),
       },
     );
   };
@@ -330,7 +326,7 @@ export default function GroupScreen() {
   const handlePickVideo = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission required", "Allow access to your gallery.");
+      Alert.alert("Permission requise", "Autorise l'accès à ta galerie.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -345,7 +341,7 @@ export default function GroupScreen() {
   const handleRecordVideo = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission required", "Allow camera access to record.");
+      Alert.alert("Permission requise", "Autorise l'accès à la caméra.");
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -360,28 +356,24 @@ export default function GroupScreen() {
   const handleShare = () => {
     if (!group) return;
     Share.share({
-      message: `Join my Dumbys challenge "${group.name}"! Use code: ${group.invite_code}`,
+      message: `Rejoins mon défi Dumbys "${group.name}" ! Code : ${group.invite_code}`,
     });
   };
 
   const handleDelete = (videoId: string, videoPath: string | null) => {
-    Alert.alert("Delete video", "Are you sure?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => deleteMutation.mutate({ videoId, videoPath }) },
+    Alert.alert("Supprimer la vidéo", "Es-tu sûr ?", [
+      { text: "Annuler", style: "cancel" },
+      { text: "Supprimer", style: "destructive", onPress: () => deleteMutation.mutate({ videoId, videoPath }) },
     ]);
   };
 
-  const phaseGradient = canVote
-    ? GRADIENTS.votePhase
-    : canUpload
-    ? GRADIENTS.uploadPhase
-    : GRADIENTS.podiumPhase;
-  const phaseLabel = canVote ? "Vote Phase" : canUpload ? "Upload Phase" : "Results";
+  const phaseLabel = canVote ? "Phase Vote" : canUpload ? "Phase Upload" : "Résultats";
+  const phaseColor = canVote ? PALETTE.sarcelle : canUpload ? PALETTE.fuchsia : PALETTE.jaune;
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
         {/* Custom Header */}
         <View
           style={{
@@ -395,36 +387,63 @@ export default function GroupScreen() {
         >
           <AnimatedPressable
             onPress={() => router.back()}
-            style={HEADER_BUTTON_STYLE}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: RADIUS.sm,
+              backgroundColor: "rgba(0,0,0,0.04)",
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: "rgba(0,0,0,0.06)",
+            }}
           >
-            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+            <Ionicons name="arrow-back" size={22} color="#1A1A1A" />
           </AnimatedPressable>
 
           <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.xl, fontWeight: FONT.weights.bold }} numberOfLines={1}>
-              {group?.name ?? "Challenge"}
+            <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.bold }} numberOfLines={1}>
+              {group?.name ?? "Défi"}
             </Text>
           </View>
 
           <AnimatedPressable
             onPress={() => setShowMembers(true)}
-            style={HEADER_BUTTON_STYLE}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: RADIUS.sm,
+              backgroundColor: "rgba(0,0,0,0.04)",
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: "rgba(0,0,0,0.06)",
+            }}
           >
-            <Ionicons name="people-outline" size={20} color={colors.textSecondary} />
+            <Ionicons name="people-outline" size={20} color="#666" />
           </AnimatedPressable>
 
           <AnimatedPressable
             onPress={() => setShowInvite(true)}
-            style={HEADER_BUTTON_STYLE}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: RADIUS.sm,
+              backgroundColor: "rgba(0,0,0,0.04)",
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: "rgba(0,0,0,0.06)",
+            }}
           >
-            <Ionicons name="share-outline" size={20} color={colors.textSecondary} />
+            <Ionicons name="share-outline" size={20} color="#666" />
           </AnimatedPressable>
         </View>
 
         <ScrollView
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
           refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={refetchGroups} tintColor={COLORS.brand} />
+            <RefreshControl refreshing={isRefetching} onRefresh={refetchGroups} tintColor={PALETTE.sarcelle} />
           }
           showsVerticalScrollIndicator={false}
         >
@@ -444,21 +463,19 @@ export default function GroupScreen() {
                     flexDirection: "row",
                     alignItems: "center",
                     gap: 5,
-                    backgroundColor: "rgba(255,45,125,0.1)",
+                    backgroundColor: PALETTE.sarcelle + "15",
                     paddingHorizontal: 10,
                     paddingVertical: 5,
                     borderRadius: RADIUS.xs,
-                    borderWidth: 1,
-                    borderColor: "rgba(255,45,125,0.15)",
                   }}
                 >
                   <Ionicons
                     name={group.is_public ? "globe" : "lock-closed"}
                     size={12}
-                    color={COLORS.brand}
+                    color={PALETTE.sarcelle}
                   />
-                  <Text style={{ color: COLORS.brandLight, fontSize: FONT.sizes.xs, fontWeight: FONT.weights.semibold }}>
-                    {group.is_public ? "Public" : "Private"}
+                  <Text style={{ color: PALETTE.sarcelle, fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold }}>
+                    {group.is_public ? "Public" : "Privé"}
                   </Text>
                 </View>
 
@@ -469,19 +486,19 @@ export default function GroupScreen() {
                   const diffMs = endMs - nowMs;
                   if (diffMs <= 0) {
                     return (
-                      <View style={{ backgroundColor: "rgba(244,63,94,0.1)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: RADIUS.xs, borderWidth: 1, borderColor: "rgba(244,63,94,0.15)" }}>
-                        <Text style={{ color: COLORS.error, fontSize: FONT.sizes.xs, fontWeight: FONT.weights.semibold }}>Ended</Text>
+                      <View style={{ backgroundColor: "rgba(244,63,94,0.08)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: RADIUS.xs }}>
+                        <Text style={{ color: "#F43F5E", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold }}>Terminé</Text>
                       </View>
                     );
                   }
                   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
                   const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                   const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                  const label = days > 0 ? `${days}d ${hours}h left` : hours > 0 ? `${hours}h ${mins}m left` : `${mins}m left`;
+                  const label = days > 0 ? `${days}j ${hours}h restant` : hours > 0 ? `${hours}h ${mins}m restant` : `${mins}m restant`;
                   return (
-                    <View style={{ backgroundColor: "rgba(251,191,36,0.1)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: RADIUS.xs, flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderColor: "rgba(251,191,36,0.15)" }}>
-                      <Ionicons name="time-outline" size={11} color={COLORS.warning} />
-                      <Text style={{ color: COLORS.warning, fontSize: FONT.sizes.xs, fontWeight: FONT.weights.semibold }}>{label}</Text>
+                    <View style={{ backgroundColor: PALETTE.jaune + "15", paddingHorizontal: 10, paddingVertical: 5, borderRadius: RADIUS.xs, flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <Ionicons name="time-outline" size={11} color={PALETTE.jaune} />
+                      <Text style={{ color: PALETTE.jaune, fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold }}>{label}</Text>
                     </View>
                   );
                 })()}
@@ -490,8 +507,8 @@ export default function GroupScreen() {
               {/* Goal description */}
               {group.goal_description && (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                  <Ionicons name="flag" size={14} color={COLORS.warning} />
-                  <Text style={{ color: COLORS.warning, fontSize: FONT.sizes.md, fontWeight: FONT.weights.medium, flex: 1 }} numberOfLines={2}>
+                  <Ionicons name="flag" size={14} color={PALETTE.jaune} />
+                  <Text style={{ color: PALETTE.jaune, fontSize: FONT.sizes.md, fontFamily: FONT_FAMILY.medium, flex: 1 }} numberOfLines={2}>
                     {group.goal_description}
                   </Text>
                 </View>
@@ -500,8 +517,8 @@ export default function GroupScreen() {
               {/* Prize */}
               {group.prize && (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                  <Ionicons name="gift" size={14} color={COLORS.accent} />
-                  <Text style={{ color: COLORS.accent, fontSize: FONT.sizes.md, fontWeight: FONT.weights.medium, flex: 1 }} numberOfLines={2}>
+                  <Ionicons name="gift" size={14} color={PALETTE.sarcelle} />
+                  <Text style={{ color: PALETTE.sarcelle, fontSize: FONT.sizes.md, fontFamily: FONT_FAMILY.medium, flex: 1 }} numberOfLines={2}>
                     {group.prize}
                   </Text>
                 </View>
@@ -510,14 +527,14 @@ export default function GroupScreen() {
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View style={{ flex: 1, marginRight: 12 }}>
                   {group.is_public && group.description && (
-                    <Text style={{ color: colors.textSecondary, fontSize: FONT.sizes.md }} numberOfLines={2}>
+                    <Text style={{ color: "#666", fontSize: FONT.sizes.md, fontFamily: FONT_FAMILY.regular }} numberOfLines={2}>
                       {group.description}
                     </Text>
                   )}
                 </View>
                 <View style={{ alignItems: "center" }}>
-                  <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes["2xl"], fontWeight: FONT.weights.extrabold }}>{group.member_count}</Text>
-                  <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.xs }}>members</Text>
+                  <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.extrabold }}>{group.member_count}</Text>
+                  <Text style={{ color: "#999", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular }}>membres</Text>
                 </View>
               </View>
             </View>
@@ -527,16 +544,16 @@ export default function GroupScreen() {
           {podium && podium.length > 0 && (
             <View
               style={{
-                backgroundColor: "rgba(251,191,36,0.06)",
+                backgroundColor: PALETTE.jaune + "10",
                 borderRadius: RADIUS.xl,
                 padding: 16,
                 marginBottom: 16,
                 borderWidth: 1,
-                borderColor: "rgba(251,191,36,0.12)",
+                borderColor: PALETTE.jaune + "20",
               }}
             >
-              <Text style={{ ...SECTION_HEADER_STYLE, color: COLORS.warning, marginBottom: 12 }}>
-                Last Week's Winners
+              <Text style={{ color: PALETTE.jaune, fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12 }}>
+                Gagnants de la semaine
               </Text>
               {podium.map((entry) => (
                 <View key={entry.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8 }}>
@@ -544,8 +561,8 @@ export default function GroupScreen() {
                     {entry.rank === 1 ? "\uD83E\uDD47" : entry.rank === 2 ? "\uD83E\uDD48" : "\uD83E\uDD49"}
                   </Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.textPrimary, fontWeight: FONT.weights.semibold }}>{entry.user.username}</Text>
-                    <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.sm }}>
+                    <Text style={{ color: "#1A1A1A", fontFamily: FONT_FAMILY.semibold }}>{entry.user.username}</Text>
+                    <Text style={{ color: "#999", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular }}>
                       {entry.vote_count} vote{entry.vote_count !== 1 ? "s" : ""}
                     </Text>
                   </View>
@@ -556,25 +573,27 @@ export default function GroupScreen() {
 
           {/* Phase banner */}
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-            <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.xl, fontWeight: FONT.weights.bold }}>
-              Week {weekNumber}
+            <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.bold }}>
+              Semaine {weekNumber}
             </Text>
-            <LinearGradient
-              colors={phaseGradient as unknown as string[]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ paddingHorizontal: 14, paddingVertical: 6, borderRadius: RADIUS.xs }}
+            <View
+              style={{
+                backgroundColor: phaseColor + "15",
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                borderRadius: RADIUS.xs,
+              }}
             >
-              <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.sm, fontWeight: FONT.weights.bold }}>{phaseLabel}</Text>
-            </LinearGradient>
+              <Text style={{ color: phaseColor, fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold }}>{phaseLabel}</Text>
+            </View>
           </View>
 
           {/* Upload buttons */}
           {canUpload && !challengeEnded && (
             isUploading ? (
-              <View style={{ backgroundColor: colors.glass, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 18, borderRadius: RADIUS.lg, marginBottom: 16, borderWidth: 1, borderColor: colors.borderBrand }}>
-                <ActivityIndicator color={COLORS.brand} />
-                <Text style={{ color: COLORS.brandLight, fontWeight: FONT.weights.semibold, fontSize: FONT.sizes.lg, marginLeft: 10 }}>Uploading...</Text>
+              <View style={{ backgroundColor: PALETTE.sarcelle + "10", flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 18, borderRadius: RADIUS.lg, marginBottom: 16 }}>
+                <ActivityIndicator color={PALETTE.sarcelle} />
+                <Text style={{ color: PALETTE.sarcelle, fontFamily: FONT_FAMILY.semibold, fontSize: FONT.sizes.lg, marginLeft: 10 }}>Upload en cours...</Text>
               </View>
             ) : (
               <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
@@ -586,15 +605,15 @@ export default function GroupScreen() {
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 8,
-                    backgroundColor: colors.glass,
+                    backgroundColor: "rgba(0,0,0,0.04)",
                     paddingVertical: 16,
                     borderRadius: RADIUS.lg,
                     borderWidth: 1,
-                    borderColor: colors.borderBrand,
+                    borderColor: "rgba(0,0,0,0.06)",
                   }}
                 >
-                  <Ionicons name="images" size={20} color={COLORS.brand} />
-                  <Text style={{ color: colors.textPrimary, fontWeight: FONT.weights.semibold }}>Gallery</Text>
+                  <Ionicons name="images" size={20} color={PALETTE.sarcelle} />
+                  <Text style={{ color: "#1A1A1A", fontFamily: FONT_FAMILY.semibold }}>Galerie</Text>
                 </AnimatedPressable>
                 <AnimatedPressable
                   onPress={handleRecordVideo}
@@ -604,15 +623,15 @@ export default function GroupScreen() {
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 8,
-                    backgroundColor: colors.glass,
+                    backgroundColor: "rgba(0,0,0,0.04)",
                     paddingVertical: 16,
                     borderRadius: RADIUS.lg,
                     borderWidth: 1,
-                    borderColor: colors.borderBrand,
+                    borderColor: "rgba(0,0,0,0.06)",
                   }}
                 >
-                  <Ionicons name="videocam" size={20} color={COLORS.brandLight} />
-                  <Text style={{ color: colors.textPrimary, fontWeight: FONT.weights.semibold }}>Record</Text>
+                  <Ionicons name="videocam" size={20} color={PALETTE.fuchsia} />
+                  <Text style={{ color: "#1A1A1A", fontFamily: FONT_FAMILY.semibold }}>Filmer</Text>
                 </AnimatedPressable>
               </View>
             )
@@ -621,15 +640,15 @@ export default function GroupScreen() {
           {/* Videos */}
           {videosPending && (
             <View style={{ alignItems: "center", paddingVertical: 48 }}>
-              <ActivityIndicator size="large" color={COLORS.brand} />
+              <ActivityIndicator size="large" color={PALETTE.sarcelle} />
             </View>
           )}
 
           {!videosPending && (videos ?? []).length === 0 && (
             <EmptyState
               icon="videocam-outline"
-              title="No videos this week"
-              subtitle={canUpload ? "Be the first to post a video!" : "No one posted this week."}
+              title="Pas de vidéos cette semaine"
+              subtitle={canUpload ? "Sois le premier à poster !" : "Personne n'a posté cette semaine."}
             />
           )}
 
@@ -656,34 +675,33 @@ export default function GroupScreen() {
           snapPoint={0.35}
         >
           <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
-            <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes["2xl"], fontWeight: FONT.weights.bold, marginBottom: 20 }}>
-              Invite Friends
+            <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.bold, marginBottom: 20 }}>
+              Inviter des amis
             </Text>
             {group && !group.is_public && (
               <View style={{ marginBottom: 16 }}>
-                <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.xs, fontWeight: FONT.weights.semibold, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Invite code</Text>
-                <View style={{ backgroundColor: colors.glassLight, borderRadius: RADIUS.md, paddingVertical: 14, paddingHorizontal: 18, borderWidth: 1, borderColor: colors.border }}>
-                  <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes["3xl"], letterSpacing: 4, fontFamily: "SpaceMono" }}>
+                <Text style={{ color: "#999", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Code d'invitation</Text>
+                <View style={{ backgroundColor: "#F5F5F5", borderRadius: RADIUS.md, paddingVertical: 14, paddingHorizontal: 18, borderWidth: 1, borderColor: "rgba(0,0,0,0.06)" }}>
+                  <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes["3xl"], letterSpacing: 4, fontFamily: "SpaceMono" }}>
                     {group.invite_code}
                   </Text>
                 </View>
               </View>
             )}
-            <AnimatedPressable onPress={handleShare}>
-              <LinearGradient
-                colors={GRADIENTS.brand as unknown as string[]}
-                style={{
-                  paddingVertical: 16,
-                  borderRadius: RADIUS.md,
-                  alignItems: "center",
-                  flexDirection: "row",
-                  justifyContent: "center",
-                  gap: 8,
-                }}
-              >
-                <Ionicons name="share-outline" size={20} color={colors.textPrimary} />
-                <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.lg, fontWeight: FONT.weights.bold }}>Share Challenge</Text>
-              </LinearGradient>
+            <AnimatedPressable
+              onPress={handleShare}
+              style={{
+                backgroundColor: PALETTE.sarcelle,
+                paddingVertical: 16,
+                borderRadius: RADIUS.md,
+                alignItems: "center",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <Ionicons name="share-outline" size={20} color="#FFFFFF" />
+              <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>Partager le défi</Text>
             </AnimatedPressable>
           </View>
         </BottomSheet>
@@ -695,12 +713,12 @@ export default function GroupScreen() {
           snapPoint={0.6}
         >
           <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
-            <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes["2xl"], fontWeight: FONT.weights.bold, marginBottom: 20 }}>
-              Members
+            <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.bold, marginBottom: 20 }}>
+              Membres
             </Text>
 
             {membersPending && (
-              <ActivityIndicator size="large" color={COLORS.brand} style={{ paddingVertical: 20 }} />
+              <ActivityIndicator size="large" color={PALETTE.sarcelle} style={{ paddingVertical: 20 }} />
             )}
 
             {(members ?? []).map((member) => (
@@ -712,38 +730,38 @@ export default function GroupScreen() {
                   paddingVertical: 12,
                   paddingHorizontal: 12,
                   marginBottom: 6,
-                  backgroundColor: colors.glass,
+                  backgroundColor: "#F8F8FA",
                   borderRadius: RADIUS.md,
                   borderWidth: 1,
-                  borderColor: colors.border,
+                  borderColor: "rgba(0,0,0,0.04)",
                 }}
               >
                 <Avatar url={member.avatar_url} username={member.username} size={40} />
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.base, fontWeight: FONT.weights.semibold }}>
+                  <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.semibold }}>
                     {member.username}
                   </Text>
                   <View style={{ flexDirection: "row", marginTop: 3 }}>
                     <View style={{
-                      backgroundColor: member.role === "owner" ? "rgba(255,45,125,0.15)" : colors.glass,
+                      backgroundColor: member.role === "owner" ? PALETTE.sarcelle + "15" : "rgba(0,0,0,0.04)",
                       paddingHorizontal: 8,
                       paddingVertical: 2,
                       borderRadius: RADIUS.xs,
                     }}>
                       <Text style={{
-                        color: member.role === "owner" ? COLORS.brandLight : colors.textTertiary,
+                        color: member.role === "owner" ? PALETTE.sarcelle : "#999",
                         fontSize: FONT.sizes.xs,
-                        fontWeight: FONT.weights.medium,
+                        fontFamily: FONT_FAMILY.medium,
                         textTransform: "capitalize",
                       }}>
-                        {member.role}
+                        {member.role === "owner" ? "Créateur" : "Membre"}
                       </Text>
                     </View>
                   </View>
                 </View>
                 {isOwner && member.role !== "owner" && (
                   <Pressable onPress={() => handleRemoveMember(member)} hitSlop={8}>
-                    <Ionicons name="close-circle" size={22} color={COLORS.error} />
+                    <Ionicons name="close-circle" size={22} color="#F43F5E" />
                   </Pressable>
                 )}
               </View>
@@ -755,29 +773,29 @@ export default function GroupScreen() {
                 <AnimatedPressable
                   onPress={handleDeleteGroup}
                   style={{
-                    backgroundColor: "rgba(244,63,94,0.08)",
+                    backgroundColor: "rgba(244,63,94,0.06)",
                     paddingVertical: 14,
                     borderRadius: RADIUS.md,
                     alignItems: "center",
                     borderWidth: 1,
-                    borderColor: "rgba(244,63,94,0.15)",
+                    borderColor: "rgba(244,63,94,0.12)",
                   }}
                 >
-                  <Text style={{ color: COLORS.error, fontSize: FONT.sizes.base, fontWeight: FONT.weights.semibold }}>Delete Challenge</Text>
+                  <Text style={{ color: "#F43F5E", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.semibold }}>Supprimer le défi</Text>
                 </AnimatedPressable>
               ) : (
                 <AnimatedPressable
                   onPress={handleLeaveGroup}
                   style={{
-                    backgroundColor: "rgba(244,63,94,0.08)",
+                    backgroundColor: "rgba(244,63,94,0.06)",
                     paddingVertical: 14,
                     borderRadius: RADIUS.md,
                     alignItems: "center",
                     borderWidth: 1,
-                    borderColor: "rgba(244,63,94,0.15)",
+                    borderColor: "rgba(244,63,94,0.12)",
                   }}
                 >
-                  <Text style={{ color: COLORS.error, fontSize: FONT.sizes.base, fontWeight: FONT.weights.semibold }}>Leave Challenge</Text>
+                  <Text style={{ color: "#F43F5E", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.semibold }}>Quitter le défi</Text>
                 </AnimatedPressable>
               )}
             </View>
@@ -795,18 +813,18 @@ export default function GroupScreen() {
           snapPoint={0.5}
         >
           <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
-            <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes["2xl"], fontWeight: FONT.weights.bold, marginBottom: 20 }}>
-              New Post
+            <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.bold, marginBottom: 20 }}>
+              Nouveau Post
             </Text>
 
-            <Text style={[SECTION_HEADER_STYLE, { marginBottom: 8 }]}>
-              Title (optional)
+            <Text style={{ ...SECTION_HEADER_STYLE, marginBottom: 8 }}>
+              Titre (optionnel)
             </Text>
             <TextInput
               value={uploadTitle}
               onChangeText={setUploadTitle}
-              placeholder="Give your video a name..."
-              placeholderTextColor={colors.textMuted}
+              placeholder="Donne un nom à ta vidéo..."
+              placeholderTextColor="#BBB"
               style={{
                 ...INPUT_STYLE,
                 marginBottom: 16,
@@ -814,14 +832,14 @@ export default function GroupScreen() {
               maxLength={100}
             />
 
-            <Text style={[SECTION_HEADER_STYLE, { marginBottom: 8 }]}>
-              Description (optional)
+            <Text style={{ ...SECTION_HEADER_STYLE, marginBottom: 8 }}>
+              Description (optionnel)
             </Text>
             <TextInput
               value={uploadDesc}
               onChangeText={setUploadDesc}
-              placeholder="What's happening in this video?"
-              placeholderTextColor={colors.textMuted}
+              placeholder="Qu'est-ce qui se passe dans cette vidéo ?"
+              placeholderTextColor="#BBB"
               multiline
               numberOfLines={3}
               style={{
@@ -836,30 +854,27 @@ export default function GroupScreen() {
             <AnimatedPressable
               onPress={doUpload}
               disabled={isUploading}
+              style={{
+                backgroundColor: PALETTE.sarcelle,
+                paddingVertical: 16,
+                borderRadius: RADIUS.md,
+                alignItems: "center",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 8,
+              }}
             >
-              <LinearGradient
-                colors={GRADIENTS.brand as unknown as string[]}
-                style={{
-                  paddingVertical: 16,
-                  borderRadius: RADIUS.md,
-                  alignItems: "center",
-                  flexDirection: "row",
-                  justifyContent: "center",
-                  gap: 8,
-                }}
-              >
-                {isUploading ? (
-                  <>
-                    <ActivityIndicator color={colors.textPrimary} />
-                    <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.lg, fontWeight: FONT.weights.bold }}>Uploading...</Text>
-                  </>
-                ) : (
-                  <>
-                    <Ionicons name="arrow-up-circle" size={20} color={colors.textPrimary} />
-                    <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.lg, fontWeight: FONT.weights.bold }}>Publish</Text>
-                  </>
-                )}
-              </LinearGradient>
+              {isUploading ? (
+                <>
+                  <ActivityIndicator color="#FFFFFF" />
+                  <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>Upload en cours...</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="arrow-up-circle" size={20} color="#FFFFFF" />
+                  <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>Publier</Text>
+                </>
+              )}
             </AnimatedPressable>
           </View>
         </BottomSheet>

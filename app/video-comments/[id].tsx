@@ -15,7 +15,6 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -24,8 +23,7 @@ import { useLikeCount, useHasLiked, useToggleLike } from "@/src/features/feed/us
 import { useComments, useAddComment, useDeleteComment, type Comment } from "@/src/features/feed/useComments";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { Avatar } from "@/src/components/ui/Avatar";
-import { COLORS, GRADIENTS, RADIUS, FONT, FONT_FAMILY } from "@/src/theme";
-import { useTheme } from "@/src/providers/ThemeProvider";
+import { PALETTE, RADIUS, FONT, FONT_FAMILY } from "@/src/theme";
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -70,7 +68,6 @@ function CommentRow({
   isOwn: boolean;
   onDelete: () => void;
 }) {
-  const { colors } = useTheme();
   const router = useRouter();
   const goToProfile = () => router.push({ pathname: "/user/[id]", params: { id: comment.user.id } });
 
@@ -80,16 +77,16 @@ function CommentRow({
         <Avatar url={comment.user.avatar_url} username={comment.user.username} size={34} />
       </Pressable>
       <View style={{ flex: 1, marginLeft: 12 }}>
-        <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.base }}>
+        <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes.base }}>
           <Text style={{ fontWeight: FONT.weights.bold }} onPress={goToProfile}>{comment.user.username}</Text>
           {"  "}
-          <Text style={{ color: colors.textPrimary, fontWeight: FONT.weights.regular }}>{comment.text}</Text>
+          <Text style={{ color: "#1A1A1A", fontWeight: FONT.weights.regular }}>{comment.text}</Text>
         </Text>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 16, marginTop: 4 }}>
-          <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.sm }}>{timeAgo(comment.created_at)}</Text>
+          <Text style={{ color: "#999", fontSize: FONT.sizes.sm }}>{timeAgo(comment.created_at)}</Text>
           {isOwn && (
             <Pressable onPress={onDelete} hitSlop={8}>
-              <Text style={{ color: COLORS.error, fontSize: FONT.sizes.sm, fontWeight: FONT.weights.medium }}>Delete</Text>
+              <Text style={{ color: "#F43F5E", fontSize: FONT.sizes.sm, fontWeight: FONT.weights.medium }}>Supprimer</Text>
             </Pressable>
           )}
         </View>
@@ -99,7 +96,6 @@ function CommentRow({
 }
 
 export default function VideoCommentsScreen() {
-  const { colors } = useTheme();
   const {
     id: videoId,
     username,
@@ -141,15 +137,15 @@ export default function VideoCommentsScreen() {
         setCommentText("");
         listRef.current?.scrollToEnd({ animated: true });
       },
-      onError: (err) => Alert.alert("Error", err.message),
+      onError: (err) => Alert.alert("Erreur", err.message),
     });
   };
 
   const handleDeleteComment = (commentId: string) => {
-    Alert.alert("Delete comment", "Are you sure?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert("Supprimer le commentaire", "Es-tu sûr ?", [
+      { text: "Annuler", style: "cancel" },
       {
-        text: "Delete",
+        text: "Supprimer",
         style: "destructive",
         onPress: () => deleteComment.mutate(commentId),
       },
@@ -158,7 +154,6 @@ export default function VideoCommentsScreen() {
 
   const hasText = commentText.trim().length > 0;
 
-  // Animated padding that moves input above keyboard
   const animatedBottomStyle = useAnimatedStyle(() => ({
     paddingBottom: keyboardHeight.value > 0
       ? keyboardHeight.value - insets.bottom
@@ -169,18 +164,18 @@ export default function VideoCommentsScreen() {
     <>
       <Stack.Screen
         options={{
-          title: "Comments",
-          headerStyle: { backgroundColor: colors.elevated },
-          headerTintColor: colors.textPrimary,
+          title: "Commentaires",
+          headerStyle: { backgroundColor: "#FFFFFF" },
+          headerTintColor: "#1A1A1A",
           headerShadowVisible: false,
           headerLeft: () => (
             <Pressable onPress={() => router.back()} hitSlop={8} style={{ marginLeft: 4 }}>
-              <Ionicons name="close" size={26} color={colors.textSecondary} />
+              <Ionicons name="close" size={26} color="#666" />
             </Pressable>
           ),
         }}
       />
-      <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
         <FlatList
           ref={listRef}
           data={comments ?? []}
@@ -198,12 +193,12 @@ export default function VideoCommentsScreen() {
                   alignItems: "center",
                   justifyContent: "space-between",
                   borderBottomWidth: 1,
-                  borderBottomColor: colors.border,
+                  borderBottomColor: "rgba(0,0,0,0.06)",
                 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                   <Avatar url={avatarUrl} username={username ?? "?"} size={28} />
-                  <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.base, fontWeight: FONT.weights.semibold }}>
+                  <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.semibold }}>
                     {username}
                   </Text>
                 </View>
@@ -212,9 +207,9 @@ export default function VideoCommentsScreen() {
                   <Ionicons
                     name={hasLiked ? "heart" : "heart-outline"}
                     size={22}
-                    color={hasLiked ? COLORS.error : colors.textTertiary}
+                    color={hasLiked ? "#F43F5E" : "#999"}
                   />
-                  <Text style={{ color: hasLiked ? COLORS.error : colors.textTertiary, fontSize: FONT.sizes.md, fontWeight: FONT.weights.semibold }}>
+                  <Text style={{ color: hasLiked ? "#F43F5E" : "#999", fontSize: FONT.sizes.md, fontFamily: FONT_FAMILY.semibold }}>
                     {likeCount ?? 0}
                   </Text>
                 </Pressable>
@@ -222,22 +217,22 @@ export default function VideoCommentsScreen() {
 
               {/* Comments header */}
               <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-                <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.lg, fontWeight: FONT.weights.bold }}>
-                  Comments ({(comments ?? []).length})
+                <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>
+                  Commentaires ({(comments ?? []).length})
                 </Text>
               </View>
 
               {isPending && (
                 <View style={{ alignItems: "center", paddingVertical: 32 }}>
-                  <ActivityIndicator color={COLORS.brand} />
+                  <ActivityIndicator color={PALETTE.sarcelle} />
                 </View>
               )}
 
               {!isPending && (comments ?? []).length === 0 && (
                 <View style={{ alignItems: "center", paddingVertical: 32, paddingHorizontal: 32 }}>
-                  <Ionicons name="chatbubble-outline" size={36} color={colors.textMuted} />
-                  <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.base, marginTop: 8 }}>
-                    Be the first to comment!
+                  <Ionicons name="chatbubble-outline" size={36} color="#BBB" />
+                  <Text style={{ color: "#999", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, marginTop: 8 }}>
+                    Sois le premier à commenter !
                   </Text>
                 </View>
               )}
@@ -253,7 +248,7 @@ export default function VideoCommentsScreen() {
           contentContainerStyle={{ paddingBottom: 16 }}
         />
 
-        {/* Input bar — animated padding pushes it above keyboard */}
+        {/* Input bar */}
         <Animated.View
           style={[
             {
@@ -262,9 +257,9 @@ export default function VideoCommentsScreen() {
               gap: 10,
               paddingHorizontal: 16,
               paddingTop: 10,
-              backgroundColor: colors.elevated,
+              backgroundColor: "#FFFFFF",
               borderTopWidth: 1,
-              borderTopColor: colors.border,
+              borderTopColor: "rgba(0,0,0,0.06)",
             },
             animatedBottomStyle,
           ]}
@@ -273,16 +268,17 @@ export default function VideoCommentsScreen() {
             ref={inputRef}
             value={commentText}
             onChangeText={setCommentText}
-            placeholder="Add a comment..."
-            placeholderTextColor={colors.textMuted}
+            placeholder="Ajouter un commentaire..."
+            placeholderTextColor="#BBB"
             style={{
               flex: 1,
-              backgroundColor: colors.glassLight,
-              color: colors.textPrimary,
+              backgroundColor: "rgba(0,0,0,0.04)",
+              color: "#1A1A1A",
               paddingHorizontal: 16,
               paddingVertical: 10,
               borderRadius: RADIUS.full,
               fontSize: FONT.sizes.base,
+              fontFamily: FONT_FAMILY.regular,
             }}
             maxLength={500}
             onSubmitEditing={handleSend}
@@ -293,22 +289,22 @@ export default function VideoCommentsScreen() {
               onPress={handleSend}
               disabled={addComment.isPending}
             >
-              <LinearGradient
-                colors={GRADIENTS.brand as unknown as string[]}
+              <View
                 style={{
                   width: 38,
                   height: 38,
                   borderRadius: RADIUS.full,
+                  backgroundColor: PALETTE.sarcelle,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
                 {addComment.isPending ? (
-                  <ActivityIndicator size="small" color={colors.textPrimary} />
+                  <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Ionicons name="arrow-up" size={20} color={colors.textPrimary} />
+                  <Ionicons name="arrow-up" size={20} color="#FFFFFF" />
                 )}
-              </LinearGradient>
+              </View>
             </Pressable>
           ) : (
             <View
@@ -316,12 +312,12 @@ export default function VideoCommentsScreen() {
                 width: 38,
                 height: 38,
                 borderRadius: RADIUS.full,
-                backgroundColor: colors.glass,
+                backgroundColor: "rgba(0,0,0,0.04)",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Ionicons name="arrow-up" size={20} color={colors.textMuted} />
+              <Ionicons name="arrow-up" size={20} color="#BBB" />
             </View>
           )}
         </Animated.View>
