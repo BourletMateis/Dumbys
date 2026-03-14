@@ -1,4 +1,4 @@
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
 import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -36,6 +36,10 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
     Haptics.impactAsync(
       isCenter ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light,
     );
+    if (isCenter) {
+      router.navigate("/camera" as any);
+      return;
+    }
     const event = navigation.emit({
       type: "tabPress",
       target: routeKey,

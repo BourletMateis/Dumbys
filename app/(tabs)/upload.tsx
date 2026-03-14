@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import * as VideoThumbnails from "expo-video-thumbnails";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useLocalSearchParams } from "expo-router";
 import { useMyGroups, type GroupWithRole } from "@/src/features/groups/useMyGroups";
 import { useUploadGroupVideo } from "@/src/features/groups/useUploadGroupVideo";
 import { useCreateGroup } from "@/src/features/groups/useGroupActions";
@@ -54,7 +55,12 @@ export default function UploadScreen() {
   const createGroup = useCreateGroup();
   const createTournament = useCreateGroupTournament();
 
-  const [activeTab, setActiveTab] = useState<UploadTab>("deposer");
+  const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
+  const [activeTab, setActiveTab] = useState<UploadTab>(
+    tabParam === "enregistrer" ? "enregistrer" : "deposer"
+  );
+  const cameraLaunchedRef = useRef(false);
+
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -75,6 +81,50 @@ export default function UploadScreen() {
   const [isCreatingTournament, setIsCreatingTournament] = useState(false);
 
   const privateGroups: GroupWithRole[] = (myGroups ?? []).filter((g) => !g.is_public);
+
+  const recordVideo = async () => {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission requise", "Autorise l'accès à ta caméra.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["videos"],
+      quality: 0.8,
+      videoMaxDuration: 60,
+    });
+    if (result.canceled || !result.assets[0]) {
+      // User cancelled — go back to deposer
+      setActiveTab("deposer");
+      return;
+    }
+    const uri = result.assets[0].uri;
+    setVideoUri(uri);
+    try {
+      const thumb = await VideoThumbnails.getThumbnailAsync(uri, { time: 1000, quality: 0.5 });
+      setThumbnailUri(thumb.uri);
+    } catch {
+      setThumbnailUri(null);
+    }
+    // After recording, show the deposer UI so user can post
+    setActiveTab("deposer");
+  };
+
+  // Sync tab when navigating from FAB
+  useEffect(() => {
+    if (tabParam === "enregistrer") {
+      setActiveTab("enregistrer");
+      cameraLaunchedRef.current = false;
+    }
+  }, [tabParam]);
+
+  // Auto-launch camera when on "enregistrer" tab
+  useEffect(() => {
+    if (activeTab === "enregistrer" && !cameraLaunchedRef.current) {
+      cameraLaunchedRef.current = true;
+      recordVideo();
+    }
+  }, [activeTab]);
 
   const pickMedia = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -198,6 +248,9 @@ export default function UploadScreen() {
                 key={key}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  if (key === "enregistrer") {
+                    cameraLaunchedRef.current = false;
+                  }
                   setActiveTab(key);
                 }}
                 style={{

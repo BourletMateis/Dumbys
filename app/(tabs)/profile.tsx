@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, Pressable, ActivityIndicator, ScrollView, RefreshControl, Dimensions } from "react-native";
+import { View, Text, Pressable, ActivityIndicator, ScrollView, RefreshControl, Dimensions, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useUserProfile } from "@/src/features/profile/useUserProfile";
 import { useMyVideos } from "@/src/features/profile/useMyVideos";
 import { useMyGroups } from "@/src/features/groups/useMyGroups";
+import { useDeleteVideo } from "@/src/features/feed/useDeleteVideo";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { useUpdateAvatar } from "@/src/features/profile/useUpdateAvatar";
 import { Avatar } from "@/src/components/ui/Avatar";
@@ -39,7 +40,7 @@ const DEMO_GALLERY = [
 ];
 
 // ─── Video card for gallery grid ─────────────────────────────────
-function VideoGalleryCard({ title, emoji, views, date, thumbnailUrl, width, onPress }: {
+function VideoGalleryCard({ title, emoji, views, date, thumbnailUrl, width, onPress, onDelete }: {
   title: string;
   emoji: string;
   views: string;
@@ -47,6 +48,7 @@ function VideoGalleryCard({ title, emoji, views, date, thumbnailUrl, width, onPr
   thumbnailUrl: string | null;
   width: number;
   onPress?: () => void;
+  onDelete?: () => void;
 }) {
   const cardHeight = width * 1.25;
   return (
@@ -91,12 +93,22 @@ function VideoGalleryCard({ title, emoji, views, date, thumbnailUrl, width, onPr
           <Ionicons name="share-social-outline" size={16} color="#FFF" />
         </AnimatedPressable>
         <AnimatedPressable
-          onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            Alert.alert(
+              "Supprimer la vidéo",
+              "Cette action est irréversible. Tu veux vraiment supprimer cette vidéo ?",
+              [
+                { text: "Annuler", style: "cancel" },
+                { text: "Supprimer", style: "destructive", onPress: onDelete },
+              ]
+            );
+          }}
           style={{
             width: 34,
             height: 34,
             borderRadius: 17,
-            backgroundColor: "rgba(255,255,255,0.25)",
+            backgroundColor: "rgba(244,63,94,0.35)",
             alignItems: "center",
             justifyContent: "center",
           }}
@@ -214,6 +226,7 @@ export default function ProfileScreen() {
 
   const { data: myVideos } = useMyVideos();
   const { data: groups } = useMyGroups();
+  const deleteVideo = useDeleteVideo();
 
   const [galleryTab, setGalleryTab] = useState<GalleryTab>("defis");
 
@@ -521,6 +534,7 @@ export default function ProfileScreen() {
                 const videos = hasRealVideos
                   ? (myVideos ?? []).map((v, index) => ({
                       id: v.id,
+                      videoPath: v.video_path,
                       index,
                       title: v.group?.name ?? "Vidéo",
                       emoji: "",
@@ -550,6 +564,9 @@ export default function ProfileScreen() {
                         onPress={hasRealVideos ? () => {
                           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                           router.push({ pathname: "/feed/my-videos", params: { startIndex: String(video.index) } });
+                        } : undefined}
+                        onDelete={hasRealVideos ? () => {
+                          deleteVideo.mutate({ videoId: video.id, videoPath: (video as any).videoPath });
                         } : undefined}
                       />
                     ))}

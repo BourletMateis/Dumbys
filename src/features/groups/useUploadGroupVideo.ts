@@ -11,6 +11,7 @@ type UploadInput = {
   year: number;
   title?: string;
   description?: string;
+  category?: string;
 };
 
 export function useUploadGroupVideo() {
@@ -55,6 +56,8 @@ export function useUploadGroupVideo() {
       // Only include title/description if provided (columns may not exist yet)
       if (input.title) insertData.title = input.title;
       if (input.description) insertData.description = input.description;
+      // category column — requires: ALTER TABLE videos ADD COLUMN category text;
+      if (input.category) insertData.category = input.category;
 
       const { data, error } = await supabase
         .from("videos")

@@ -117,6 +117,14 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: "modal" }} />
         <Stack.Screen
+          name="camera"
+          options={{ presentation: "fullScreenModal", headerShown: false, animation: "fade" }}
+        />
+        <Stack.Screen
+          name="post"
+          options={{ headerShown: false, animation: "slide_from_bottom" }}
+        />
+        <Stack.Screen
           name="video"
           options={{ presentation: "fullScreenModal", headerShown: false }}
         />
