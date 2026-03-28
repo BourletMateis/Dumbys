@@ -2,12 +2,10 @@
 SENT_FLAG="/tmp/discord_sent"
 rm -f "$SENT_FLAG"
 
-export CI=1
-
-npx expo start --tunnel --non-interactive 2>&1 | while IFS= read -r line; do
+npx expo start --tunnel 2>&1 | while IFS= read -r line; do
   echo "$line"
   if [ ! -f "$SENT_FLAG" ]; then
-    TUNNEL_URL=$(echo "$line" | grep -oE 'exp(\+[a-z]+)?://[^ ]+' | head -1)
+    TUNNEL_URL=$(echo "$line" | grep -oE 'exp(\+[a-zA-Z0-9]+)?://[^ ]+' | head -1)
     if [ -n "$TUNNEL_URL" ] && [ -n "$DISCORD_WEBHOOK_URL" ]; then
       touch "$SENT_FLAG"
       ENCODED=$(node -e "process.stdout.write(encodeURIComponent('$TUNNEL_URL'))")

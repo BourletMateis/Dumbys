@@ -10,8 +10,6 @@ services:
       - .env
     environment:
       - REACT_NATIVE_PACKAGER_HOSTNAME=${HOST_IP:-localhost}
-    stdin_open: true
-    tty: true
     restart: unless-stopped
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
