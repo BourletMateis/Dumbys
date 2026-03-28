@@ -4,7 +4,7 @@
 npx expo start --tunnel &
 EXPO_PID=$!
 
-# Poll ngrok API (port 4040) for the tunnel URL
+# Wait for ngrok tunnel URL
 echo "Waiting for ngrok tunnel..."
 TUNNEL_URL=""
 for i in $(seq 1 60); do
@@ -29,16 +29,30 @@ for i in $(seq 1 60); do
   fi
 done
 
-if [ -n "$TUNNEL_URL" ] && [ -n "$DISCORD_WEBHOOK_URL" ]; then
+if [ -z "$TUNNEL_URL" ]; then
+  echo "No tunnel URL found"
+  wait $EXPO_PID
+  exit 0
+fi
+
+# Wait for Metro bundler to be ready
+echo "Waiting for Metro to be ready..."
+for i in $(seq 1 60); do
+  sleep 2
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/status 2>/dev/null)
+  if [ "$STATUS" = "200" ]; then
+    echo "Metro is ready!"
+    break
+  fi
+done
+
+if [ -n "$DISCORD_WEBHOOK_URL" ]; then
   ENCODED=$(node -e "process.stdout.write(encodeURIComponent('$TUNNEL_URL'))")
   QR_URL="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${ENCODED}"
   curl -s -H "Content-Type: application/json" \
     -d "{\"embeds\":[{\"title\":\"📱 DumbAward — App dispo!\",\"description\":\"Scanne le QR pour ouvrir l'app :\",\"color\":4177791,\"image\":{\"url\":\"${QR_URL}\"},\"fields\":[{\"name\":\"URL Tunnel\",\"value\":\"\`${TUNNEL_URL}\`\"}],\"footer\":{\"text\":\"DumbAward CI/CD\"},\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}]}" \
     "$DISCORD_WEBHOOK_URL"
   echo "QR sent to Discord!"
-else
-  echo "No tunnel URL found or DISCORD_WEBHOOK_URL not set"
 fi
 
-# Keep container alive with Expo
 wait $EXPO_PID
