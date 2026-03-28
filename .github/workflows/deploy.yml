@@ -39,19 +39,14 @@ jobs:
           URL="exp://u.expo.dev/${PROJECT_ID}?channel-name=preview"
           ENCODED=$(python3 -c "import urllib.parse; print(urllib.parse.quote('${URL}'))")
           QR_URL="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${ENCODED}"
-          COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | head -c 100)
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
           SHORT_SHA="${{ github.sha }}"
           SHORT_SHA="${SHORT_SHA:0:7}"
-          curl -H "Content-Type: application/json" \
-            -d "{
-              \"embeds\": [{
-                \"title\": \"📱 DumbAward — Nouvelle update!\",
-                \"description\": \"**Commit:** [\`${SHORT_SHA}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) — ${COMMIT_MSG}\n\nScanne le QR avec **Expo Go** :\",
-                \"color\": 4177791,
-                \"image\": {\"url\": \"${QR_URL}\"},
-                \"fields\": [{\"name\": \"URL\", \"value\": \"\`${URL}\`\"}],
-                \"footer\": {\"text\": \"DumbAward CI/CD\"},
-                \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
-              }]
-            }" \
-            "${{ secrets.DISCORD_WEBHOOK_URL }}"
+          PAYLOAD=$(jq -n \
+            --arg title "📱 DumbAward — Nouvelle update!" \
+            --arg desc "**Commit:** [\`${SHORT_SHA}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) — ${COMMIT_MSG}\n\nScanne le QR avec **Expo Go** :" \
+            --arg qr "$QR_URL" \
+            --arg url "$URL" \
+            --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{embeds:[{title:$title,description:$desc,color:4177791,image:{url:$qr},fields:[{name:"URL",value:"`\($url)`"}],footer:{text:"DumbAward CI/CD"},timestamp:$ts}]}')
+          curl -H "Content-Type: application/json" -d "$PAYLOAD" "${{ secrets.DISCORD_WEBHOOK_URL }}"
