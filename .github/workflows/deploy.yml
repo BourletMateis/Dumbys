@@ -32,6 +32,11 @@ jobs:
 
       - name: Publish EAS Update
         run: eas update --branch preview --message "${{ github.event.head_commit.message }}" --non-interactive
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_STORAGE_WORKER_URL: ${{ secrets.EXPO_PUBLIC_STORAGE_WORKER_URL }}
+          EXPO_PUBLIC_STORAGE_AUTH_SECRET: ${{ secrets.EXPO_PUBLIC_STORAGE_AUTH_SECRET }}
 
       - name: Send QR to Discord
         run: |
