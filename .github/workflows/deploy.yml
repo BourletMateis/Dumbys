@@ -27,6 +27,9 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+      - name: Create preview channel if needed
+        run: eas channel:create preview --non-interactive || true
+
       - name: Publish EAS Update
         run: eas update --branch preview --message "${{ github.event.head_commit.message }}" --non-interactive
 
