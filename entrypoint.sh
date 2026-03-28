@@ -37,7 +37,8 @@ fi
 
 # Pre-warm the bundle so the first connection doesn't timeout
 echo "Pre-warming bundle (this may take a few minutes)..."
-curl -s --max-time 300 "http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false" -o /dev/null || true
+curl -s --max-time 300 "http://localhost:8081/node_modules/expo-router/entry.bundle?platform=ios&dev=true&minify=false" -o /dev/null || true
+curl -s --max-time 300 "http://localhost:8081/node_modules/expo-router/entry.bundle?platform=android&dev=true&minify=false" -o /dev/null || true
 echo "Bundle ready!"
 
 if [ -n "$DISCORD_WEBHOOK_URL" ]; then
