@@ -71,12 +71,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signUpWithEmail: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: { emailRedirectTo: undefined },
       });
       if (error) throw error;
+      // If email confirmation is required, session will be null
+      if (!data.session) {
+        set({ error: "Vérifie ta boîte mail pour confirmer ton compte." });
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Sign up failed";

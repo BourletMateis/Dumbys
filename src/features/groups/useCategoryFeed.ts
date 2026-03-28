@@ -60,6 +60,17 @@ export function useCategoriesWithVideos() {
           if (cat) result.add(cat);
         }
       }
+
+      // Also include categories set directly on the video
+      const { data: taggedVideos } = await supabase
+        .from("videos")
+        .select("category")
+        .not("category", "is", null);
+
+      for (const v of taggedVideos ?? []) {
+        if (v.category) result.add(v.category);
+      }
+
       return result;
     },
     enabled: !!user,
@@ -92,16 +103,20 @@ export function useCategoryFeed(category: string, options?: { enabled?: boolean 
       const { data: groups, error: grpErr } = await groupQuery;
 
       if (grpErr) throw grpErr;
-      if (!groups || groups.length === 0) return [];
 
-      const groupIds = groups.map((g) => g.id);
-      const groupMap = new Map(groups.map((g) => [g.id, g]));
+      const groupIds = (groups ?? []).map((g) => g.id);
+      const groupMap = new Map((groups ?? []).map((g) => [g.id, g]));
 
-      // 2. Get ALL videos from these groups (recent first)
+      // 2. Get ALL videos from these groups OR with matching category on the video itself
+      const orFilter =
+        groupIds.length > 0
+          ? `group_id.in.(${groupIds.join(",")}),category.eq.${category}`
+          : `category.eq.${category}`;
+
       const { data: videos, error: vidErr } = await supabase
         .from("videos")
         .select("id, source_url, video_path, thumbnail_url, title, description, week_number, year, created_at, submitter_id, group_id")
-        .in("group_id", groupIds)
+        .or(orFilter)
         .order("created_at", { ascending: false })
         .limit(200);
 
@@ -122,8 +137,8 @@ export function useCategoryFeed(category: string, options?: { enabled?: boolean 
       return videos
         .map((v) => {
           const submitter = userMap.get(v.submitter_id);
-          const group = v.group_id ? groupMap.get(v.group_id) : null;
-          if (!submitter || !group) return null;
+          if (!submitter) return null;
+          const group = v.group_id ? (groupMap.get(v.group_id) ?? { id: v.group_id, name: "" }) : { id: "", name: "" };
           return {
             id: v.id,
             source_url: v.source_url,

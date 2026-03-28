@@ -20,24 +20,8 @@ import { useTheme } from "@/src/providers/ThemeProvider";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// ─── Trophies data ──────────────────────────────────────────────
-const TROPHIES = [
-  { id: "1", icon: "flame" as const, label: "Fou Furieux", color: "#FDB813", unlocked: true },
-  { id: "2", icon: "ribbon" as const, label: "Roi du Flow", color: "#FF2D7D", unlocked: true },
-  { id: "3", icon: "rocket" as const, label: "Première Place", color: "#3FD0C9", unlocked: true },
-  { id: "4", icon: "lock-closed" as const, label: "Verrouillé", color: "#C0C0C0", unlocked: false },
-];
-
 // ─── Gallery tab type ────────────────────────────────────────────
 type GalleryTab = "defis" | "shorts";
-
-// ─── Demo gallery data (matches template) ────────────────────────
-const DEMO_GALLERY = [
-  { id: "1", title: "Moonwalk...", emoji: "", views: "2.4k", date: "24 JAN.", thumbnail: null },
-  { id: "2", title: "Kickflip Pro Trick", emoji: "🛹", views: "892", date: "IL Y A 3J", thumbnail: null },
-  { id: "3", title: "Cliff Jump Hawaii", emoji: "🌊", views: "12k", date: "DÉC. 2023", thumbnail: null },
-  { id: "4", title: "Hard Work Gym", emoji: "🏋", views: "5.6k", date: "OCT. 2023", thumbnail: null },
-];
 
 // ─── Video card for gallery grid ─────────────────────────────────
 function VideoGalleryCard({ title, emoji, views, date, thumbnailUrl, width, onPress, onDelete }: {
@@ -329,7 +313,7 @@ export default function ProfileScreen() {
               {"Salut, " + profile.username + " ! 👋"}
             </Text>
             <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#888", marginTop: 2 }}>
-              {"Niveau 24 • Pro Challengeur"}
+              {"@" + profile.username}
             </Text>
           </View>
         </View>
@@ -356,7 +340,7 @@ export default function ProfileScreen() {
               Défis relevés
             </Text>
             <Text style={{ fontSize: 42, fontFamily: FONT_FAMILY.black, color: "#FFFFFF", marginTop: 4 }}>
-              {challengesCount > 0 ? challengesCount : 128}
+              {challengesCount}
             </Text>
           </View>
 
@@ -380,79 +364,9 @@ export default function ProfileScreen() {
               Victoires
             </Text>
             <Text style={{ fontSize: 42, fontFamily: FONT_FAMILY.black, color: "#FFFFFF", marginTop: 4 }}>
-              {videosCount > 0 ? videosCount : 42}
+              {videosCount}
             </Text>
           </View>
-        </View>
-
-        {/* ─── Trophées ────────────────────────────────────────── */}
-        <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <Text style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
-              {"Mes Trophées 🏆"}
-            </Text>
-            <Pressable>
-              <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: PALETTE.sarcelle, textTransform: "uppercase" }}>
-                Voir tout
-              </Text>
-            </Pressable>
-          </View>
-
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            {TROPHIES.map((t) => (
-              <TrophyBadge
-                key={t.id}
-                icon={t.icon}
-                label={t.label}
-                color={t.color}
-                unlocked={t.unlocked}
-              />
-            ))}
-          </View>
-        </View>
-
-        {/* ─── Mon Record Personnel ────────────────────────────── */}
-        <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
-          <Text style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A", marginBottom: 14 }}>
-            {"Mon Record Personnel ⚡"}
-          </Text>
-
-          <AnimatedPressable
-            style={{
-              backgroundColor: "#F8F8FA",
-              borderRadius: RADIUS.xl,
-              padding: 18,
-              flexDirection: "row",
-              alignItems: "center",
-              borderWidth: 1,
-              borderColor: "rgba(0,0,0,0.05)",
-            }}
-          >
-            {/* Star icon */}
-            <View
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 16,
-                backgroundColor: PALETTE.jaune + "25",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Ionicons name="star" size={26} color={PALETTE.jaune} />
-            </View>
-
-            <View style={{ flex: 1, marginLeft: 14 }}>
-              <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: "#1A1A1A" }}>
-                Score Max : 12,450
-              </Text>
-              <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.semibold, color: "#AAA", marginTop: 2, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                #DANCEOFF CHALLENGE
-              </Text>
-            </View>
-
-            <Ionicons name="chevron-forward" size={20} color="#CCC" />
-          </AnimatedPressable>
         </View>
 
         {/* ─── Ma Galerie Vidéo ─────────────────────────────────── */}
@@ -528,7 +442,6 @@ export default function ProfileScreen() {
           {/* Video grid 2x2 */}
           {galleryTab === "defis" ? (
             <View>
-              {/* Use real videos if available, otherwise demo */}
               {(() => {
                 const hasRealVideos = (myVideos ?? []).length > 0;
                 const videos = hasRealVideos
@@ -542,12 +455,26 @@ export default function ProfileScreen() {
                       date: new Date(v.created_at).toLocaleDateString("fr-FR", { month: "short", year: "numeric" }).toUpperCase(),
                       thumbnail: v.thumbnail_url,
                     }))
-                  : DEMO_GALLERY.map((v, index) => ({ ...v, index, thumbnail: v.thumbnail }));
+                  : [];
 
                 // Chunk into rows of 2
                 const rows: typeof videos[] = [];
                 for (let i = 0; i < videos.length; i += 2) {
                   rows.push(videos.slice(i, i + 2));
+                }
+
+                if (!hasRealVideos) {
+                  return (
+                    <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                      <Ionicons name="videocam-outline" size={48} color="#D0D0D0" />
+                      <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold, color: "#BBB", marginTop: 12 }}>
+                        Aucune vidéo pour l'instant
+                      </Text>
+                      <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular, color: "#CCC", marginTop: 4 }}>
+                        Poste ta première vidéo !
+                      </Text>
+                    </View>
+                  );
                 }
 
                 return rows.map((row, rowIndex) => (

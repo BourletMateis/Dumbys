@@ -17,7 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useCategoryFeed, useCategoriesWithVideos, type CategoryVideo } from "@/src/features/groups/useCategoryFeed";
+import { useCategoryFeed, type CategoryVideo } from "@/src/features/groups/useCategoryFeed";
 import { useDiscoverFeed } from "@/src/features/groups/useDiscoverFeed";
 import { useMyTournaments, useTournamentFeed } from "@/src/features/groups/useTournamentFeed";
 import { PUBLIC_CATEGORIES } from "@/src/features/groups/usePublicGroups";
@@ -244,9 +244,6 @@ function ExploreFeedItem({
           style={{ alignItems: "center" }}
         >
           <Ionicons name="share-social-outline" size={30} color="#FFFFFF" />
-          <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, marginTop: 2 }}>
-            {formatCount(Math.floor(Math.random() * 100))}
-          </Text>
         </Pressable>
       </View>
 
@@ -286,7 +283,7 @@ function ExploreFeedItem({
                 @{video.submitter.username}
               </Text>
               <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold, textTransform: "uppercase" }}>
-                PRO CHALLENGEUR
+                CHALLENGEUR
               </Text>
             </Pressable>
 
@@ -307,24 +304,14 @@ function ExploreFeedItem({
             </AnimatedPressable>
           </View>
 
-          {/* Hashtag + challenge name */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <View
-              style={{
-                backgroundColor: "rgba(255,255,255,0.15)",
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-                borderRadius: 6,
-              }}
-            >
-              <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold }}>
-                #WTF
+          {/* Challenge name */}
+          {video.group?.name ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.semibold }}>
+                {"🏆 " + video.group.name.toUpperCase()}
               </Text>
             </View>
-            <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.semibold }}>
-              {"🏆 " + (video.group?.name ?? "CHALLENGE").toUpperCase()}
-            </Text>
-          </View>
+          ) : null}
 
           {/* Description */}
           <Pressable onPress={() => setDescExpanded(!descExpanded)}>
@@ -355,7 +342,7 @@ export default function ExploreScreen() {
   // Hooks data par section — enabled uniquement quand l'onglet est actif
   const discoverQuery = useDiscoverFeed({ enabled: activeTab === "decouvrir" });
   const categoryQuery = useCategoryFeed(selectedCategory ?? "", { enabled: activeTab === "categories" && !!selectedCategory });
-  const { data: categoriesWithVideos } = useCategoriesWithVideos();
+
   const { data: myTournaments } = useMyTournaments();
 
   // Récupère le nom du groupe depuis myTournaments pour éviter une requête supplémentaire
@@ -474,7 +461,7 @@ export default function ExploreScreen() {
         {/* Category pills (show when categories tab is active and list is open) */}
         {activeTab === "categories" && categoryListOpen && (
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
-            {PUBLIC_CATEGORIES.filter((cat) => !categoriesWithVideos || categoriesWithVideos.has(cat.key)).map((cat) => (
+            {PUBLIC_CATEGORIES.map((cat) => (
               <AnimatedPressable
                 key={cat.key}
                 onPress={() => {

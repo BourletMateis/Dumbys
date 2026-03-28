@@ -73,6 +73,10 @@ export function useUploadGroupVideo() {
         queryKey: ["group-videos", variables.groupId, variables.weekNumber, variables.year],
       });
       queryClient.invalidateQueries({ queryKey: ["my-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["categories-with-videos"] });
+      if (variables.category) {
+        queryClient.invalidateQueries({ queryKey: ["category-feed", variables.category] });
+      }
     },
   });
 }

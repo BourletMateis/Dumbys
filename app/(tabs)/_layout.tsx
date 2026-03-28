@@ -22,7 +22,7 @@ const TABS: readonly {
   { name: "index", label: "Feed", icon: "home", iconOutline: "home-outline" },
   { name: "explore", label: "Explore", icon: "compass", iconOutline: "compass-outline" },
   { name: "upload", label: "", icon: "add", iconOutline: "add", isCenter: true },
-  { name: "friends", label: "Stats", icon: "stats-chart", iconOutline: "stats-chart-outline" },
+  { name: "friends", label: "Amis", icon: "people", iconOutline: "people-outline" },
   { name: "profile", label: "Profil", icon: "person-circle", iconOutline: "person-circle-outline" },
 ];
 
