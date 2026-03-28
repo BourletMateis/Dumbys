@@ -2,8 +2,9 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install Expo CLI globally
-RUN npm install -g expo-cli@latest
+# Install Expo CLI globally + curl for Discord notifications
+RUN npm install -g expo-cli@latest && \
+    apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package.json package-lock.json ./
@@ -16,4 +17,7 @@ COPY . .
 
 EXPOSE 8081 19000 19001 19002
 
-CMD ["npx", "expo", "start", "--tunnel"]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+CMD ["/entrypoint.sh"]

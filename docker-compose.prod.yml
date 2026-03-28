@@ -13,3 +13,5 @@ services:
     stdin_open: true
     tty: true
     restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
