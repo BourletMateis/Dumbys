@@ -15,9 +15,9 @@ for i in $(seq 1 60); do
     process.stdin.on('end', () => {
       try {
         const tunnels = JSON.parse(d).tunnels;
-        const t = tunnels && tunnels[0];
+        const t = tunnels && tunnels.find(t => t.proto === 'http');
         if (t) {
-          const url = t.public_url.replace(/^https?:\/\//, 'exp://');
+          const url = t.public_url.replace(/^http:\/\//, 'exp://');
           process.stdout.write(url);
         }
       } catch(e) {}
@@ -35,16 +35,10 @@ if [ -z "$TUNNEL_URL" ]; then
   exit 0
 fi
 
-# Wait for Metro bundler to be ready
-echo "Waiting for Metro to be ready..."
-for i in $(seq 1 60); do
-  sleep 2
-  STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/status 2>/dev/null)
-  if [ "$STATUS" = "200" ]; then
-    echo "Metro is ready!"
-    break
-  fi
-done
+# Pre-warm the bundle so the first connection doesn't timeout
+echo "Pre-warming bundle (this may take a few minutes)..."
+curl -s --max-time 300 "http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false" -o /dev/null || true
+echo "Bundle ready!"
 
 if [ -n "$DISCORD_WEBHOOK_URL" ]; then
   ENCODED=$(node -e "process.stdout.write(encodeURIComponent('$TUNNEL_URL'))")
