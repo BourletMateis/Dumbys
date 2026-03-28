@@ -33,6 +33,12 @@
       "expo-router",
       "expo-secure-store"
     ],
+    "updates": {
+      "url": "https://u.expo.dev/8f4455fe-b529-4991-872c-dd480fea101e"
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
     "experiments": {
       "typedRoutes": true
     },

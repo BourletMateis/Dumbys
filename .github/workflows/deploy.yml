@@ -1,36 +1,53 @@
-name: Build & Push Docker Image
+name: EAS Update & Notify Discord
 
 on:
   push:
     branches: ["prod"]
 
 jobs:
-  build:
+  update:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set lowercase repo name
-        run: echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          node-version: 20
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
         with:
-          context: .
-          push: true
-          tags: ghcr.io/${{ env.IMAGE_NAME }}:latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish EAS Update
+        run: eas update --branch preview --message "${{ github.event.head_commit.message }}" --non-interactive
+
+      - name: Send QR to Discord
+        run: |
+          PROJECT_ID="8f4455fe-b529-4991-872c-dd480fea101e"
+          URL="exp://u.expo.dev/${PROJECT_ID}?channel-name=preview"
+          ENCODED=$(python3 -c "import urllib.parse; print(urllib.parse.quote('${URL}'))")
+          QR_URL="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${ENCODED}"
+          COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | head -c 100)
+          SHORT_SHA="${{ github.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
+          curl -s -H "Content-Type: application/json" \
+            -d "{
+              \"embeds\": [{
+                \"title\": \"📱 DumbAward — Nouvelle update!\",
+                \"description\": \"**Commit:** [\`${SHORT_SHA}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) — ${COMMIT_MSG}\n\nScanne le QR avec **Expo Go** :\",
+                \"color\": 4177791,
+                \"image\": {\"url\": \"${QR_URL}\"},
+                \"fields\": [{\"name\": \"URL\", \"value\": \"\`${URL}\`\"}],
+                \"footer\": {\"text\": \"DumbAward CI/CD\"},
+                \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+              }]
+            }" \
+            "${{ secrets.DISCORD_WEBHOOK_URL }}"
