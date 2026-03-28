@@ -1,0 +1,113 @@
+name: Build, Deploy & Notify Discord
+
+on:
+  push:
+    branches: ["prod"]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set lowercase repo name
+        run: echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ env.IMAGE_NAME }}:latest
+
+  deploy-to-nas:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH and send QR to Discord
+        uses: appleboy/ssh-action@v1
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        with:
+          host: ${{ secrets.NAS_HOST }}
+          username: ${{ secrets.NAS_USER }}
+          key: ${{ secrets.NAS_SSH_KEY }}
+          port: ${{ secrets.NAS_SSH_PORT || 22 }}
+          envs: DISCORD_WEBHOOK_URL
+          command_timeout: 5m
+          script: |
+            set -e
+
+            # Navigate to project directory on NAS
+            cd ${{ secrets.NAS_PROJECT_PATH }}
+
+            # Login to GHCR and pull latest image
+            echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker compose pull
+
+            # Stop existing container
+            docker compose down
+
+            # Start new container in detached mode
+            docker compose up -d
+
+            # Wait for expo tunnel URL to appear in logs (max 120s)
+            CONTAINER_NAME=$(docker compose ps -q app)
+            TUNNEL_URL=""
+            for i in $(seq 1 60); do
+              sleep 2
+              LOGS=$(docker compose logs --tail=50 app 2>&1)
+              # Expo tunnel URLs look like: exp://u.expo.dev/... or https://u.expo.dev/...
+              TUNNEL_URL=$(echo "$LOGS" | grep -oP 'exp://[^\s]+' | tail -1)
+              if [ -n "$TUNNEL_URL" ]; then
+                break
+              fi
+            done
+
+            if [ -z "$TUNNEL_URL" ]; then
+              # Notify Discord that deploy succeeded but no QR found
+              curl -s -H "Content-Type: application/json" \
+                -d "{\"embeds\":[{\"title\":\"🚀 Deploy OK — QR non disponible\",\"description\":\"L'image a été déployée mais l'URL tunnel n'a pas pu être capturée. Vérifie les logs du container.\",\"color\":16744448}]}" \
+                "$DISCORD_WEBHOOK_URL"
+              exit 0
+            fi
+
+            # Generate QR code as PNG using an API
+            QR_IMAGE_URL="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=$(python3 -c "import urllib.parse; print(urllib.parse.quote('${TUNNEL_URL}'))")"
+
+            # Send to Discord with embed
+            COMMIT_MSG=$(echo '${{ github.event.head_commit.message }}' | head -c 100)
+            COMMIT_SHA="${{ github.sha }}"
+            SHORT_SHA="${COMMIT_SHA:0:7}"
+
+            curl -s -H "Content-Type: application/json" \
+              -d "{
+                \"embeds\": [{
+                  \"title\": \"📱 Nouvelle build DumbAward déployée!\",
+                  \"description\": \"**Commit:** [\`${SHORT_SHA}\`](https://github.com/${{ github.repository }}/commit/${COMMIT_SHA}) — ${COMMIT_MSG}\n\n**Scanne le QR code pour ouvrir l'app:**\",
+                  \"color\": 4177791,
+                  \"image\": {\"url\": \"${QR_IMAGE_URL}\"},
+                  \"fields\": [{\"name\": \"URL Tunnel\", \"value\": \"\`${TUNNEL_URL}\`\"}],
+                  \"footer\": {\"text\": \"DumbAward CI/CD\"},
+                  \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+                }]
+              }" \
+              "$DISCORD_WEBHOOK_URL"
+
+            echo "✅ QR code sent to Discord: $TUNNEL_URL"

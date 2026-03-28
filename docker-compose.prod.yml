@@ -1,0 +1,15 @@
+services:
+  app:
+    image: ghcr.io/mateis/dumbaward:latest
+    ports:
+      - "8082:8081"
+      - "19000:19000"
+      - "19001:19001"
+      - "19002:19002"
+    env_file:
+      - .env
+    environment:
+      - REACT_NATIVE_PACKAGER_HOSTNAME=${HOST_IP:-localhost}
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
