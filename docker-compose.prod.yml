@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/mateis/dumbaward:latest
+    image: ghcr.io/bourletmateis/dumbys:latest
     ports:
       - "8082:8081"
       - "19000:19000"
