@@ -39,6 +39,9 @@
     "runtimeVersion": {
       "policy": "sdkVersion"
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "experiments": {
       "typedRoutes": true
     },
