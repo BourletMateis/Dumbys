@@ -27,6 +27,18 @@ for i in $(seq 1 60); do
 done
 
 if [ -n "$TUNNEL_URL" ] && [ -n "$DISCORD_WEBHOOK_URL" ]; then
+  # Extract webhook ID and token from URL
+  WEBHOOK_ID=$(echo "$DISCORD_WEBHOOK_URL" | sed 's|.*/webhooks/\([^/]*\)/.*|\1|')
+  WEBHOOK_TOKEN=$(echo "$DISCORD_WEBHOOK_URL" | sed 's|.*/webhooks/[^/]*/||')
+
+  # Delete previous message if exists
+  MSG_ID_FILE="/data/discord_last_msg_id"
+  if [ -f "$MSG_ID_FILE" ]; then
+    PREV_ID=$(cat "$MSG_ID_FILE")
+    curl -s -X DELETE "https://discord.com/api/webhooks/${WEBHOOK_ID}/${WEBHOOK_TOKEN}/messages/${PREV_ID}"
+    echo "Deleted previous message: $PREV_ID"
+  fi
+
   ENCODED=$(node -e "process.stdout.write(encodeURIComponent('$TUNNEL_URL'))")
   QR_URL="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${ENCODED}"
   TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -44,11 +56,27 @@ if [ -n "$TUNNEL_URL" ] && [ -n "$DISCORD_WEBHOOK_URL" ]; then
     };
     process.stdout.write(JSON.stringify(payload));
   ")
+
+  # Send with ?wait=true to get the message ID back
   DISCORD_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
     -H "Content-Type: application/json" \
     -d "$PAYLOAD" \
-    "$DISCORD_WEBHOOK_URL")
+    "${DISCORD_WEBHOOK_URL}?wait=true")
   echo "Discord response: $DISCORD_RESPONSE"
+
+  # Save new message ID for next run
+  NEW_MSG_ID=$(echo "$DISCORD_RESPONSE" | node -e "
+    let d = '';
+    process.stdin.on('data', c => d += c);
+    process.stdin.on('end', () => {
+      try { const j = JSON.parse(d.split('\n')[0]); if (j.id) process.stdout.write(j.id); } catch(e) {}
+    });
+  ")
+  if [ -n "$NEW_MSG_ID" ]; then
+    mkdir -p /data
+    echo "$NEW_MSG_ID" > "$MSG_ID_FILE"
+    echo "Saved message ID: $NEW_MSG_ID"
+  fi
 fi
 
 wait $EXPO_PID
