@@ -84,6 +84,9 @@ function StatItem({ value, label }: { value: number; label: string }) {
   return (
     <View style={{ alignItems: "center", flex: 1 }}>
       <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
         style={{
           color: "#1A1A1A",
           fontSize: FONT.sizes["2xl"],
@@ -93,6 +96,9 @@ function StatItem({ value, label }: { value: number; label: string }) {
         {value}
       </Text>
       <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
         style={{
           color: "#999",
           fontSize: FONT.sizes.sm,

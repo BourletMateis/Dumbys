@@ -63,7 +63,7 @@ export default function CreateGroupScreen() {
           >
             <Ionicons name="arrow-back" size={22} color="#1A1A1A" />
           </Pressable>
-          <Text style={{ flex: 1, fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.bold, color: "#1A1A1A" }}>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ flex: 1, fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.bold, color: "#1A1A1A" }}>
             Créer un groupe
           </Text>
         </View>

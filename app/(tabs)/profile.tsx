@@ -308,7 +308,7 @@ export default function ProfileScreen() {
 
           {/* Name & level */}
           <View style={{ marginLeft: 16, flex: 1 }}>
-            <Text style={{ fontSize: FONT.sizes["3xl"], fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ fontSize: FONT.sizes["3xl"], fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
               {"Salut, " + profile.username + " ! 👋"}
             </Text>
             <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#888", marginTop: 2 }}>
@@ -324,7 +324,7 @@ export default function ProfileScreen() {
             <View style={{ position: "absolute", right: -6, bottom: -6, opacity: 0.18 }}>
               <Ionicons name="videocam" size={64} color="#FFFFFF" />
             </View>
-            <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 1 }}>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 1 }}>
               Vidéos
             </Text>
             <Text style={{ fontSize: 34, fontFamily: FONT_FAMILY.black, color: "#FFFFFF" }}>
@@ -337,7 +337,7 @@ export default function ProfileScreen() {
             <View style={{ position: "absolute", right: -6, bottom: -6, opacity: 0.18 }}>
               <Ionicons name="people" size={64} color="#FFFFFF" />
             </View>
-            <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 1 }}>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 1 }}>
               Groupes
             </Text>
             <Text style={{ fontSize: 34, fontFamily: FONT_FAMILY.black, color: "#FFFFFF" }}>
@@ -350,7 +350,7 @@ export default function ProfileScreen() {
             <View style={{ position: "absolute", right: -6, bottom: -6, opacity: 0.18 }}>
               <Ionicons name="trophy" size={64} color="#FFFFFF" />
             </View>
-            <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 1 }}>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 1 }}>
               Victoires
             </Text>
             <Text style={{ fontSize: 34, fontFamily: FONT_FAMILY.black, color: "#FFFFFF" }}>
@@ -563,7 +563,7 @@ export default function ProfileScreen() {
             <View style={{ width: 36, height: 36, borderRadius: RADIUS.sm, backgroundColor: `${PALETTE.fuchsia}12`, alignItems: "center", justifyContent: "center" }}>
               <Ionicons name="notifications-outline" size={18} color={PALETTE.fuchsia} />
             </View>
-            <Text style={{ flex: 1, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.semibold, color: "#1A1A1A" }}>
+            <Text numberOfLines={1} style={{ flex: 1, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.semibold, color: "#1A1A1A" }}>
               Notifications
             </Text>
             <Ionicons name="chevron-forward" size={16} color="#CCC" />

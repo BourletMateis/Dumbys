@@ -168,6 +168,9 @@ export default function NotificationsSettingsScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.75}
                     style={{
                       fontSize: FONT.sizes.base,
                       fontFamily: FONT_FAMILY.bold,
@@ -250,6 +253,9 @@ export default function NotificationsSettingsScreen() {
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.75}
                           style={{
                             fontSize: FONT.sizes.base,
                             fontFamily: FONT_FAMILY.semibold,

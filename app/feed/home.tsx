@@ -231,30 +231,63 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
       {/* Bottom overlay */}
       <View style={{ position: "absolute", left: 0, right: 0, bottom: 0 }} pointerEvents="box-none">
         <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.75)"]}
+          colors={["transparent", "rgba(0,0,0,0.25)", "rgba(0,0,0,0.55)"]}
+          locations={[0, 0.5, 1]}
           style={{
             paddingLeft: 16,
             paddingRight: 76,
-            paddingTop: 40,
+            paddingTop: 60,
             paddingBottom: 36 + insets.bottom,
           }}
           pointerEvents="box-none"
         >
-          <Text style={{ color: "white", fontSize: 16, fontFamily: FONT_FAMILY.bold }}>
-            @{video.submitter.username}
-          </Text>
-          {video.title && (
-            <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 14, fontFamily: FONT_FAMILY.medium, marginTop: 4 }}>
-              {video.title}
-            </Text>
-          )}
           {video.group && (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}>
-              <Ionicons name="people-outline" size={12} color="rgba(255,255,255,0.6)" />
-              <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontFamily: FONT_FAMILY.regular }}>
+            <View
+              style={{
+                alignSelf: "flex-start",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 5,
+                backgroundColor: "rgba(255,255,255,0.12)",
+                borderRadius: 10,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                marginBottom: 8,
+              }}
+            >
+              <Ionicons name="people" size={11} color="rgba(255,255,255,0.8)" />
+              <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, fontFamily: FONT_FAMILY.semibold }}>
                 {video.group.name}
               </Text>
             </View>
+          )}
+          <Text
+            style={{
+              color: "white",
+              fontSize: 15,
+              fontFamily: FONT_FAMILY.bold,
+              textShadowColor: "rgba(0,0,0,0.6)",
+              textShadowOffset: { width: 0, height: 1 },
+              textShadowRadius: 4,
+            }}
+          >
+            @{video.submitter.username}
+          </Text>
+          {video.title && (
+            <Text
+              style={{
+                color: "rgba(255,255,255,0.9)",
+                fontSize: 13,
+                fontFamily: FONT_FAMILY.regular,
+                marginTop: 3,
+                textShadowColor: "rgba(0,0,0,0.5)",
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 3,
+              }}
+              numberOfLines={2}
+            >
+              {video.title}
+            </Text>
           )}
         </LinearGradient>
       </View>
@@ -270,7 +303,7 @@ export default function HomeFeedScreen() {
   const initialIndex = Number(startIndex ?? 0);
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useHomeFeed();
-  const videos = data?.pages.flatMap((p) => p) ?? [];
+  const videos = data?.pages.flatMap((p) => p).filter((v, i, arr) => arr.findIndex((x) => x.id === v.id) === i) ?? [];
 
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const listRef = useRef<FlatList>(null);
