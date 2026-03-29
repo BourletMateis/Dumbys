@@ -29,10 +29,10 @@ done
 if [ -n "$TUNNEL_URL" ] && [ -n "$DISCORD_WEBHOOK_URL" ]; then
   ENCODED=$(node -e "process.stdout.write(encodeURIComponent('$TUNNEL_URL'))")
   QR_URL="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${ENCODED}"
-  curl -s -H "Content-Type: application/json" \
+  DISCORD_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -H "Content-Type: application/json" \
     -d "{\"embeds\":[{\"title\":\"📱 DumbAward — App dispo!\",\"description\":\"Scanne le QR avec Expo Go (première ouverture ~30s le temps de compiler) :\",\"color\":4177791,\"image\":{\"url\":\"${QR_URL}\"},\"fields\":[{\"name\":\"URL\",\"value\":\"\`${TUNNEL_URL}\`\"}],\"footer\":{\"text\":\"DumbAward CI/CD\"},\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}]}" \
-    "$DISCORD_WEBHOOK_URL"
-  echo "QR sent to Discord!"
+    "$DISCORD_WEBHOOK_URL")
+  echo "Discord response: $DISCORD_RESPONSE"
 fi
 
 wait $EXPO_PID
