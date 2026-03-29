@@ -32,7 +32,7 @@ fi
 
 QR_IMAGE_URL="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=$(python3 -c "import urllib.parse; print(urllib.parse.quote('${TUNNEL_URL}'))")"
 
-curl -s -H "Content-Type: application/json" \
+DEPLOY_RESPONSE=$(curl -s -H "Content-Type: application/json" \
   -d "{
     \"embeds\": [{
       \"title\": \"📱 DumbAward — Nouvelle build!\",
@@ -44,6 +44,14 @@ curl -s -H "Content-Type: application/json" \
       \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
     }]
   }" \
-  "$DISCORD_WEBHOOK_URL"
+  "${DISCORD_WEBHOOK_URL}?wait=true")
+
+# Save message ID so entrypoint.sh can clean it up next run
+DEPLOY_MSG_ID=$(echo "$DEPLOY_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
+if [ -n "$DEPLOY_MSG_ID" ]; then
+  mkdir -p /data
+  echo "$DEPLOY_MSG_ID" >> /data/discord_msg_ids
+  echo "Saved deploy message ID: $DEPLOY_MSG_ID"
+fi
 
 echo "QR code sent to Discord!"

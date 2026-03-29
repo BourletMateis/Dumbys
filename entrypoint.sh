@@ -32,29 +32,16 @@ if [ -n "$TUNNEL_URL" ] && [ -n "$DISCORD_WEBHOOK_URL" ]; then
   WEBHOOK_TOKEN=$(echo "$DISCORD_WEBHOOK_URL" | sed 's|.*/webhooks/[^/]*/||')
 
   # Delete ALL previous messages sent by this webhook
-  MSG_ID_FILE="/data/discord_last_msg_id"
-  # First delete the saved message ID if it exists
+  MSG_ID_FILE="/data/discord_msg_ids"
   if [ -f "$MSG_ID_FILE" ]; then
-    PREV_ID=$(cat "$MSG_ID_FILE")
-    curl -s -X DELETE "https://discord.com/api/webhooks/${WEBHOOK_ID}/${WEBHOOK_TOKEN}/messages/${PREV_ID}"
-    echo "Deleted saved message: $PREV_ID"
+    while IFS= read -r PREV_ID; do
+      [ -z "$PREV_ID" ] && continue
+      HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "https://discord.com/api/webhooks/${WEBHOOK_ID}/${WEBHOOK_TOKEN}/messages/${PREV_ID}")
+      echo "Delete message ${PREV_ID}: HTTP ${HTTP_CODE}"
+      sleep 0.5
+    done < "$MSG_ID_FILE"
+    rm -f "$MSG_ID_FILE"
   fi
-  # Then fetch and delete any remaining webhook messages
-  REMAINING_IDS=$(curl -s "https://discord.com/api/webhooks/${WEBHOOK_ID}/${WEBHOOK_TOKEN}/messages?limit=50" | node -e "
-    let d = '';
-    process.stdin.on('data', c => d += c);
-    process.stdin.on('end', () => {
-      try {
-        const msgs = JSON.parse(d);
-        if (Array.isArray(msgs)) process.stdout.write(msgs.map(m => m.id).join(' '));
-      } catch(e) {}
-    });
-  ")
-  for MID in $REMAINING_IDS; do
-    curl -s -X DELETE "https://discord.com/api/webhooks/${WEBHOOK_ID}/${WEBHOOK_TOKEN}/messages/${MID}"
-    echo "Deleted leftover message: $MID"
-    sleep 0.5
-  done
 
   ENCODED=$(node -e "process.stdout.write(encodeURIComponent('$TUNNEL_URL'))")
   QR_URL="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${ENCODED}"
@@ -91,7 +78,7 @@ if [ -n "$TUNNEL_URL" ] && [ -n "$DISCORD_WEBHOOK_URL" ]; then
   ")
   if [ -n "$NEW_MSG_ID" ]; then
     mkdir -p /data
-    echo "$NEW_MSG_ID" > "$MSG_ID_FILE"
+    echo "$NEW_MSG_ID" >> "$MSG_ID_FILE"
     echo "Saved message ID: $NEW_MSG_ID"
   fi
 fi

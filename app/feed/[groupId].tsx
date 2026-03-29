@@ -189,12 +189,12 @@ function FeedItem({
       {video.source_url && player ? (
         <VideoView
           player={player}
-          style={{ flex: 1 }}
+          style={{ position: "absolute", top: 0, left: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
           contentFit="cover"
           nativeControls={false}
         />
       ) : !video.source_url ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ position: "absolute", top: 0, left: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT, alignItems: "center", justifyContent: "center" }}>
           <Ionicons name="videocam-off-outline" size={48} color="#666" />
           <Text style={{ color: "#999", fontSize: FONT.sizes.md, fontFamily: FONT_FAMILY.regular, marginTop: 8 }}>Vidéo indisponible</Text>
         </View>

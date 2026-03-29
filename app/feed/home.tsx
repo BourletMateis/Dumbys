@@ -123,12 +123,12 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
       {video.source_url && player ? (
         <VideoView
           player={player}
-          style={{ flex: 1 }}
+          style={{ position: "absolute", top: 0, left: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
           contentFit="cover"
           nativeControls={false}
         />
       ) : !video.source_url ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ position: "absolute", top: 0, left: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT, alignItems: "center", justifyContent: "center" }}>
           <Ionicons name="videocam-off-outline" size={48} color="#444" />
           <Text style={{ color: "#555", fontSize: 13, marginTop: 8 }}>Vidéo indisponible</Text>
         </View>
@@ -241,34 +241,14 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
           }}
           pointerEvents="box-none"
         >
-          {video.group && (
-            <View
-              style={{
-                alignSelf: "flex-start",
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 5,
-                backgroundColor: "rgba(255,255,255,0.12)",
-                borderRadius: 10,
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-                marginBottom: 8,
-              }}
-            >
-              <Ionicons name="people" size={11} color="rgba(255,255,255,0.8)" />
-              <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, fontFamily: FONT_FAMILY.semibold }}>
-                {video.group.name}
-              </Text>
-            </View>
-          )}
           <Text
             style={{
-              color: "white",
-              fontSize: 15,
-              fontFamily: FONT_FAMILY.bold,
-              textShadowColor: "rgba(0,0,0,0.6)",
+              color: "#FFFFFF",
+              fontSize: 17,
+              fontFamily: FONT_FAMILY.extrabold,
+              textShadowColor: "rgba(0,0,0,0.7)",
               textShadowOffset: { width: 0, height: 1 },
-              textShadowRadius: 4,
+              textShadowRadius: 6,
             }}
           >
             @{video.submitter.username}
@@ -276,11 +256,11 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
           {video.title && (
             <Text
               style={{
-                color: "rgba(255,255,255,0.9)",
+                color: "rgba(255,255,255,0.55)",
                 fontSize: 13,
                 fontFamily: FONT_FAMILY.regular,
-                marginTop: 3,
-                textShadowColor: "rgba(0,0,0,0.5)",
+                marginTop: 4,
+                textShadowColor: "rgba(0,0,0,0.4)",
                 textShadowOffset: { width: 0, height: 1 },
                 textShadowRadius: 3,
               }}
@@ -288,6 +268,26 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
             >
               {video.title}
             </Text>
+          )}
+          {video.group && (
+            <View
+              style={{
+                alignSelf: "flex-start",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 5,
+                marginTop: 8,
+                backgroundColor: "rgba(255,255,255,0.10)",
+                borderRadius: 20,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+              }}
+            >
+              <Ionicons name="people" size={10} color="rgba(255,255,255,0.5)" />
+              <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: FONT_FAMILY.medium }}>
+                {video.group.name}
+              </Text>
+            </View>
           )}
         </LinearGradient>
       </View>
