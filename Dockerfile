@@ -3,7 +3,7 @@ FROM node:20-slim
 WORKDIR /app
 
 # Install curl only (expo-cli global not needed, npx expo suffit)
-RUN apt-get update && apt-get install -y curl --no-install-recommends \
+RUN apt-get update && apt-get install -y curl ca-certificates --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
