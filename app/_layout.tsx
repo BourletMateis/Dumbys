@@ -148,6 +148,10 @@ function RootLayoutNav() {
           }}
         />
         <Stack.Screen
+          name="feed/home"
+          options={{ headerShown: false, animation: "fade" }}
+        />
+        <Stack.Screen
           name="feed/[groupId]"
           options={{ headerShown: false, animation: "fade" }}
         />

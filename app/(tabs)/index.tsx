@@ -33,6 +33,26 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH - SPACING["2xl"] * 2;
 const THUMBNAIL_HEIGHT = CARD_WIDTH * (9 / 16);
 
+// ─── Decorative blob ────────────────────────────────────────────
+function Blob({ size, color, top, left, right, bottom }: {
+  size: number; color: string;
+  top?: number; left?: number; right?: number; bottom?: number;
+}) {
+  return (
+    <View
+      style={{
+        position: "absolute",
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: color,
+        opacity: 0.12,
+        top, left, right, bottom,
+      }}
+    />
+  );
+}
+
 // ─── Phase ring color ────────────────────────────────────────────
 const PHASE_RING: Record<string, string> = {
   upload: "#22C55E",
@@ -98,12 +118,12 @@ function StoryItem({
 }
 
 // ─── Video card ──────────────────────────────────────────────────
-function VideoCard({ video }: { video: HomeFeedVideo }) {
+function VideoCard({ video, index }: { video: HomeFeedVideo; index: number }) {
   const origin = ORIGIN_CONFIG[video.origin];
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: "/video", params: { id: video.id } } as any);
+    router.push({ pathname: "/feed/home", params: { startIndex: String(index) } } as any);
   };
 
   const thumbnailSource = video.thumbnail_url
@@ -365,16 +385,17 @@ export default function HomeScreen() {
   // Build list items: inject section dividers when origin changes
   type ListItem =
     | { type: "divider"; origin: HomeFeedVideo["origin"]; key: string }
-    | { type: "video"; video: HomeFeedVideo; key: string };
+    | { type: "video"; video: HomeFeedVideo; videoIndex: number; key: string };
 
   const listItems: ListItem[] = [];
   let lastOrigin: HomeFeedVideo["origin"] | null = null;
+  let videoIndex = 0;
   for (const video of videos) {
     if (video.origin !== lastOrigin) {
       listItems.push({ type: "divider", origin: video.origin, key: `divider-${video.origin}` });
       lastOrigin = video.origin;
     }
-    listItems.push({ type: "video", video, key: video.id });
+    listItems.push({ type: "video", video, videoIndex: videoIndex++, key: video.id });
   }
 
   const onEndReached = useCallback(() => {
@@ -387,7 +408,7 @@ export default function HomeScreen() {
     if (item.type === "divider") {
       return <SectionDivider origin={item.origin} />;
     }
-    return <VideoCard video={item.video} />;
+    return <VideoCard video={item.video} index={item.videoIndex} />;
   }, []);
 
   // ── Header component (inside FlatList as ListHeaderComponent) ──
@@ -566,6 +587,9 @@ export default function HomeScreen() {
   if (isLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: "#F8F8FA" }}>
+        <Blob size={220} color={PALETTE.fuchsia} top={-60} right={-70} />
+        <Blob size={160} color={PALETTE.sarcelle} top={300} left={-60} />
+        <Blob size={120} color={PALETTE.jaune} bottom={200} right={-40} />
         {/* Top bar — always visible */}
         <View
           style={{
@@ -606,6 +630,11 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F8F8FA" }}>
+      {/* Decorative blobs */}
+      <Blob size={220} color={PALETTE.fuchsia} top={-60} right={-70} />
+      <Blob size={160} color={PALETTE.sarcelle} top={280} left={-60} />
+      <Blob size={120} color={PALETTE.jaune} bottom={200} right={-40} />
+      <Blob size={180} color={PALETTE.fuchsia} bottom={-50} left={-50} />
       <FlatList
         data={listItems}
         keyExtractor={(item) => item.key}
