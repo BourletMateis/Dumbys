@@ -8,6 +8,7 @@ import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useUserProfile } from "@/src/features/profile/useUserProfile";
+import { useUserStats } from "@/src/features/profile/useUserStats";
 import { useMyVideos } from "@/src/features/profile/useMyVideos";
 import { useMyGroups } from "@/src/features/groups/useMyGroups";
 import { useDeleteVideo } from "@/src/features/feed/useDeleteVideo";
@@ -208,14 +209,12 @@ export default function ProfileScreen() {
     isRefetching,
   } = useUserProfile();
 
+  const { data: stats } = useUserStats();
   const { data: myVideos } = useMyVideos();
   const { data: groups } = useMyGroups();
   const deleteVideo = useDeleteVideo();
 
   const [galleryTab, setGalleryTab] = useState<GalleryTab>("defis");
-
-  const videosCount = (myVideos ?? []).length;
-  const challengesCount = (groups ?? []).length;
   const CARD_GAP = 12;
   const CARD_WIDTH = (SCREEN_WIDTH - 40 - CARD_GAP) / 2;
 
@@ -319,52 +318,43 @@ export default function ProfileScreen() {
         </View>
 
         {/* ─── Stat cards ──────────────────────────────────────── */}
-        <View style={{ flexDirection: "row", paddingHorizontal: 20, gap: 12, marginTop: 28 }}>
-          {/* Défis relevés */}
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: PALETTE.sarcelle,
-              borderRadius: RADIUS.xl,
-              padding: 20,
-              overflow: "hidden",
-              minHeight: 110,
-              justifyContent: "space-between",
-            }}
-          >
-            {/* Watermark icon */}
-            <View style={{ position: "absolute", right: -8, bottom: -8, opacity: 0.2 }}>
-              <Ionicons name="trophy" size={80} color="#FFFFFF" />
+        <View style={{ flexDirection: "row", paddingHorizontal: 20, gap: 10, marginTop: 28 }}>
+          {/* Vidéos */}
+          <View style={{ flex: 1, backgroundColor: PALETTE.sarcelle, borderRadius: RADIUS.xl, padding: 16, overflow: "hidden", minHeight: 96, justifyContent: "space-between" }}>
+            <View style={{ position: "absolute", right: -6, bottom: -6, opacity: 0.18 }}>
+              <Ionicons name="videocam" size={64} color="#FFFFFF" />
             </View>
-            <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 1.2 }}>
-              Défis relevés
+            <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 1 }}>
+              Vidéos
             </Text>
-            <Text style={{ fontSize: 42, fontFamily: FONT_FAMILY.black, color: "#FFFFFF", marginTop: 4 }}>
-              {challengesCount}
+            <Text style={{ fontSize: 34, fontFamily: FONT_FAMILY.black, color: "#FFFFFF" }}>
+              {stats?.video_count ?? (myVideos ?? []).length}
             </Text>
           </View>
 
-          {/* Victoires */}
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: PALETTE.fuchsia,
-              borderRadius: RADIUS.xl,
-              padding: 20,
-              overflow: "hidden",
-              minHeight: 110,
-              justifyContent: "space-between",
-            }}
-          >
-            {/* Watermark icon */}
-            <View style={{ position: "absolute", right: -8, bottom: -8, opacity: 0.2 }}>
-              <Ionicons name="trophy" size={80} color="#FFFFFF" />
+          {/* Groupes */}
+          <View style={{ flex: 1, backgroundColor: PALETTE.fuchsia, borderRadius: RADIUS.xl, padding: 16, overflow: "hidden", minHeight: 96, justifyContent: "space-between" }}>
+            <View style={{ position: "absolute", right: -6, bottom: -6, opacity: 0.18 }}>
+              <Ionicons name="people" size={64} color="#FFFFFF" />
             </View>
-            <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 1.2 }}>
+            <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 1 }}>
+              Groupes
+            </Text>
+            <Text style={{ fontSize: 34, fontFamily: FONT_FAMILY.black, color: "#FFFFFF" }}>
+              {stats?.group_count ?? (groups ?? []).length}
+            </Text>
+          </View>
+
+          {/* Victoires podium */}
+          <View style={{ flex: 1, backgroundColor: PALETTE.jaune, borderRadius: RADIUS.xl, padding: 16, overflow: "hidden", minHeight: 96, justifyContent: "space-between" }}>
+            <View style={{ position: "absolute", right: -6, bottom: -6, opacity: 0.18 }}>
+              <Ionicons name="trophy" size={64} color="#FFFFFF" />
+            </View>
+            <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 1 }}>
               Victoires
             </Text>
-            <Text style={{ fontSize: 42, fontFamily: FONT_FAMILY.black, color: "#FFFFFF", marginTop: 4 }}>
-              {videosCount}
+            <Text style={{ fontSize: 34, fontFamily: FONT_FAMILY.black, color: "#FFFFFF" }}>
+              {stats?.win_count ?? 0}
             </Text>
           </View>
         </View>
@@ -555,8 +545,33 @@ export default function ProfileScreen() {
         {/* Decorative pink blob for gallery section */}
         <Blob size={180} color={PALETTE.fuchsia} bottom={-40} left={-40} />
 
+        {/* ─── Settings ───────────────────────────────────────── */}
+        <View style={{ paddingHorizontal: 20, marginTop: 32, gap: 8 }}>
+          <AnimatedPressable
+            onPress={() => router.push("/notifications-settings" as any)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              backgroundColor: "#FFFFFF",
+              borderRadius: RADIUS.lg,
+              padding: 14,
+              borderWidth: 1,
+              borderColor: "rgba(0,0,0,0.06)",
+            }}
+          >
+            <View style={{ width: 36, height: 36, borderRadius: RADIUS.sm, backgroundColor: `${PALETTE.fuchsia}12`, alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="notifications-outline" size={18} color={PALETTE.fuchsia} />
+            </View>
+            <Text style={{ flex: 1, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.semibold, color: "#1A1A1A" }}>
+              Notifications
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color="#CCC" />
+          </AnimatedPressable>
+        </View>
+
         {/* ─── Sign Out ────────────────────────────────────────── */}
-        <View style={{ paddingHorizontal: 20, marginTop: 40 }}>
+        <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
           <AnimatedPressable
             onPress={() => {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);

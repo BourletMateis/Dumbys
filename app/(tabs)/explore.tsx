@@ -345,18 +345,25 @@ export default function ExploreScreen() {
 
   const { data: myTournaments } = useMyTournaments();
 
+  // Active infinite query for load-more
+  const activeInfiniteQuery = activeTab === "decouvrir" ? discoverQuery
+    : activeTab === "categories" ? categoryQuery
+    : null;
+
   // Récupère le nom du groupe depuis myTournaments pour éviter une requête supplémentaire
   const selectedTournament = (myTournaments ?? []).find((t) => t.id === selectedTournamentId);
   const tournamentFeedQuery = useTournamentFeed(selectedTournamentId ?? "", selectedTournament?.group_name);
 
   // Sélection du bon feed selon l'onglet actif
-  const activeQuery =
-    activeTab === "decouvrir" ? discoverQuery
-    : activeTab === "categories" ? categoryQuery
-    : tournamentFeedQuery;
+  const videos =
+    activeTab === "decouvrir" ? (discoverQuery.data?.pages.flatMap((p) => p) ?? [])
+    : activeTab === "categories" ? (categoryQuery.data?.pages.flatMap((p) => p) ?? [])
+    : (tournamentFeedQuery.data ?? []);
 
-  const videos = activeQuery.data;
-  const isPending = activeQuery.isPending;
+  const isPending =
+    activeTab === "decouvrir" ? discoverQuery.isPending
+    : activeTab === "categories" ? categoryQuery.isPending
+    : tournamentFeedQuery.isPending;
 
   // Track screen focus to pause videos when navigating away
   useFocusEffect(
@@ -586,6 +593,19 @@ export default function ExploreScreen() {
             offset: SCREEN_HEIGHT * index,
             index,
           })}
+          onEndReached={() => {
+            if (activeInfiniteQuery?.hasNextPage && !activeInfiniteQuery.isFetchingNextPage) {
+              activeInfiniteQuery.fetchNextPage();
+            }
+          }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            activeInfiniteQuery?.isFetchingNextPage ? (
+              <View style={{ height: SCREEN_HEIGHT, alignItems: "center", justifyContent: "center" }}>
+                <ActivityIndicator size="large" color="white" />
+              </View>
+            ) : null
+          }
         />
       )}
     </View>

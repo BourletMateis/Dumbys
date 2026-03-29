@@ -1,4 +1,5 @@
-import { Tabs, router } from "expo-router";
+import { useState } from "react";
+import { Tabs } from "expo-router";
 import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -6,11 +7,12 @@ import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { PALETTE, FONT, FONT_FAMILY } from "@/src/theme";
+import { UploadSheet } from "@/src/components/ui/UploadSheet";
 
 const FAB_SIZE = 60;
 const FAB_BORDER = 5;
 const FAB_TOTAL = FAB_SIZE + FAB_BORDER * 2; // 70
-const FAB_OVERLAP = FAB_TOTAL / 2; // half sticks above the bar
+const FAB_OVERLAP = FAB_TOTAL / 2;
 
 const TABS: readonly {
   name: string;
@@ -20,13 +22,16 @@ const TABS: readonly {
   isCenter?: boolean;
 }[] = [
   { name: "index", label: "Feed", icon: "home", iconOutline: "home-outline" },
-  { name: "explore", label: "Explore", icon: "compass", iconOutline: "compass-outline" },
+  { name: "tournois", label: "Tournois", icon: "trophy", iconOutline: "trophy-outline" },
   { name: "upload", label: "", icon: "add", iconOutline: "add", isCenter: true },
-  { name: "friends", label: "Amis", icon: "people", iconOutline: "people-outline" },
   { name: "profile", label: "Profil", icon: "person-circle", iconOutline: "person-circle-outline" },
 ];
 
-function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+type CustomTabBarProps = BottomTabBarProps & {
+  onFabPress: () => void;
+};
+
+function CustomTabBar({ state, navigation, onFabPress }: CustomTabBarProps) {
   const insets = useSafeAreaInsets();
   const TAB_BAR_HEIGHT = 56 + Math.max(insets.bottom, 8);
 
@@ -37,7 +42,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       isCenter ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light,
     );
     if (isCenter) {
-      router.navigate("/camera" as any);
+      onFabPress();
       return;
     }
     const event = navigation.emit({
@@ -65,7 +70,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       }}
       pointerEvents="box-none"
     >
-      {/* ── FAB sitting on top edge of the bar ── */}
+      {/* ── FAB ── */}
       {(() => {
         const uploadRoute = state.routes.find((r) => r.name === "upload");
         if (!uploadRoute) return null;
@@ -138,7 +143,6 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           const tab = TABS.find((t) => t.name === route.name);
           if (!tab) return null;
 
-          // Skip center tab — rendered as FAB above
           if (tab.isCenter) {
             return <View key={route.key} style={{ minWidth: FAB_TOTAL }} />;
           }
@@ -179,18 +183,32 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 }
 
 export default function TabLayout() {
+  const [uploadSheetOpen, setUploadSheetOpen] = useState(false);
+
   return (
-    <Tabs
-      tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Tabs.Screen name="index" />
-      <Tabs.Screen name="explore" />
-      <Tabs.Screen name="upload" />
-      <Tabs.Screen name="friends" />
-      <Tabs.Screen name="profile" />
-    </Tabs>
+    <>
+      <Tabs
+        tabBar={(props) => (
+          <CustomTabBar
+            {...props}
+            onFabPress={() => setUploadSheetOpen(true)}
+          />
+        )}
+        screenOptions={{ headerShown: false }}
+      >
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="tournois" />
+        <Tabs.Screen name="upload" />
+        <Tabs.Screen name="profile" />
+        {/* Hidden screens — no longer tab items */}
+        <Tabs.Screen name="explore" options={{ href: null }} />
+        <Tabs.Screen name="friends" options={{ href: null }} />
+      </Tabs>
+
+      <UploadSheet
+        isOpen={uploadSheetOpen}
+        onClose={() => setUploadSheetOpen(false)}
+      />
+    </>
   );
 }

@@ -24,6 +24,7 @@ import { useComments, useAddComment, useDeleteComment, type Comment } from "@/sr
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { PALETTE, RADIUS, FONT, FONT_FAMILY } from "@/src/theme";
+import { toast } from "@/src/lib/toast";
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -137,7 +138,7 @@ export default function VideoCommentsScreen() {
         setCommentText("");
         listRef.current?.scrollToEnd({ animated: true });
       },
-      onError: (err) => Alert.alert("Erreur", err.message),
+      onError: (err) => toast.error(err.message),
     });
   };
 

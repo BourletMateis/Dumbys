@@ -104,6 +104,38 @@ export function useRealtimeSubscriptions() {
           }
         },
       )
+      // ── Videos (nouveau post) ──
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "videos" },
+        (payload) => {
+          const row = (payload.new as any);
+          queryClient.invalidateQueries({ queryKey: ["discover-feed"] });
+          if (row?.group_id) {
+            queryClient.invalidateQueries({ queryKey: ["group-videos", row.group_id] });
+          }
+          if (row?.challenge_id) {
+            queryClient.invalidateQueries({ queryKey: ["challenge-videos", row.challenge_id] });
+          }
+          if (row?.submitter_id === user.id) {
+            queryClient.invalidateQueries({ queryKey: ["my-videos"] });
+          }
+        },
+      )
+      // ── Weekly votes ──
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "weekly_votes" },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as any;
+          if (row?.video_id) {
+            queryClient.invalidateQueries({ queryKey: ["vote-counts", row.video_id] });
+          }
+          if (row?.voter_id === user.id) {
+            queryClient.invalidateQueries({ queryKey: ["my-vote"] });
+          }
+        },
+      )
       .subscribe();
 
     return () => {

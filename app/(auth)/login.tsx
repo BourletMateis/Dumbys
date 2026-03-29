@@ -12,17 +12,26 @@ import * as Haptics from "expo-haptics";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { PALETTE, RADIUS, FONT, FONT_FAMILY, SPACING } from "@/src/theme";
+import { loginSchema, signUpSchema } from "@/src/lib/schemas";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 
   const { signInWithEmail, signUpWithEmail, signInWithOAuth, isLoading, error, clearError } =
     useAuthStore();
 
   const handleSubmit = async () => {
-    if (!email.trim() || !password.trim()) return;
+    const schema = isSignUp ? signUpSchema : loginSchema;
+    const result = schema.safeParse({ email: email.trim(), password });
+    if (!result.success) {
+      const flat = result.error.flatten().fieldErrors;
+      setFieldErrors({ email: flat.email?.[0], password: flat.password?.[0] });
+      return;
+    }
+    setFieldErrors({});
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     clearError();
     if (isSignUp) {
@@ -172,52 +181,66 @@ export default function LoginScreen() {
 
           {/* Email + Password */}
           <View style={{ gap: SPACING.base }}>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Email"
-              placeholderTextColor="#BBB"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={{
-                backgroundColor: "rgba(0,0,0,0.04)",
-                borderWidth: 1,
-                borderColor: "rgba(0,0,0,0.06)",
-                color: "#1A1A1A",
-                paddingHorizontal: 18,
-                paddingVertical: 15,
-                borderRadius: RADIUS.md,
-                fontSize: FONT.sizes.lg,
-                fontFamily: FONT_FAMILY.regular,
-              }}
-            />
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Mot de passe"
-              placeholderTextColor="#BBB"
-              secureTextEntry
-              autoCapitalize="none"
-              style={{
-                backgroundColor: "rgba(0,0,0,0.04)",
-                borderWidth: 1,
-                borderColor: "rgba(0,0,0,0.06)",
-                color: "#1A1A1A",
-                paddingHorizontal: 18,
-                paddingVertical: 15,
-                borderRadius: RADIUS.md,
-                fontSize: FONT.sizes.lg,
-                fontFamily: FONT_FAMILY.regular,
-              }}
-            />
+            <View>
+              <TextInput
+                value={email}
+                onChangeText={(t) => { setEmail(t); setFieldErrors((e) => ({ ...e, email: undefined })); }}
+                placeholder="Email"
+                placeholderTextColor="#BBB"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={{
+                  backgroundColor: "rgba(0,0,0,0.04)",
+                  borderWidth: 1,
+                  borderColor: fieldErrors.email ? "#F43F5E" : "rgba(0,0,0,0.06)",
+                  color: "#1A1A1A",
+                  paddingHorizontal: 18,
+                  paddingVertical: 15,
+                  borderRadius: RADIUS.md,
+                  fontSize: FONT.sizes.lg,
+                  fontFamily: FONT_FAMILY.regular,
+                }}
+              />
+              {fieldErrors.email ? (
+                <Text style={{ color: "#F43F5E", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.medium, marginTop: 4, marginLeft: 4 }}>
+                  {fieldErrors.email}
+                </Text>
+              ) : null}
+            </View>
+            <View>
+              <TextInput
+                value={password}
+                onChangeText={(t) => { setPassword(t); setFieldErrors((e) => ({ ...e, password: undefined })); }}
+                placeholder="Mot de passe"
+                placeholderTextColor="#BBB"
+                secureTextEntry
+                autoCapitalize="none"
+                style={{
+                  backgroundColor: "rgba(0,0,0,0.04)",
+                  borderWidth: 1,
+                  borderColor: fieldErrors.password ? "#F43F5E" : "rgba(0,0,0,0.06)",
+                  color: "#1A1A1A",
+                  paddingHorizontal: 18,
+                  paddingVertical: 15,
+                  borderRadius: RADIUS.md,
+                  fontSize: FONT.sizes.lg,
+                  fontFamily: FONT_FAMILY.regular,
+                }}
+              />
+              {fieldErrors.password ? (
+                <Text style={{ color: "#F43F5E", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.medium, marginTop: 4, marginLeft: 4 }}>
+                  {fieldErrors.password}
+                </Text>
+              ) : null}
+            </View>
             <AnimatedPressable
               onPress={handleSubmit}
-              disabled={isLoading || !email.trim() || !password.trim()}
+              disabled={isLoading}
               style={{
                 borderRadius: RADIUS.md,
                 overflow: "hidden",
-                opacity: !email.trim() || !password.trim() ? 0.5 : 1,
+                opacity: isLoading ? 0.6 : 1,
                 backgroundColor: PALETTE.sarcelle,
                 paddingVertical: SPACING.lg + 2,
                 alignItems: "center",

@@ -31,20 +31,13 @@ import {
   FONT_FAMILY,
   SPACING,
 } from "@/src/theme";
+import { createGroupSchema, createTournamentSchema } from "@/src/lib/schemas";
+import { toast } from "@/src/lib/toast";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 type UploadTab = "enregistrer" | "deposer" | "tournoi";
 type TournamentVisibility = "public" | "private";
-
-// ─── Fake group avatars for demo (matches template) ──────────────
-const DEMO_GROUPS = [
-  { id: "create", name: "Créer", isCreate: true },
-  { id: "1", name: "La Team", avatar: null, hasBadge: true },
-  { id: "2", name: "Skate Crew", avatar: null, hasBadge: false },
-  { id: "3", name: "Besties", avatar: null, hasBadge: false },
-  { id: "4", name: "Voisins", avatar: null, hasBadge: false },
-];
 
 export default function UploadScreen() {
   const insets = useSafeAreaInsets();
@@ -73,12 +66,14 @@ export default function UploadScreen() {
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupDesc, setNewGroupDesc] = useState("");
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [groupErrors, setGroupErrors] = useState<{ name?: string }>({});
 
   // Tournament creation
   const [tournamentGroupId, setTournamentGroupId] = useState<string | null>(null);
   const [tournamentDesc, setTournamentDesc] = useState("");
   const [tournamentReward, setTournamentReward] = useState("");
   const [isCreatingTournament, setIsCreatingTournament] = useState(false);
+  const [tournamentErrors, setTournamentErrors] = useState<{ title?: string }>({});
 
   const privateGroups: GroupWithRole[] = (myGroups ?? []).filter((g) => !g.is_public);
 
@@ -157,7 +152,12 @@ export default function UploadScreen() {
   };
 
   const handleCreateGroup = () => {
-    if (!newGroupName.trim()) return;
+    const result = createGroupSchema.safeParse({ name: newGroupName.trim(), description: newGroupDesc.trim() || undefined });
+    if (!result.success) {
+      setGroupErrors({ name: result.error.flatten().fieldErrors.name?.[0] });
+      return;
+    }
+    setGroupErrors({});
     setIsCreatingGroup(true);
     createGroup.mutate(
       { name: newGroupName.trim(), description: newGroupDesc.trim() || undefined, isPublic: false },
@@ -166,16 +166,26 @@ export default function UploadScreen() {
           setShowCreateGroup(false);
           setNewGroupName("");
           setNewGroupDesc("");
-          Alert.alert("Groupe créé !", "Ton groupe a été créé avec succès.");
+          toast.success("Ton groupe a été créé avec succès.", "Groupe créé !");
         },
-        onError: (err) => Alert.alert("Erreur", err.message),
+        onError: (err) => toast.error(err.message),
         onSettled: () => setIsCreatingGroup(false),
       },
     );
   };
 
   const handleCreateTournament = () => {
-    if (!challengeName.trim() || !tournamentGroupId) return;
+    const result = createTournamentSchema.safeParse({
+      title: challengeName.trim(),
+      description: tournamentDesc.trim() || undefined,
+      reward: tournamentReward.trim() || undefined,
+    });
+    if (!result.success) {
+      setTournamentErrors({ title: result.error.flatten().fieldErrors.title?.[0] });
+      return;
+    }
+    if (!tournamentGroupId) return;
+    setTournamentErrors({});
     setIsCreatingTournament(true);
     createTournament.mutate(
       {
@@ -190,9 +200,9 @@ export default function UploadScreen() {
           setTournamentDesc("");
           setTournamentReward("");
           setTournamentGroupId(null);
-          Alert.alert("Tournoi créé !", "Ton tournoi a été créé. Accède-y depuis la page du groupe.");
+          toast.success("Accède-y depuis la page du groupe.", "Tournoi créé !");
         },
-        onError: (err) => Alert.alert("Erreur", err.message),
+        onError: (err) => toast.error(err.message),
         onSettled: () => setIsCreatingTournament(false),
       },
     );
@@ -207,9 +217,10 @@ export default function UploadScreen() {
       {
         onSuccess: () => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert("Publié !", "Ta vidéo a été envoyée.", [{ text: "OK", onPress: resetForm }]);
+          toast.success("Ta vidéo a été envoyée.");
+          resetForm();
         },
-        onError: (err) => Alert.alert("Erreur", err.message),
+        onError: (err) => toast.error(err.message),
         onSettled: () => setIsUploading(false),
       },
     );
@@ -629,12 +640,17 @@ export default function UploadScreen() {
             </Text>
             <TextInput
               value={challengeName}
-              onChangeText={setChallengeName}
+              onChangeText={(t) => { setChallengeName(t); setTournamentErrors({}); }}
               placeholder="Ex: Kickflip Masters ✏️"
               placeholderTextColor="#CCCCCC"
-              style={{ backgroundColor: "#F8F8FA", borderRadius: 14, paddingHorizontal: 18, paddingVertical: 14, fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.regular, color: "#1A1A1A", borderWidth: 1, borderColor: "rgba(0,0,0,0.05)", marginBottom: 16 }}
+              style={{ backgroundColor: "#F8F8FA", borderRadius: 14, paddingHorizontal: 18, paddingVertical: 14, fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.regular, color: "#1A1A1A", borderWidth: 1, borderColor: tournamentErrors.title ? "#F43F5E" : "rgba(0,0,0,0.05)", marginBottom: tournamentErrors.title ? 4 : 16 }}
               maxLength={60}
             />
+            {tournamentErrors.title ? (
+              <Text style={{ color: "#F43F5E", fontSize: 12, fontFamily: FONT_FAMILY.medium, marginBottom: 12, marginLeft: 2 }}>
+                {tournamentErrors.title}
+              </Text>
+            ) : null}
 
             {/* Récompense */}
             <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#B0B0B0", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 10 }}>
@@ -679,13 +695,18 @@ export default function UploadScreen() {
           </Text>
           <TextInput
             value={newGroupName}
-            onChangeText={setNewGroupName}
+            onChangeText={(t) => { setNewGroupName(t); setGroupErrors({}); }}
             placeholder="Ex: Les Champions 🏆"
             placeholderTextColor="#CCC"
-            style={{ backgroundColor: "#F8F8FA", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#1A1A1A", borderWidth: 1, borderColor: "rgba(0,0,0,0.06)", marginBottom: 16 }}
+            style={{ backgroundColor: "#F8F8FA", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#1A1A1A", borderWidth: 1, borderColor: groupErrors.name ? "#F43F5E" : "rgba(0,0,0,0.06)", marginBottom: groupErrors.name ? 4 : 16 }}
             maxLength={60}
             autoFocus
           />
+          {groupErrors.name ? (
+            <Text style={{ color: "#F43F5E", fontSize: 12, fontFamily: FONT_FAMILY.medium, marginBottom: 12, marginLeft: 2 }}>
+              {groupErrors.name}
+            </Text>
+          ) : null}
           <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#B0B0B0", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8 }}>
             DESCRIPTION (optionnel)
           </Text>

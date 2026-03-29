@@ -5,7 +5,12 @@
       "Bash(sudo docker:*)",
       "Bash(docker compose:*)",
       "Bash(docker ps:*)",
-      "Bash(echo \"EXIT: $?\")"
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(grep -r \"TODO\\\\|FIXME\\\\|XXX\\\\|HACK\\\\|BUG\" /volume1/docker/sites/Dumbys --include=*.tsx --include=*.ts --include=*.md)",
+      "Bash(wc -l /volume1/docker/sites/Dumbys/src/**/*.ts /volume1/docker/sites/Dumbys/src/**/*.tsx /volume1/docker/sites/Dumbys/app/**/*.tsx)",
+      "Bash(find /volume1/docker/sites/Dumbys -name *.test.ts -o -name *.test.tsx -o -name *.spec.ts -o -name *.spec.tsx)",
+      "Bash(ls -la /volume1/docker/sites/Dumbys/app/upload.tsx /volume1/docker/sites/Dumbys/app/post.tsx /volume1/docker/sites/Dumbys/app/challenge/[id].tsx /volume1/docker/sites/Dumbys/app/\\\\\\(tabs\\\\\\)/upload.tsx)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }

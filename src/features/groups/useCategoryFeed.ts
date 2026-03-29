@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/src/lib/supabase";
 import { useAuthStore } from "@/src/store/useAuthStore";
 
@@ -23,6 +23,8 @@ export type CategoryVideo = {
   };
 };
 
+const PAGE_SIZE = 20;
+
 /**
  * Returns the set of category keys that have at least one video in a public group.
  */
@@ -32,7 +34,6 @@ export function useCategoriesWithVideos() {
   return useQuery<Set<string>>({
     queryKey: ["categories-with-videos"],
     queryFn: async () => {
-      // Get public groups with a category
       const { data: groups, error: grpErr } = await supabase
         .from("groups")
         .select("id, category")
@@ -45,7 +46,6 @@ export function useCategoriesWithVideos() {
       const groupIds = groups.map((g) => g.id);
       const groupCategoryMap = new Map(groups.map((g) => [g.id, g.category as string]));
 
-      // Find which of those groups have at least one video
       const { data: videoGroups, error: vidErr } = await supabase
         .from("videos")
         .select("group_id")
@@ -61,7 +61,6 @@ export function useCategoriesWithVideos() {
         }
       }
 
-      // Also include categories set directly on the video
       const { data: taggedVideos } = await supabase
         .from("videos")
         .select("category")
@@ -78,36 +77,35 @@ export function useCategoriesWithVideos() {
 }
 
 /**
- * Fetch all videos from public groups in a given category.
- * Used for the TikTok-style category feed.
+ * Infinite paginated feed of videos for a given category.
+ * PAGE_SIZE = 20 items per page.
  */
 export function useCategoryFeed(category: string, options?: { enabled?: boolean }) {
   const user = useAuthStore((s) => s.user);
 
-  return useQuery<CategoryVideo[]>({
+  return useInfiniteQuery<CategoryVideo[]>({
     queryKey: ["category-feed", category],
-    queryFn: async () => {
-      // 1. Get all public groups in this category
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const offset = pageParam as number;
+
       let groupQuery = supabase
         .from("groups")
         .select("id, name")
         .eq("is_public", true);
 
       if (category === "other") {
-        // "Other" includes groups with no category or category = "other"
         groupQuery = groupQuery.or("category.is.null,category.eq.other");
       } else {
         groupQuery = groupQuery.eq("category", category);
       }
 
       const { data: groups, error: grpErr } = await groupQuery;
-
       if (grpErr) throw grpErr;
 
       const groupIds = (groups ?? []).map((g) => g.id);
       const groupMap = new Map((groups ?? []).map((g) => [g.id, g]));
 
-      // 2. Get ALL videos from these groups OR with matching category on the video itself
       const orFilter =
         groupIds.length > 0
           ? `group_id.in.(${groupIds.join(",")}),category.eq.${category}`
@@ -118,12 +116,11 @@ export function useCategoryFeed(category: string, options?: { enabled?: boolean 
         .select("id, source_url, video_path, thumbnail_url, title, description, week_number, year, created_at, submitter_id, group_id")
         .or(orFilter)
         .order("created_at", { ascending: false })
-        .limit(200);
+        .range(offset, offset + PAGE_SIZE - 1);
 
       if (vidErr) throw vidErr;
       if (!videos || videos.length === 0) return [];
 
-      // 3. Enrich with user data
       const userIds = [...new Set(videos.map((v) => v.submitter_id))];
       const { data: users, error: usrErr } = await supabase
         .from("users")
@@ -138,7 +135,9 @@ export function useCategoryFeed(category: string, options?: { enabled?: boolean 
         .map((v) => {
           const submitter = userMap.get(v.submitter_id);
           if (!submitter) return null;
-          const group = v.group_id ? (groupMap.get(v.group_id) ?? { id: v.group_id, name: "" }) : { id: "", name: "" };
+          const group = v.group_id
+            ? (groupMap.get(v.group_id) ?? { id: v.group_id, name: "" })
+            : { id: "", name: "" };
           return {
             id: v.id,
             source_url: v.source_url,
@@ -155,6 +154,8 @@ export function useCategoryFeed(category: string, options?: { enabled?: boolean 
         })
         .filter((v): v is CategoryVideo => v !== null);
     },
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length === PAGE_SIZE ? allPages.length * PAGE_SIZE : undefined,
     enabled: !!user && !!category && (options?.enabled ?? true),
   });
 }

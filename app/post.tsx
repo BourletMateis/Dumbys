@@ -20,6 +20,7 @@ import { useUploadGroupVideo } from "@/src/features/groups/useUploadGroupVideo";
 import { useTimelineLogic } from "@/src/hooks/useTimelineLogic";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { PUBLIC_CATEGORIES } from "@/src/features/groups/usePublicGroups";
+import { toast } from "@/src/lib/toast";
 
 export default function PostScreen() {
   const insets = useSafeAreaInsets();
@@ -43,7 +44,7 @@ export default function PostScreen() {
   const handlePublish = () => {
     if (!videoUri) return;
     if (!selectedGroupId) {
-      Alert.alert("Groupe requis", "Sélectionne un groupe pour publier ta vidéo.");
+      toast.error("Sélectionne un groupe pour publier ta vidéo.");
       return;
     }
 
@@ -54,11 +55,10 @@ export default function PostScreen() {
       {
         onSuccess: () => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert("Publié 🔥", "Ta vidéo est en ligne !", [
-            { text: "OK", onPress: () => router.dismissAll() },
-          ]);
+          toast.success("Ta vidéo est en ligne !");
+          router.dismissAll();
         },
-        onError: (err) => Alert.alert("Erreur", err.message),
+        onError: (err) => toast.error(err.message),
         onSettled: () => setIsUploading(false),
       }
     );

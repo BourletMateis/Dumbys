@@ -14,6 +14,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useGroupTournament } from "@/src/features/groups/useGroupTournaments";
 import { useTournamentChallenges, useCreateChallenge, useDeleteChallenge } from "@/src/features/groups/useChallenges";
 import { useAuthStore } from "@/src/store/useAuthStore";
+import { createChallengeSchema } from "@/src/lib/schemas";
+import { toast } from "@/src/lib/toast";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { BottomSheet } from "@/src/components/ui/BottomSheet";
 import { EmptyState } from "@/src/components/ui/EmptyState";
@@ -117,9 +119,16 @@ export default function TournamentScreen() {
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [challengeErrors, setChallengeErrors] = useState<{ title?: string }>({});
 
   const handleCreate = () => {
-    if (!newTitle.trim()) return;
+    const result = createChallengeSchema.safeParse({ title: newTitle.trim(), description: newDesc.trim() || undefined });
+    if (!result.success) {
+      const flat = result.error.flatten().fieldErrors;
+      setChallengeErrors({ title: flat.title?.[0] });
+      return;
+    }
+    setChallengeErrors({});
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     createChallenge.mutate(
       {
@@ -133,7 +142,7 @@ export default function TournamentScreen() {
           setNewTitle("");
           setNewDesc("");
         },
-        onError: (err) => Alert.alert("Erreur", err.message),
+        onError: (err) => toast.error(err.message),
       },
     );
   };
@@ -380,13 +389,18 @@ export default function TournamentScreen() {
             </Text>
             <TextInput
               value={newTitle}
-              onChangeText={setNewTitle}
+              onChangeText={(t) => { setNewTitle(t); setChallengeErrors({}); }}
               placeholder="Ex : Faire une vidéo déguisé..."
               placeholderTextColor="#BBB"
-              style={{ ...INPUT_STYLE, marginBottom: 16 }}
+              style={{ ...INPUT_STYLE, marginBottom: challengeErrors.title ? 4 : 16, borderColor: challengeErrors.title ? "#F43F5E" : undefined }}
               maxLength={100}
               autoFocus
             />
+            {challengeErrors.title ? (
+              <Text style={{ color: "#F43F5E", fontSize: 12, fontFamily: FONT_FAMILY.medium, marginBottom: 12, marginLeft: 2 }}>
+                {challengeErrors.title}
+              </Text>
+            ) : null}
 
             <Text style={{ ...SECTION_HEADER_STYLE, marginBottom: 8 }}>
               Description (optionnel)

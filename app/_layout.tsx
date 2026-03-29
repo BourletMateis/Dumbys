@@ -6,10 +6,12 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
+import Toast from "react-native-toast-message";
 
 import { queryClient } from "@/src/lib/queryClient";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { useRealtimeSubscriptions } from "@/src/hooks/useRealtimeSubscriptions";
+import { usePushNotifications } from "@/src/features/notifications/usePushNotifications";
 import { ThemeProvider } from "@/src/providers/ThemeProvider";
 import { useColorScheme } from "@/components/useColorScheme";
 
@@ -76,6 +78,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <RootLayoutNav />
+        <Toast />
       </ThemeProvider>
     </QueryClientProvider>
   );
@@ -88,6 +91,7 @@ function RootLayoutNav() {
   const { session, isInitialized, initialize } = useAuthStore();
 
   useRealtimeSubscriptions();
+  usePushNotifications();
 
   useEffect(() => {
     const cleanup = initialize();
@@ -158,6 +162,10 @@ function RootLayoutNav() {
             headerStyle: { backgroundColor: "#1F1F1F" },
             headerTintColor: "#fff",
           }}
+        />
+        <Stack.Screen
+          name="notifications-settings"
+          options={{ headerShown: false, animation: "slide_from_right" }}
         />
       </Stack>
     </NavThemeProvider>

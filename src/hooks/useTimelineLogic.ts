@@ -2,12 +2,43 @@ import { useMemo } from "react";
 
 export type TimelinePhase = "upload" | "vote" | "podium";
 
-function getISOWeekNumber(date: Date): number {
+export function getISOWeekNumber(date: Date): number {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
+/** Utilisable hors hook (dans PhaseIndicator, notifications, etc.) */
+export function getPhaseForDate(date: Date): {
+  phase: TimelinePhase;
+  canUpload: boolean;
+  canVote: boolean;
+  daysLeft: number;
+} {
+  const dayOfWeek = date.getDay();
+  let phase: TimelinePhase;
+  let daysLeft: number;
+
+  if (dayOfWeek === 6 || dayOfWeek === 0) {
+    phase = "vote";
+    daysLeft = dayOfWeek === 6 ? 1 : 0;
+  } else if (dayOfWeek === 1) {
+    phase = "podium";
+    daysLeft = 0;
+  } else {
+    phase = "upload";
+    // jours restants jusqu'au vendredi
+    daysLeft = 5 - dayOfWeek;
+  }
+
+  return {
+    phase,
+    canUpload: dayOfWeek >= 1 && dayOfWeek <= 5,
+    canVote: dayOfWeek === 6 || dayOfWeek === 0,
+    daysLeft,
+  };
 }
 
 export function useTimelineLogic() {

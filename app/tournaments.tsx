@@ -20,6 +20,7 @@ import {
 } from "@/src/features/groups/useAllPublicTournaments";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { PALETTE, FONT, FONT_FAMILY } from "@/src/theme";
+import { toast } from "@/src/lib/toast";
 
 function TournamentCard({ tournament }: { tournament: PublicTournament }) {
   const router = useRouter();
@@ -36,7 +37,7 @@ function TournamentCard({ tournament }: { tournament: PublicTournament }) {
       },
       onError: (err) => {
         setJoining(false);
-        Alert.alert("Erreur", err.message);
+        toast.error(err.message);
       },
     });
   };
