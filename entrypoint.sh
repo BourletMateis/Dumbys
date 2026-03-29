@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Start Expo in background
-npx expo start --tunnel &
+npx expo start --tunnel --max-workers 1 &
 EXPO_PID=$!
 
 # Wait for ngrok tunnel URL via ngrok API

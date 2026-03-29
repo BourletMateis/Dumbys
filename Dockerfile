@@ -22,6 +22,6 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Limit Node heap to avoid OOM
-ENV NODE_OPTIONS=--max-old-space-size=768
+ENV NODE_OPTIONS=--max-old-space-size=400
 
 CMD ["/entrypoint.sh"]
