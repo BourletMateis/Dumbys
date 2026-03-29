@@ -30,7 +30,7 @@ import {
 } from "@/src/theme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_WIDTH = SCREEN_WIDTH - SPACING["2xl"] * 2;
+const CARD_WIDTH = SCREEN_WIDTH;
 const THUMBNAIL_HEIGHT = CARD_WIDTH * (9 / 16);
 
 // ─── Decorative blob ────────────────────────────────────────────
@@ -135,9 +135,8 @@ function VideoCard({ video, index }: { video: HomeFeedVideo; index: number }) {
       onPress={handlePress}
       style={({ pressed }) => ({
         opacity: pressed ? 0.93 : 1,
-        marginHorizontal: SPACING["2xl"],
         marginBottom: SPACING.lg,
-        borderRadius: RADIUS.xl,
+        borderRadius: 0,
         backgroundColor: "#FFFFFF",
         borderWidth: 1,
         borderColor: "rgba(0,0,0,0.06)",

@@ -168,8 +168,16 @@ function RootLayoutNav() {
           }}
         />
         <Stack.Screen
+          name="notifications"
+          options={{ headerShown: false, animation: "slide_from_right" }}
+        />
+        <Stack.Screen
           name="notifications-settings"
           options={{ headerShown: false, animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="groups/create"
+          options={{ headerShown: false, animation: "slide_from_bottom" }}
         />
       </Stack>
     </NavThemeProvider>

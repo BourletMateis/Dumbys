@@ -21,10 +21,11 @@ const TABS: readonly {
   iconOutline: keyof typeof Ionicons.glyphMap;
   isCenter?: boolean;
 }[] = [
-  { name: "index", label: "Feed", icon: "home", iconOutline: "home-outline" },
-  { name: "tournois", label: "Tournois", icon: "trophy", iconOutline: "trophy-outline" },
-  { name: "upload", label: "", icon: "add", iconOutline: "add", isCenter: true },
-  { name: "profile", label: "Profil", icon: "person-circle", iconOutline: "person-circle-outline" },
+  { name: "index",    label: "Feed",     icon: "home",          iconOutline: "home-outline" },
+  { name: "tournois", label: "Tournois", icon: "trophy",        iconOutline: "trophy-outline" },
+  { name: "upload",   label: "",         icon: "add",           iconOutline: "add", isCenter: true },
+  { name: "friends",  label: "Amis",     icon: "people",        iconOutline: "people-outline" },
+  { name: "profile",  label: "Profil",   icon: "person-circle", iconOutline: "person-circle-outline" },
 ];
 
 type CustomTabBarProps = BottomTabBarProps & {
@@ -199,10 +200,10 @@ export default function TabLayout() {
         <Tabs.Screen name="index" />
         <Tabs.Screen name="tournois" />
         <Tabs.Screen name="upload" />
+        <Tabs.Screen name="friends" />
         <Tabs.Screen name="profile" />
-        {/* Hidden screens — no longer tab items */}
+        {/* Hidden screens */}
         <Tabs.Screen name="explore" options={{ href: null }} />
-        <Tabs.Screen name="friends" options={{ href: null }} />
       </Tabs>
 
       <UploadSheet

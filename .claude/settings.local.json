@@ -10,7 +10,12 @@
       "Bash(wc -l /volume1/docker/sites/Dumbys/src/**/*.ts /volume1/docker/sites/Dumbys/src/**/*.tsx /volume1/docker/sites/Dumbys/app/**/*.tsx)",
       "Bash(find /volume1/docker/sites/Dumbys -name *.test.ts -o -name *.test.tsx -o -name *.spec.ts -o -name *.spec.tsx)",
       "Bash(ls -la /volume1/docker/sites/Dumbys/app/upload.tsx /volume1/docker/sites/Dumbys/app/post.tsx /volume1/docker/sites/Dumbys/app/challenge/[id].tsx /volume1/docker/sites/Dumbys/app/\\\\\\(tabs\\\\\\)/upload.tsx)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(tail -150 /volume1/docker/sites/Dumbys/app/\\\\\\(tabs\\\\\\)/upload.tsx)",
+      "Bash(head:*)",
+      "Bash(find /volume1/docker/sites/MicHub/frontend -name *.jsx -o -name *.tsx)"
     ]
   }
 }
