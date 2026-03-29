@@ -3,7 +3,9 @@
     "allow": [
       "Bash(chmod:*)",
       "Bash(sudo docker:*)",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "Bash(docker ps:*)",
+      "Bash(echo \"EXIT: $?\")"
     ]
   }
 }

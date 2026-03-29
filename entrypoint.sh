@@ -15,8 +15,8 @@ for i in $(seq 1 60); do
     process.stdin.on('end', () => {
       try {
         const tunnels = JSON.parse(d).tunnels;
-        const t = tunnels && tunnels.find(t => t.proto === 'http');
-        if (t) process.stdout.write(t.public_url.replace(/^http:\/\//, 'exp://'));
+        const t = tunnels && (tunnels.find(t => t.proto === 'https') || tunnels.find(t => t.proto === 'http'));
+        if (t) process.stdout.write(t.public_url.replace(/^https?:\/\//, 'exp://'));
       } catch(e) {}
     });
   ")
