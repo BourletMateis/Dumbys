@@ -7,6 +7,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Share,
+  Linking,
 } from "react-native";
 import { router, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -434,6 +436,126 @@ export default function SettingsScreen() {
               label="Notifications"
               onPress={() => router.push("/notifications-settings" as any)}
             />
+
+            <View style={{ height: 1, backgroundColor: "rgba(0,0,0,0.05)", marginLeft: 60 }} />
+
+            <SettingsItem
+              icon="lock-closed-outline"
+              color={PALETTE.sarcelle}
+              label="Compte prive"
+              value="Non"
+              onPress={() => {
+                Alert.alert("Bientot", "Cette fonctionnalite arrive bientot !");
+              }}
+            />
+
+            <View style={{ height: 1, backgroundColor: "rgba(0,0,0,0.05)", marginLeft: 60 }} />
+
+            <SettingsItem
+              icon="people-outline"
+              color="#8B5CF6"
+              label="Inviter des amis"
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                Share.share({
+                  message: "Rejoins-moi sur Dumbys ! L'app ou tu releves des defis video avec tes potes 🎬🔥",
+                });
+              }}
+            />
+          </View>
+
+          {/* ─── Support section ─── */}
+          <Text
+            style={{
+              paddingHorizontal: SPACING["2xl"],
+              marginTop: SPACING["2xl"],
+              marginBottom: SPACING.base,
+              fontSize: FONT.sizes.xs,
+              fontFamily: FONT_FAMILY.bold,
+              color: "#999",
+              textTransform: "uppercase",
+              letterSpacing: 1.5,
+            }}
+          >
+            Support
+          </Text>
+
+          <View
+            style={{
+              marginHorizontal: SPACING["2xl"],
+              backgroundColor: "#FFFFFF",
+              borderRadius: RADIUS.xl,
+              borderWidth: 1,
+              borderColor: "rgba(0,0,0,0.06)",
+              overflow: "hidden",
+            }}
+          >
+            <SettingsItem
+              icon="help-circle-outline"
+              color="#F97316"
+              label="Aide & Support"
+              onPress={() => {
+                Linking.openURL("mailto:support@dumbys.app");
+              }}
+            />
+
+            <View style={{ height: 1, backgroundColor: "rgba(0,0,0,0.05)", marginLeft: 60 }} />
+
+            <SettingsItem
+              icon="bug-outline"
+              color="#EF4444"
+              label="Signaler un bug"
+              onPress={() => {
+                Linking.openURL("mailto:support@dumbys.app?subject=Bug%20Report");
+              }}
+            />
+          </View>
+
+          {/* ─── Legal section ─── */}
+          <Text
+            style={{
+              paddingHorizontal: SPACING["2xl"],
+              marginTop: SPACING["2xl"],
+              marginBottom: SPACING.base,
+              fontSize: FONT.sizes.xs,
+              fontFamily: FONT_FAMILY.bold,
+              color: "#999",
+              textTransform: "uppercase",
+              letterSpacing: 1.5,
+            }}
+          >
+            Legal
+          </Text>
+
+          <View
+            style={{
+              marginHorizontal: SPACING["2xl"],
+              backgroundColor: "#FFFFFF",
+              borderRadius: RADIUS.xl,
+              borderWidth: 1,
+              borderColor: "rgba(0,0,0,0.06)",
+              overflow: "hidden",
+            }}
+          >
+            <SettingsItem
+              icon="document-text-outline"
+              color="#6366F1"
+              label="Conditions d'utilisation"
+              onPress={() => {
+                Linking.openURL("https://dumbys.app/terms");
+              }}
+            />
+
+            <View style={{ height: 1, backgroundColor: "rgba(0,0,0,0.05)", marginLeft: 60 }} />
+
+            <SettingsItem
+              icon="shield-checkmark-outline"
+              color={PALETTE.sarcelle}
+              label="Politique de confidentialite"
+              onPress={() => {
+                Linking.openURL("https://dumbys.app/privacy");
+              }}
+            />
           </View>
 
           {/* ─── Danger zone ─── */}
@@ -449,7 +571,7 @@ export default function SettingsScreen() {
               letterSpacing: 1.5,
             }}
           >
-            Compte
+            Zone danger
           </Text>
 
           <View

@@ -550,9 +550,9 @@ export default function ProfileScreen() {
         <Blob size={180} color={PALETTE.fuchsia} bottom={-40} left={-40} />
 
         {/* ─── Settings ───────────────────────────────────────── */}
-        <View style={{ paddingHorizontal: 20, marginTop: 32, gap: 8 }}>
+        <View style={{ paddingHorizontal: 20, marginTop: 32 }}>
           <AnimatedPressable
-            onPress={() => router.push("/notifications-settings" as any)}
+            onPress={() => router.push("/settings" as any)}
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -564,40 +564,13 @@ export default function ProfileScreen() {
               borderColor: "rgba(0,0,0,0.06)",
             }}
           >
-            <View style={{ width: 36, height: 36, borderRadius: RADIUS.sm, backgroundColor: `${PALETTE.fuchsia}12`, alignItems: "center", justifyContent: "center" }}>
-              <Ionicons name="notifications-outline" size={18} color={PALETTE.fuchsia} />
+            <View style={{ width: 36, height: 36, borderRadius: RADIUS.sm, backgroundColor: `${PALETTE.sarcelle}12`, alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="settings-outline" size={18} color={PALETTE.sarcelle} />
             </View>
             <Text numberOfLines={1} style={{ flex: 1, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.semibold, color: "#1A1A1A" }}>
-              Notifications
+              Reglages
             </Text>
             <Ionicons name="chevron-forward" size={16} color="#CCC" />
-          </AnimatedPressable>
-        </View>
-
-        {/* ─── Sign Out ────────────────────────────────────────── */}
-        <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
-          <AnimatedPressable
-            onPress={() => {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-              signOut();
-            }}
-            disabled={authLoading}
-            style={{
-              backgroundColor: "rgba(244,63,94,0.06)",
-              paddingVertical: 16,
-              borderRadius: RADIUS.md,
-              alignItems: "center",
-              borderWidth: 1,
-              borderColor: "rgba(244,63,94,0.12)",
-            }}
-          >
-            {authLoading ? (
-              <ActivityIndicator color={COLORS.error} />
-            ) : (
-              <Text style={{ color: COLORS.error, fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold }}>
-                Se déconnecter
-              </Text>
-            )}
           </AnimatedPressable>
         </View>
       </ScrollView>

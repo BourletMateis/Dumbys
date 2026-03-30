@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   ViewToken,
   Animated,
+  Share,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
@@ -22,6 +23,11 @@ import { useCommentCount } from "@/src/features/feed/useComments";
 import { PALETTE, FONT, FONT_FAMILY } from "@/src/theme";
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
+const VIDEO_MARGIN_H = 16;
+const VIDEO_MARGIN_V = 12;
+const VIDEO_WIDTH = SCREEN_WIDTH - VIDEO_MARGIN_H * 2;
+const VIDEO_HEIGHT = SCREEN_HEIGHT - VIDEO_MARGIN_V * 2;
+const VIDEO_BORDER_RADIUS = 24;
 
 const ORIGIN_COLOR: Record<HomeFeedVideo["origin"], string> = {
   group: PALETTE.sarcelle,
@@ -67,8 +73,8 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
 
   const spawnHeart = () => {
     const id = heartId.current++;
-    const x = SCREEN_WIDTH / 2 - 40 + (Math.random() * 160 - 80);
-    const y = SCREEN_HEIGHT / 2 - 60 + (Math.random() * 100 - 50);
+    const x = VIDEO_WIDTH / 2 - 40 + (Math.random() * 160 - 80);
+    const y = VIDEO_HEIGHT / 2 - 60 + (Math.random() * 100 - 50);
     const size = 50 + Math.random() * 50;
     const rotation = (Math.random() - 0.5) * 40;
     const anim = new Animated.Value(0);
@@ -106,15 +112,16 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
   const originColor = ORIGIN_COLOR[video.origin];
 
   return (
+    <View style={{ height: SCREEN_HEIGHT, width: SCREEN_WIDTH, backgroundColor: "#000", paddingHorizontal: VIDEO_MARGIN_H, paddingVertical: VIDEO_MARGIN_V }}>
     <Pressable
       onPress={handleTap}
-      style={{ height: SCREEN_HEIGHT, width: SCREEN_WIDTH, backgroundColor: "#000" }}
+      style={{ flex: 1, borderRadius: VIDEO_BORDER_RADIUS, overflow: "hidden", backgroundColor: "#000" }}
     >
       {/* Thumbnail */}
       {video.thumbnail_url && (
         <Image
           source={{ uri: video.thumbnail_url }}
-          style={{ position: "absolute", top: 0, left: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
+          style={{ position: "absolute", top: 0, left: 0, width: VIDEO_WIDTH, height: VIDEO_HEIGHT }}
           contentFit="cover"
         />
       )}
@@ -123,12 +130,12 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
       {video.source_url && player ? (
         <VideoView
           player={player}
-          style={{ position: "absolute", top: 0, left: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
+          style={{ position: "absolute", top: 0, left: 0, width: VIDEO_WIDTH, height: VIDEO_HEIGHT }}
           contentFit="cover"
           nativeControls={false}
         />
       ) : !video.source_url ? (
-        <View style={{ position: "absolute", top: 0, left: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ position: "absolute", top: 0, left: 0, width: VIDEO_WIDTH, height: VIDEO_HEIGHT, alignItems: "center", justifyContent: "center" }}>
           <Ionicons name="videocam-off-outline" size={48} color="#444" />
           <Text style={{ color: "#555", fontSize: 13, marginTop: 8 }}>Vidéo indisponible</Text>
         </View>
@@ -159,7 +166,7 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
       <View
         style={{
           position: "absolute",
-          top: 60,
+          top: insets.top + 10,
           left: 16,
           backgroundColor: "rgba(0,0,0,0.45)",
           borderRadius: 20,
@@ -181,7 +188,7 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
         style={{
           position: "absolute",
           right: 12,
-          bottom: 100 + insets.bottom,
+          bottom: 100,
           alignItems: "center",
           gap: 22,
         }}
@@ -226,6 +233,18 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
             {commentCount ?? 0}
           </Text>
         </Pressable>
+
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            Share.share({
+              message: `Regarde la vidéo "${video.title ?? ""}" de @${video.submitter.username} sur Dumbys !`,
+            });
+          }}
+          style={{ alignItems: "center" }}
+        >
+          <Ionicons name="share-social-outline" size={28} color="white" />
+        </Pressable>
       </View>
 
       {/* Bottom overlay */}
@@ -237,7 +256,7 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
             paddingLeft: 16,
             paddingRight: 76,
             paddingTop: 60,
-            paddingBottom: 36 + insets.bottom,
+            paddingBottom: 36,
           }}
           pointerEvents="box-none"
         >
@@ -292,6 +311,7 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
         </LinearGradient>
       </View>
     </Pressable>
+    </View>
   );
 }
 
@@ -359,7 +379,7 @@ export default function HomeFeedScreen() {
       <Stack.Screen options={{ headerShown: false, animation: "fade" }} />
 
       {/* Back button */}
-      <View style={{ position: "absolute", top: insets.top + 10, left: 16, zIndex: 50 }}>
+      <View style={{ position: "absolute", top: VIDEO_MARGIN_V + insets.top + 10, left: VIDEO_MARGIN_H + 16, zIndex: 50 }}>
         <Pressable
           onPress={() => router.back()}
           style={{
@@ -379,8 +399,8 @@ export default function HomeFeedScreen() {
       <View
         style={{
           position: "absolute",
-          top: insets.top + 10,
-          right: 16,
+          top: VIDEO_MARGIN_V + insets.top + 10,
+          right: VIDEO_MARGIN_H + 16,
           zIndex: 50,
           backgroundColor: "rgba(0,0,0,0.4)",
           paddingHorizontal: 10,
