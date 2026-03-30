@@ -169,19 +169,34 @@ function VideoCard({ video, index }: { video: HomeFeedVideo; index: number }) {
           </View>
         )}
 
-        {/* Gradient overlay */}
+        {/* Gradient overlay with all info */}
         <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.55)"]}
+          colors={["transparent", "rgba(0,0,0,0.7)"]}
           style={{
             position: "absolute",
             bottom: 0,
             left: 0,
             right: 0,
-            height: THUMBNAIL_HEIGHT * 0.55,
+            height: THUMBNAIL_HEIGHT * 0.6,
             justifyContent: "flex-end",
             padding: SPACING.base,
           }}
         >
+          {/* Title */}
+          {video.title ? (
+            <Text
+              numberOfLines={1}
+              style={{
+                fontSize: FONT.sizes.base,
+                fontFamily: FONT_FAMILY.semibold,
+                color: "#FFF",
+                marginBottom: 4,
+              }}
+            >
+              {video.title}
+            </Text>
+          ) : null}
+
           <View
             style={{
               flexDirection: "row",
@@ -189,8 +204,8 @@ function VideoCard({ video, index }: { video: HomeFeedVideo; index: number }) {
               justifyContent: "space-between",
             }}
           >
-            {/* Submitter */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            {/* Submitter + group */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
               <Avatar
                 url={video.submitter.avatar_url}
                 username={video.submitter.username}
@@ -198,15 +213,33 @@ function VideoCard({ video, index }: { video: HomeFeedVideo; index: number }) {
                 borderColor="rgba(255,255,255,0.6)"
                 borderWidth={1.5}
               />
-              <Text
-                style={{
-                  color: "#FFF",
-                  fontSize: FONT.sizes.sm,
-                  fontFamily: FONT_FAMILY.semibold,
-                }}
-              >
-                {video.submitter.username}
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: "#FFF",
+                    fontSize: FONT.sizes.sm,
+                    fontFamily: FONT_FAMILY.semibold,
+                  }}
+                >
+                  {video.submitter.username}
+                </Text>
+                {video.group ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 3, marginTop: 1 }}>
+                    <Ionicons name="people-outline" size={10} color="rgba(255,255,255,0.6)" />
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        fontSize: FONT.sizes.xs,
+                        fontFamily: FONT_FAMILY.regular,
+                        color: "rgba(255,255,255,0.6)",
+                      }}
+                    >
+                      {video.group.name}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
             </View>
 
             {/* Play icon */}
@@ -260,61 +293,6 @@ function VideoCard({ video, index }: { video: HomeFeedVideo; index: number }) {
         </View>
       </View>
 
-      {/* Card body */}
-      <View style={{ padding: SPACING.base }}>
-        {/* Title */}
-        {video.title ? (
-          <Text
-            numberOfLines={1}
-            style={{
-              fontSize: FONT.sizes.base,
-              fontFamily: FONT_FAMILY.semibold,
-              color: "#1A1A1A",
-              marginBottom: 4,
-            }}
-          >
-            {video.title}
-          </Text>
-        ) : null}
-
-        {/* Description */}
-        {video.description ? (
-          <Text
-            numberOfLines={2}
-            style={{
-              fontSize: FONT.sizes.sm,
-              fontFamily: FONT_FAMILY.regular,
-              color: "#888",
-              lineHeight: 18,
-              marginBottom: video.group ? 8 : 0,
-            }}
-          >
-            {video.description}
-          </Text>
-        ) : null}
-
-        {/* Group tag */}
-        {video.group ? (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 4,
-            }}
-          >
-            <Ionicons name="people-outline" size={12} color="#BBB" />
-            <Text
-              style={{
-                fontSize: FONT.sizes.xs,
-                fontFamily: FONT_FAMILY.medium,
-                color: "#BBB",
-              }}
-            >
-              {video.group.name}
-            </Text>
-          </View>
-        ) : null}
-      </View>
     </Pressable>
   );
 }
@@ -425,27 +403,23 @@ export default function HomeScreen() {
           backgroundColor: "#FFFFFF",
         }}
       >
-        {/* Logo */}
-        <View
+        {/* User avatar → profile */}
+        <Pressable
+          hitSlop={8}
+          onPress={() => router.push("/(tabs)/profile")}
           style={{
             width: 38,
             height: 38,
-            borderRadius: 12,
-            backgroundColor: `${PALETTE.fuchsia}15`,
-            alignItems: "center",
-            justifyContent: "center",
+            borderRadius: 19,
+            overflow: "hidden",
           }}
         >
-          <Text
-            style={{
-              fontSize: FONT.sizes.xl,
-              fontFamily: FONT_FAMILY.black,
-              color: PALETTE.fuchsia,
-            }}
-          >
-            D
-          </Text>
-        </View>
+          <Avatar
+            url={profile?.avatar_url}
+            username={profile?.username ?? ""}
+            size={38}
+          />
+        </Pressable>
 
         {/* App name */}
         <Text

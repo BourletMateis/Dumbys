@@ -57,13 +57,16 @@ if [ -n "$TUNNEL_URL" ] && [ -n "$DISCORD_BOT_TOKEN" ] && [ -n "$DISCORD_CHANNEL
   TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   PAYLOAD=$(node -e "
     const payload = {
+      content: '<@&1487480710615924746>',
       embeds: [{
-        title: 'DumbAward — App dispo!',
-        description: 'Scanne le QR avec Expo Go (premiere ouverture ~30s) :',
-        color: 4177791,
+        title: '\ud83d\ude80 Nouvelle version disponible !',
+        description: '**Une mise \u00e0 jour fra\u00eeche vient d\u2019arriver !** \u2728\\n\\nScanne le QR code ci-dessous avec **Expo Go** pour tester la derni\u00e8re version.\\n\\n\u23f3 *Premi\u00e8re ouverture ~30s*',
+        color: 0xFF2D7D,
         image: { url: '$QR_URL' },
-        fields: [{ name: 'URL', value: '\`$TUNNEL_URL\`' }],
-        footer: { text: 'DumbAward CI/CD' },
+        fields: [
+          { name: '\ud83d\udcf1 Lien direct', value: '\`$TUNNEL_URL\`' },
+        ],
+        footer: { text: '\ud83d\udee0\ufe0f Dumbys CI/CD \u2022 D\u00e9ploy\u00e9 automatiquement', icon_url: 'https://cdn.discordapp.com/emojis/1087721371041599518.webp' },
         timestamp: '$TIMESTAMP'
       }]
     };

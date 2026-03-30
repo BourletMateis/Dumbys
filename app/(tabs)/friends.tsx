@@ -9,7 +9,6 @@ import {
   FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -24,7 +23,7 @@ import { useSuggestedFriends } from "@/src/features/friends/useSuggestedFriends"
 import { UserSearchResult } from "@/src/features/friends/UserSearchResult";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
-import { PALETTE, RADIUS, FONT, FONT_FAMILY, SPACING } from "@/src/theme";
+import { PALETTE, FONT, FONT_FAMILY } from "@/src/theme";
 import type { UserRow } from "@/src/features/friends/useSearchUsers";
 
 type FriendStatus = "none" | "pending_sent" | "pending_received" | "accepted";
@@ -110,24 +109,19 @@ export default function FriendsScreen() {
           <Text style={{ fontSize: FONT.sizes["4xl"], fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
             Amis
           </Text>
-          <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
-            {pendingCount > 0 && (
-              <View
-                style={{
-                  backgroundColor: PALETTE.fuchsia,
-                  width: 24, height: 24, borderRadius: 12,
-                  alignItems: "center", justifyContent: "center",
-                }}
-              >
-                <Text style={{ color: "#FFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold }}>
-                  {pendingCount}
-                </Text>
-              </View>
-            )}
-            <Pressable hitSlop={8}>
-              <Ionicons name="person-add-outline" size={22} color="#333" />
-            </Pressable>
-          </View>
+          {pendingCount > 0 && (
+            <View
+              style={{
+                backgroundColor: PALETTE.fuchsia,
+                width: 24, height: 24, borderRadius: 12,
+                alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <Text style={{ color: "#FFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold }}>
+                {pendingCount}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Search bar */}
@@ -228,8 +222,9 @@ export default function FriendsScreen() {
                     {suggestions.map((user) => {
                       const { status } = getFriendStatus(user.id);
                       return (
-                        <View
+                        <Pressable
                           key={user.id}
+                          onPress={() => router.push({ pathname: "/user/[id]", params: { id: user.id } })}
                           style={{
                             width: 130,
                             alignItems: "center",
@@ -297,7 +292,7 @@ export default function FriendsScreen() {
                               </Text>
                             </View>
                           )}
-                        </View>
+                        </Pressable>
                       );
                     })}
                   </ScrollView>
@@ -333,15 +328,20 @@ export default function FriendsScreen() {
                         elevation: 1,
                       }}
                     >
-                      <Avatar url={item.otherUser.avatar_url} username={item.otherUser.username} size={48} />
-                      <View style={{ flex: 1, marginLeft: 12 }}>
-                        <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: "#1A1A1A" }} numberOfLines={1}>
-                          {item.otherUser.username}
-                        </Text>
-                        <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: "#AAA", marginTop: 2 }}>
-                          Veut devenir ton ami
-                        </Text>
-                      </View>
+                      <Pressable
+                        onPress={() => router.push({ pathname: "/user/[id]", params: { id: item.otherUser.id } })}
+                        style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+                      >
+                        <Avatar url={item.otherUser.avatar_url} username={item.otherUser.username} size={48} />
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                          <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: "#1A1A1A" }} numberOfLines={1}>
+                            {item.otherUser.username}
+                          </Text>
+                          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: "#AAA", marginTop: 2 }}>
+                            Veut devenir ton ami
+                          </Text>
+                        </View>
+                      </Pressable>
                       <View style={{ flexDirection: "row", gap: 8 }}>
                         <AnimatedPressable
                           onPress={() => {
@@ -402,13 +402,18 @@ export default function FriendsScreen() {
                         paddingVertical: 10,
                       }}
                     >
-                      <Avatar url={item.otherUser.avatar_url} username={item.otherUser.username} size={44} />
-                      <Text
-                        style={{ flex: 1, marginLeft: 12, fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold, color: "#1A1A1A" }}
-                        numberOfLines={1}
+                      <Pressable
+                        onPress={() => router.push({ pathname: "/user/[id]", params: { id: item.otherUser.id } })}
+                        style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
                       >
-                        {item.otherUser.username}
-                      </Text>
+                        <Avatar url={item.otherUser.avatar_url} username={item.otherUser.username} size={44} />
+                        <Text
+                          style={{ flex: 1, marginLeft: 12, fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold, color: "#1A1A1A" }}
+                          numberOfLines={1}
+                        >
+                          {item.otherUser.username}
+                        </Text>
+                      </Pressable>
                       <View
                         style={{
                           backgroundColor: "#F2F2F2",

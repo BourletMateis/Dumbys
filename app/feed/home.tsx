@@ -355,7 +355,7 @@ export default function HomeFeedScreen() {
   }
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: "#000" }}>
       <Stack.Screen options={{ headerShown: false, animation: "fade" }} />
 
       {/* Back button */}
@@ -419,6 +419,6 @@ export default function HomeFeedScreen() {
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
       />
-    </>
+    </View>
   );
 }

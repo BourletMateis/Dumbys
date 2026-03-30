@@ -1,5 +1,6 @@
 import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { PALETTE, FONT, FONT_FAMILY } from "@/src/theme";
@@ -15,6 +16,12 @@ type Props = {
 };
 
 export function UserSearchResult({ user, status, onAdd, isLoading }: Props) {
+  const router = useRouter();
+
+  const goToProfile = () => {
+    router.push({ pathname: "/user/[id]", params: { id: user.id } });
+  };
+
   return (
     <View
       style={{
@@ -27,22 +34,22 @@ export function UserSearchResult({ user, status, onAdd, isLoading }: Props) {
         borderBottomColor: "rgba(0,0,0,0.04)",
       }}
     >
-      {/* Avatar */}
-      <Avatar url={user.avatar_url} username={user.username} size={44} />
-
-      {/* Username */}
-      <Text
-        style={{
-          flex: 1,
-          marginLeft: 12,
-          color: "#1A1A1A",
-          fontFamily: FONT_FAMILY.semibold,
-          fontSize: FONT.sizes.lg,
-        }}
-        numberOfLines={1}
-      >
-        {user.username}
-      </Text>
+      {/* Avatar + Username → profile */}
+      <Pressable onPress={goToProfile} style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+        <Avatar url={user.avatar_url} username={user.username} size={44} />
+        <Text
+          style={{
+            flex: 1,
+            marginLeft: 12,
+            color: "#1A1A1A",
+            fontFamily: FONT_FAMILY.semibold,
+            fontSize: FONT.sizes.lg,
+          }}
+          numberOfLines={1}
+        >
+          {user.username}
+        </Text>
+      </Pressable>
 
       {/* Action */}
       {status === "none" && (

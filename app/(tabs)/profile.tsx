@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, Pressable, ActivityIndicator, ScrollView, RefreshControl, Dimensions, Alert } from "react-native";
+import { View, Text, Pressable, ActivityIndicator, ScrollView, RefreshControl, Dimensions, Alert, Share } from "react-native";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,7 +25,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 type GalleryTab = "defis" | "shorts";
 
 // ─── Video card for gallery grid ─────────────────────────────────
-function VideoGalleryCard({ title, emoji, views, date, thumbnailUrl, width, onPress, onDelete }: {
+function VideoGalleryCard({ title, emoji, views, date, thumbnailUrl, width, onPress, onDelete, onShare }: {
   title: string;
   emoji: string;
   views: string;
@@ -34,6 +34,7 @@ function VideoGalleryCard({ title, emoji, views, date, thumbnailUrl, width, onPr
   width: number;
   onPress?: () => void;
   onDelete?: () => void;
+  onShare?: () => void;
 }) {
   const cardHeight = width * 1.25;
   return (
@@ -65,12 +66,15 @@ function VideoGalleryCard({ title, emoji, views, date, thumbnailUrl, width, onPr
       {/* Action buttons (share + delete) */}
       <View style={{ position: "absolute", top: 10, right: 10, flexDirection: "row", gap: 8 }}>
         <AnimatedPressable
-          onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onShare?.();
+          }}
           style={{
             width: 34,
             height: 34,
             borderRadius: 17,
-            backgroundColor: "rgba(255,255,255,0.25)",
+            backgroundColor: "rgba(0,0,0,0.45)",
             alignItems: "center",
             justifyContent: "center",
           }}
@@ -265,14 +269,9 @@ export default function ProfileScreen() {
           <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: PALETTE.sarcelle }}>
             Dumbys
           </Text>
-          <View style={{ flexDirection: "row", gap: 16 }}>
-            <Pressable hitSlop={8}>
-              <Ionicons name="search-outline" size={22} color="#333" />
-            </Pressable>
-            <Pressable hitSlop={8}>
-              <Ionicons name="notifications-outline" size={22} color="#333" />
-            </Pressable>
-          </View>
+          <Pressable hitSlop={8} onPress={() => router.push("/notifications" as any)}>
+            <Ionicons name="notifications-outline" size={22} color="#333" />
+          </Pressable>
         </View>
 
         {/* ─── Profile header ──────────────────────────────────── */}
@@ -484,6 +483,11 @@ export default function ProfileScreen() {
                         } : undefined}
                         onDelete={hasRealVideos ? () => {
                           deleteVideo.mutate({ videoId: video.id, videoPath: (video as any).videoPath });
+                        } : undefined}
+                        onShare={hasRealVideos ? () => {
+                          Share.share({
+                            message: `Regarde ma vidéo "${video.title}" sur Dumbys !`,
+                          });
                         } : undefined}
                       />
                     ))}

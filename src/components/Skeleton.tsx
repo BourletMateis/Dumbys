@@ -65,17 +65,12 @@ export function HomeFeedCardSkeleton() {
       {/* Thumbnail placeholder */}
       <Skeleton width={CARD_WIDTH} height={THUMB_HEIGHT} borderRadius={0} />
 
-      {/* Body */}
-      <View style={{ padding: 12, gap: 8 }}>
-        {/* Title line */}
-        <Skeleton width={CARD_WIDTH * 0.65} height={14} borderRadius={6} />
-        {/* Description lines */}
-        <Skeleton width={CARD_WIDTH * 0.9} height={11} borderRadius={5} />
-        <Skeleton width={CARD_WIDTH * 0.55} height={11} borderRadius={5} />
-        {/* Group tag */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
-          <Skeleton width={12} height={12} borderRadius={6} />
-          <Skeleton width={80} height={11} borderRadius={5} />
+      {/* Overlay info skeleton */}
+      <View style={{ position: "absolute", bottom: 12, left: 12, right: 12, gap: 6 }}>
+        <Skeleton width={CARD_WIDTH * 0.5} height={14} borderRadius={6} />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Skeleton width={26} height={26} borderRadius={13} />
+          <Skeleton width={80} height={12} borderRadius={5} />
         </View>
       </View>
     </View>
