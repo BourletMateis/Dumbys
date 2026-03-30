@@ -14,10 +14,5 @@ services:
       - EXPO_NO_TELEMETRY=1
     network_mode: "host"
     restart: unless-stopped
-    volumes:
-      - discord_data:/data
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
-
-volumes:
-  discord_data:

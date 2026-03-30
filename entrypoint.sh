@@ -26,21 +26,33 @@ for i in $(seq 1 60); do
   fi
 done
 
-if [ -n "$TUNNEL_URL" ] && [ -n "$DISCORD_WEBHOOK_URL" ]; then
-  # Extract webhook ID and token from URL
-  WEBHOOK_ID=$(echo "$DISCORD_WEBHOOK_URL" | sed 's|.*/webhooks/\([^/]*\)/.*|\1|')
-  WEBHOOK_TOKEN=$(echo "$DISCORD_WEBHOOK_URL" | sed 's|.*/webhooks/[^/]*/||')
+if [ -n "$TUNNEL_URL" ] && [ -n "$DISCORD_BOT_TOKEN" ] && [ -n "$DISCORD_CHANNEL_ID" ]; then
+  DISCORD_API="https://discord.com/api/v10"
+  AUTH_HEADER="Bot ${DISCORD_BOT_TOKEN}"
 
-  # Delete ALL previous messages sent by this webhook
-  MSG_ID_FILE="/data/discord_msg_ids"
-  if [ -f "$MSG_ID_FILE" ]; then
-    while IFS= read -r PREV_ID; do
-      [ -z "$PREV_ID" ] && continue
-      HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "https://discord.com/api/webhooks/${WEBHOOK_ID}/${WEBHOOK_TOKEN}/messages/${PREV_ID}")
-      echo "Delete message ${PREV_ID}: HTTP ${HTTP_CODE}"
+  # Delete ALL previous bot messages in the channel
+  echo "Cleaning up previous bot messages..."
+  BOT_USER_ID=$(curl -s -H "Authorization: ${AUTH_HEADER}" "${DISCORD_API}/users/@me" | node -e "
+    let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{try{process.stdout.write(JSON.parse(d).id)}catch(e){}});
+  ")
+  if [ -n "$BOT_USER_ID" ]; then
+    MESSAGES=$(curl -s -H "Authorization: ${AUTH_HEADER}" "${DISCORD_API}/channels/${DISCORD_CHANNEL_ID}/messages?limit=50")
+    echo "$MESSAGES" | node -e "
+      let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{
+        try {
+          const msgs = JSON.parse(d);
+          const botMsgs = msgs.filter(m => m.author.id === '$BOT_USER_ID');
+          botMsgs.forEach(m => console.log(m.id));
+        } catch(e) {}
+      });
+    " | while IFS= read -r MSG_ID; do
+      [ -z "$MSG_ID" ] && continue
+      HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+        -H "Authorization: ${AUTH_HEADER}" \
+        "${DISCORD_API}/channels/${DISCORD_CHANNEL_ID}/messages/${MSG_ID}")
+      echo "Deleted message ${MSG_ID}: HTTP ${HTTP_CODE}"
       sleep 0.5
-    done < "$MSG_ID_FILE"
-    rm -f "$MSG_ID_FILE"
+    done
   fi
 
   ENCODED=$(node -e "process.stdout.write(encodeURIComponent('$TUNNEL_URL'))")
@@ -61,26 +73,13 @@ if [ -n "$TUNNEL_URL" ] && [ -n "$DISCORD_WEBHOOK_URL" ]; then
     process.stdout.write(JSON.stringify(payload));
   ")
 
-  # Send with ?wait=true to get the message ID back
-  DISCORD_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  # Send message via bot
+  DISCORD_RESPONSE=$(curl -s \
+    -H "Authorization: ${AUTH_HEADER}" \
     -H "Content-Type: application/json" \
     -d "$PAYLOAD" \
-    "${DISCORD_WEBHOOK_URL}?wait=true")
+    "${DISCORD_API}/channels/${DISCORD_CHANNEL_ID}/messages")
   echo "Discord response: $DISCORD_RESPONSE"
-
-  # Save new message ID for next run
-  NEW_MSG_ID=$(echo "$DISCORD_RESPONSE" | node -e "
-    let d = '';
-    process.stdin.on('data', c => d += c);
-    process.stdin.on('end', () => {
-      try { const j = JSON.parse(d.split('\n')[0]); if (j.id) process.stdout.write(j.id); } catch(e) {}
-    });
-  ")
-  if [ -n "$NEW_MSG_ID" ]; then
-    mkdir -p /data
-    echo "$NEW_MSG_ID" >> "$MSG_ID_FILE"
-    echo "Saved message ID: $NEW_MSG_ID"
-  fi
 fi
 
 wait $EXPO_PID

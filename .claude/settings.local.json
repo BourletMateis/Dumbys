@@ -18,7 +18,8 @@
       "Bash(find /volume1/docker/sites/MicHub/frontend -name *.jsx -o -name *.tsx)",
       "Bash(find /home/mateis/dumbAward/app -name \"*.tsx\" -exec grep -l \"flex:\\\\s*1\" {})",
       "Bash(while read:*)",
-      "Bash(do echo:*)"
+      "Bash(do echo:*)",
+      "Bash(find /home/mateis/dumbAward/src -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))"
     ]
   }
 }
