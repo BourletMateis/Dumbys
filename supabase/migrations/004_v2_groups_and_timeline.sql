@@ -113,6 +113,7 @@ USING (
   id IN (SELECT group_id FROM public.group_members WHERE user_id = auth.uid())
 );
 
+
 CREATE POLICY "Authenticated users can create groups"
 ON public.groups FOR INSERT
 TO authenticated
