@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { View, Text, Pressable, ActivityIndicator, ScrollView, RefreshControl, Dimensions, Alert, Share } from "react-native";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
@@ -20,9 +19,6 @@ import { COLORS, PALETTE, RADIUS, FONT, FONT_FAMILY, SPACING } from "@/src/theme
 import { useTheme } from "@/src/providers/ThemeProvider";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
-// ─── Gallery tab type ────────────────────────────────────────────
-type GalleryTab = "defis" | "shorts";
 
 // ─── Video card for gallery grid ─────────────────────────────────
 function VideoGalleryCard({ title, emoji, views, date, thumbnailUrl, width, onPress, onDelete, onShare }: {
@@ -218,7 +214,6 @@ export default function ProfileScreen() {
   const { data: groups } = useMyGroups();
   const deleteVideo = useDeleteVideo();
 
-  const [galleryTab, setGalleryTab] = useState<GalleryTab>("defis");
   const CARD_GAP = 12;
   const CARD_WIDTH = (SCREEN_WIDTH - 40 - CARD_GAP) / 2;
 
@@ -369,74 +364,9 @@ export default function ProfileScreen() {
             Ma Galerie Vidéo
           </Text>
 
-          {/* Défis / Shorts tabs */}
-          <View
-            style={{
-              flexDirection: "row",
-              backgroundColor: "#F2F2F2",
-              borderRadius: 25,
-              padding: 4,
-              marginBottom: 20,
-            }}
-          >
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setGalleryTab("defis");
-              }}
-              style={{
-                flex: 1,
-                paddingVertical: 10,
-                alignItems: "center",
-                borderRadius: 22,
-                backgroundColor: galleryTab === "defis" ? "#FFFFFF" : "transparent",
-                ...(galleryTab === "defis"
-                  ? { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 }
-                  : {}),
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: FONT.sizes.base,
-                  fontFamily: galleryTab === "defis" ? FONT_FAMILY.semibold : FONT_FAMILY.medium,
-                  color: galleryTab === "defis" ? PALETTE.sarcelle : "#999999",
-                }}
-              >
-                Défis
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setGalleryTab("shorts");
-              }}
-              style={{
-                flex: 1,
-                paddingVertical: 10,
-                alignItems: "center",
-                borderRadius: 22,
-                backgroundColor: galleryTab === "shorts" ? "#FFFFFF" : "transparent",
-                ...(galleryTab === "shorts"
-                  ? { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 }
-                  : {}),
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: FONT.sizes.base,
-                  fontFamily: galleryTab === "shorts" ? FONT_FAMILY.semibold : FONT_FAMILY.medium,
-                  color: galleryTab === "shorts" ? PALETTE.sarcelle : "#999999",
-                }}
-              >
-                Shorts
-              </Text>
-            </Pressable>
-          </View>
-
-          {/* Video grid 2x2 */}
-          {galleryTab === "defis" ? (
-            <View>
-              {(() => {
+          {/* Video grid */}
+          <View>
+            {(() => {
                 const hasRealVideos = (myVideos ?? []).length > 0;
                 const videos = hasRealVideos
                   ? (myVideos ?? []).map((v, index) => ({
@@ -503,15 +433,6 @@ export default function ProfileScreen() {
               })()}
 
             </View>
-          ) : (
-            /* Shorts tab - empty state */
-            <View style={{ alignItems: "center", paddingVertical: 40 }}>
-              <Ionicons name="film-outline" size={48} color="#D0D0D0" />
-              <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold, color: "#BBB", marginTop: 12 }}>
-                Aucun short pour l'instant
-              </Text>
-            </View>
-          )}
         </View>
 
         {/* Decorative pink blob for gallery section */}

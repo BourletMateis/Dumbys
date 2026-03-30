@@ -171,7 +171,7 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
       <View
         style={{
           position: "absolute",
-          top: insets.top + 10,
+          top: insets.top + 56,
           left: 16,
           backgroundColor: "rgba(0,0,0,0.45)",
           borderRadius: 20,

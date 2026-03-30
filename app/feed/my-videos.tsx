@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   ViewToken,
   Animated,
+  Share,
+  StyleSheet,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
@@ -20,9 +22,14 @@ import { useMyVideos, type MyVideo } from "@/src/features/profile/useMyVideos";
 import { useUserProfile } from "@/src/features/profile/useUserProfile";
 import { useLikeCount, useHasLiked, useToggleLike } from "@/src/features/feed/useLikes";
 import { useCommentCount } from "@/src/features/feed/useComments";
+import { PALETTE, FONT, FONT_FAMILY } from "@/src/theme";
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
+const VIDEO_MARGIN_H = 12;
+const VIDEO_MARGIN_V = 8;
+const VIDEO_BORDER_RADIUS = 28;
 
+// ─── Single video item ───────────────────────────────────────────
 function MyVideoFeedItem({
   video,
   isActive,
@@ -34,7 +41,6 @@ function MyVideoFeedItem({
 }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [descExpanded, setDescExpanded] = useState(false);
 
   const { data: likeCount } = useLikeCount(video.id);
   const { data: hasLiked } = useHasLiked(video.id);
@@ -56,7 +62,7 @@ function MyVideoFeedItem({
     }
   }, [isActive, player]);
 
-  // Double-tap like animation
+  // Double-tap like
   const [hearts, setHearts] = useState<
     { id: number; x: number; y: number; size: number; rotation: number; anim: Animated.Value }[]
   >([]);
@@ -64,8 +70,8 @@ function MyVideoFeedItem({
 
   const spawnHeart = () => {
     const id = heartId.current++;
-    const x = SCREEN_WIDTH / 2 - 40 + (Math.random() * 160 - 80);
-    const y = SCREEN_HEIGHT / 2 - 60 + (Math.random() * 100 - 50);
+    const x = (SCREEN_WIDTH - VIDEO_MARGIN_H * 2) / 2 - 40 + (Math.random() * 160 - 80);
+    const y = (SCREEN_HEIGHT - VIDEO_MARGIN_V * 2) / 2 - 60 + (Math.random() * 100 - 50);
     const size = 50 + Math.random() * 50;
     const rotation = (Math.random() - 0.5) * 40;
     const anim = new Animated.Value(0);
@@ -101,29 +107,38 @@ function MyVideoFeedItem({
   };
 
   return (
+    <View style={{ height: SCREEN_HEIGHT, width: SCREEN_WIDTH, backgroundColor: "#000", alignItems: "center", justifyContent: "center" }}>
     <Pressable
       onPress={handleTap}
-      style={{ height: SCREEN_HEIGHT, width: SCREEN_WIDTH, backgroundColor: "#000" }}
+      style={{
+        width: SCREEN_WIDTH - VIDEO_MARGIN_H * 2,
+        height: SCREEN_HEIGHT - VIDEO_MARGIN_V * 2,
+        borderRadius: VIDEO_BORDER_RADIUS,
+        overflow: "hidden",
+        backgroundColor: "#111",
+      }}
     >
       {/* Thumbnail */}
       {video.thumbnail_url && (
         <Image
           source={{ uri: video.thumbnail_url }}
-          style={{ position: "absolute", top: 0, left: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
+          style={{ ...StyleSheet.absoluteFillObject, borderRadius: VIDEO_BORDER_RADIUS }}
           contentFit="cover"
         />
       )}
 
       {/* Video player */}
       {video.source_url && player ? (
-        <VideoView
-          player={player}
-          style={{ position: "absolute", top: 0, left: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
-          contentFit="cover"
-          nativeControls={false}
-        />
+        <View style={{ ...StyleSheet.absoluteFillObject, borderRadius: VIDEO_BORDER_RADIUS, overflow: "hidden" }}>
+          <VideoView
+            player={player}
+            style={{ flex: 1 }}
+            contentFit="cover"
+            nativeControls={false}
+          />
+        </View>
       ) : !video.source_url ? (
-        <View style={{ position: "absolute", top: 0, left: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" }}>
           <Ionicons name="videocam-off-outline" size={48} color="#444" />
           <Text style={{ color: "#555", fontSize: 13, marginTop: 8 }}>Vidéo indisponible</Text>
         </View>
@@ -155,7 +170,7 @@ function MyVideoFeedItem({
         style={{
           position: "absolute",
           right: 12,
-          bottom: 100 + insets.bottom,
+          bottom: 100,
           alignItems: "center",
           gap: 22,
         }}
@@ -166,8 +181,19 @@ function MyVideoFeedItem({
             style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: "white" }}
           />
         ) : (
-          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#3b82f6", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "white" }}>
-            <Text style={{ color: "white", fontSize: 16, fontWeight: "700" }}>
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: PALETTE.sarcelle,
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 2,
+              borderColor: "white",
+            }}
+          >
+            <Text style={{ color: "white", fontSize: 16, fontFamily: FONT_FAMILY.bold }}>
               {(profile?.username ?? "?").charAt(0).toUpperCase()}
             </Text>
           </View>
@@ -178,36 +204,84 @@ function MyVideoFeedItem({
           style={{ alignItems: "center" }}
         >
           <Ionicons name={hasLiked ? "heart" : "heart-outline"} size={30} color={hasLiked ? "#ef4444" : "white"} />
-          <Text style={{ color: "white", fontSize: 11, fontWeight: "600", marginTop: 2 }}>{likeCount ?? 0}</Text>
+          <Text style={{ color: "white", fontSize: 11, fontFamily: FONT_FAMILY.semibold, marginTop: 2 }}>
+            {likeCount ?? 0}
+          </Text>
         </Pressable>
 
         <Pressable onPress={openComments} style={{ alignItems: "center" }}>
           <Ionicons name="chatbubble-outline" size={28} color="white" />
-          <Text style={{ color: "white", fontSize: 11, fontWeight: "600", marginTop: 2 }}>{commentCount ?? 0}</Text>
+          <Text style={{ color: "white", fontSize: 11, fontFamily: FONT_FAMILY.semibold, marginTop: 2 }}>
+            {commentCount ?? 0}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            Share.share({
+              message: `Regarde ma vidéo "${video.group?.name ?? ""}" sur Dumbys !`,
+            });
+          }}
+          style={{ alignItems: "center" }}
+        >
+          <Ionicons name="share-social-outline" size={28} color="white" />
         </Pressable>
       </View>
 
       {/* Bottom overlay */}
       <View style={{ position: "absolute", left: 0, right: 0, bottom: 0 }} pointerEvents="box-none">
         <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.7)"]}
-          style={{ paddingLeft: 16, paddingRight: 76, paddingTop: 40, paddingBottom: 36 + insets.bottom }}
+          colors={["transparent", "rgba(0,0,0,0.25)", "rgba(0,0,0,0.55)"]}
+          locations={[0, 0.5, 1]}
+          style={{
+            paddingLeft: 16,
+            paddingRight: 76,
+            paddingTop: 60,
+            paddingBottom: 36,
+          }}
           pointerEvents="box-none"
         >
-          <Text style={{ color: "white", fontSize: 16, fontWeight: "700" }}>
+          <Text
+            style={{
+              color: "#FFFFFF",
+              fontSize: 17,
+              fontFamily: FONT_FAMILY.extrabold,
+              textShadowColor: "rgba(0,0,0,0.7)",
+              textShadowOffset: { width: 0, height: 1 },
+              textShadowRadius: 6,
+            }}
+          >
             @{profile?.username ?? ""}
           </Text>
           {video.group && (
-            <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, marginTop: 4 }}>
-              {video.group.name}
-            </Text>
+            <View
+              style={{
+                alignSelf: "flex-start",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 5,
+                marginTop: 8,
+                backgroundColor: "rgba(255,255,255,0.10)",
+                borderRadius: 20,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+              }}
+            >
+              <Ionicons name="people" size={10} color="rgba(255,255,255,0.5)" />
+              <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: FONT_FAMILY.medium }}>
+                {video.group.name}
+              </Text>
+            </View>
           )}
         </LinearGradient>
       </View>
     </Pressable>
+    </View>
   );
 }
 
+// ─── Screen ──────────────────────────────────────────────────────
 export default function MyVideosFeedScreen() {
   const { startIndex } = useLocalSearchParams<{ startIndex?: string }>();
   const router = useRouter();
@@ -215,10 +289,10 @@ export default function MyVideosFeedScreen() {
 
   const { data: videos, isPending } = useMyVideos();
   const { data: profile } = useUserProfile();
-  const [activeIndex, setActiveIndex] = useState(Number(startIndex ?? 0));
+  const initialIndex = Number(startIndex ?? 0);
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
 
   const listRef = useRef<FlatList>(null);
-  const initialIndex = Number(startIndex ?? 0);
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -246,16 +320,16 @@ export default function MyVideosFeedScreen() {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
-        <View style={{ flex: 1, backgroundColor: "#000", alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
-          <Ionicons name="videocam-outline" size={56} color="#444" />
-          <Text style={{ color: "white", fontSize: 20, fontWeight: "700", marginTop: 16 }}>
+        <View style={{ flex: 1, backgroundColor: "#000", alignItems: "center", justifyContent: "center" }}>
+          <Ionicons name="film-outline" size={56} color="#444" />
+          <Text style={{ color: "white", fontSize: 20, fontFamily: FONT_FAMILY.bold, marginTop: 16 }}>
             Aucune vidéo
           </Text>
           <Pressable
             onPress={() => router.back()}
             style={{ marginTop: 24, backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}
           >
-            <Text style={{ color: "white", fontWeight: "600" }}>Retour</Text>
+            <Text style={{ color: "white", fontFamily: FONT_FAMILY.semibold }}>Retour</Text>
           </Pressable>
         </View>
       </>
@@ -263,18 +337,11 @@ export default function MyVideosFeedScreen() {
   }
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: "#000" }}>
       <Stack.Screen options={{ headerShown: false, animation: "fade" }} />
 
       {/* Back button */}
-      <View
-        style={{
-          position: "absolute",
-          top: insets.top + 10,
-          left: 16,
-          zIndex: 50,
-        }}
-      >
+      <View style={{ position: "absolute", top: VIDEO_MARGIN_V + insets.top + 10, left: VIDEO_MARGIN_H + 16, zIndex: 50 }}>
         <Pressable
           onPress={() => router.back()}
           style={{
@@ -294,8 +361,8 @@ export default function MyVideosFeedScreen() {
       <View
         style={{
           position: "absolute",
-          top: insets.top + 10,
-          right: 16,
+          top: VIDEO_MARGIN_V + insets.top + 10,
+          right: VIDEO_MARGIN_H + 16,
           zIndex: 50,
           backgroundColor: "rgba(0,0,0,0.4)",
           paddingHorizontal: 10,
@@ -303,14 +370,14 @@ export default function MyVideosFeedScreen() {
           borderRadius: 12,
         }}
       >
-        <Text style={{ color: "white", fontSize: 12, fontWeight: "600" }}>
+        <Text style={{ color: "white", fontSize: 12, fontFamily: FONT_FAMILY.semibold }}>
           {activeIndex + 1}/{videos.length}
         </Text>
       </View>
 
       <FlatList
-        style={{ flex: 1 }}
         ref={listRef}
+        style={{ flex: 1 }}
         data={videos}
         keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => (
@@ -336,6 +403,6 @@ export default function MyVideosFeedScreen() {
         maxToRenderPerBatch={3}
         removeClippedSubviews={false}
       />
-    </>
+    </View>
   );
 }
