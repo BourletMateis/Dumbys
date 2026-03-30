@@ -1,11 +1,12 @@
 -- 020_fix_handle_new_user.sql
 -- Fix: handle username uniqueness conflict on signup
+-- Fix: use search_path = 'public' instead of '' to resolve table references
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = ''
+SET search_path = 'public'
 AS $$
 DECLARE
   base_username TEXT;
@@ -20,7 +21,6 @@ BEGIN
 
   final_username := base_username;
 
-  -- If username already taken, append a random suffix
   WHILE EXISTS (SELECT 1 FROM public.users WHERE username = final_username) LOOP
     suffix := suffix + 1;
     final_username := base_username || suffix::TEXT;
@@ -32,6 +32,9 @@ BEGIN
     final_username,
     NEW.raw_user_meta_data ->> 'avatar_url'
   );
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RAISE LOG 'handle_new_user failed: % %', SQLERRM, SQLSTATE;
   RETURN NEW;
 END;
 $$;

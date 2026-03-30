@@ -135,17 +135,16 @@ function VideoCard({ video, index }: { video: HomeFeedVideo; index: number }) {
       onPress={handlePress}
       style={({ pressed }) => ({
         opacity: pressed ? 0.93 : 1,
-        marginBottom: SPACING.lg,
-        borderRadius: 0,
+        marginBottom: SPACING.xl,
+        marginHorizontal: SPACING.base,
+        borderRadius: 16,
         backgroundColor: "#FFFFFF",
-        borderWidth: 1,
-        borderColor: "rgba(0,0,0,0.06)",
         overflow: "hidden",
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
       })}
     >
       {/* Thumbnail */}
@@ -482,38 +481,8 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Feed heading */}
-      <View
-        style={{
-          paddingHorizontal: SPACING["2xl"],
-          paddingTop: SPACING.xl,
-          paddingBottom: SPACING.base,
-        }}
-      >
-        <Text
-          style={{
-            fontSize: FONT.sizes.lg,
-            fontFamily: FONT_FAMILY.bold,
-            color: "#1A1A1A",
-          }}
-        >
-          {profile?.username ? `Salut ${profile.username} 👋` : "Bienvenue"}
-        </Text>
-        <Text
-          style={{
-            fontSize: FONT.sizes.sm,
-            fontFamily: FONT_FAMILY.regular,
-            color: "#AAA",
-            marginTop: 2,
-          }}
-        >
-          {phase === "upload"
-            ? "Phase upload — montre ce que tu vaux"
-            : phase === "vote"
-            ? "Phase vote — soutiens tes préférés"
-            : "Podium — les résultats sont tombés"}
-        </Text>
-      </View>
+      {/* Spacer before feed */}
+      <View style={{ height: SPACING.base }} />
     </>
   );
 

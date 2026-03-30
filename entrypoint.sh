@@ -66,7 +66,7 @@ if [ -n "$TUNNEL_URL" ] && [ -n "$DISCORD_BOT_TOKEN" ] && [ -n "$DISCORD_CHANNEL
         fields: [
           { name: '\ud83d\udcf1 Lien direct', value: '\`$TUNNEL_URL\`' },
         ],
-        footer: { text: '\ud83d\udee0\ufe0f Dumbys CI/CD \u2022 D\u00e9ploy\u00e9 automatiquement', icon_url: 'https://cdn.discordapp.com/emojis/1087721371041599518.webp' },
+        footer: { text: '\ud83d\udee0\ufe0f Dumbys CI/CD \u2022 D\u00e9ploy\u00e9 automatiquement' },
         timestamp: '$TIMESTAMP'
       }]
     };
