@@ -23,11 +23,9 @@ import { useCommentCount } from "@/src/features/feed/useComments";
 import { PALETTE, FONT, FONT_FAMILY } from "@/src/theme";
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
-const VIDEO_MARGIN_H = 16;
-const VIDEO_MARGIN_V = 12;
-const VIDEO_WIDTH = SCREEN_WIDTH - VIDEO_MARGIN_H * 2;
-const VIDEO_HEIGHT = SCREEN_HEIGHT - VIDEO_MARGIN_V * 2;
-const VIDEO_BORDER_RADIUS = 24;
+const VIDEO_MARGIN_H = 12;
+const VIDEO_MARGIN_V = 8;
+const VIDEO_BORDER_RADIUS = 28;
 
 const ORIGIN_COLOR: Record<HomeFeedVideo["origin"], string> = {
   group: PALETTE.sarcelle,
@@ -73,8 +71,8 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
 
   const spawnHeart = () => {
     const id = heartId.current++;
-    const x = VIDEO_WIDTH / 2 - 40 + (Math.random() * 160 - 80);
-    const y = VIDEO_HEIGHT / 2 - 60 + (Math.random() * 100 - 50);
+    const x = (SCREEN_WIDTH - VIDEO_MARGIN_H * 2) / 2 - 40 + (Math.random() * 160 - 80);
+    const y = (SCREEN_HEIGHT - VIDEO_MARGIN_V * 2) / 2 - 60 + (Math.random() * 100 - 50);
     const size = 50 + Math.random() * 50;
     const rotation = (Math.random() - 0.5) * 40;
     const anim = new Animated.Value(0);
@@ -121,7 +119,7 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
       {video.thumbnail_url && (
         <Image
           source={{ uri: video.thumbnail_url }}
-          style={{ position: "absolute", top: 0, left: 0, width: VIDEO_WIDTH, height: VIDEO_HEIGHT }}
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
           contentFit="cover"
         />
       )}
@@ -130,12 +128,12 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
       {video.source_url && player ? (
         <VideoView
           player={player}
-          style={{ position: "absolute", top: 0, left: 0, width: VIDEO_WIDTH, height: VIDEO_HEIGHT }}
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
           contentFit="cover"
           nativeControls={false}
         />
       ) : !video.source_url ? (
-        <View style={{ position: "absolute", top: 0, left: 0, width: VIDEO_WIDTH, height: VIDEO_HEIGHT, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
           <Ionicons name="videocam-off-outline" size={48} color="#444" />
           <Text style={{ color: "#555", fontSize: 13, marginTop: 8 }}>Vidéo indisponible</Text>
         </View>
