@@ -9,6 +9,7 @@ import {
   ViewToken,
   Animated,
   Share,
+  StyleSheet,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
@@ -110,30 +111,38 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
   const originColor = ORIGIN_COLOR[video.origin];
 
   return (
-    <View style={{ height: SCREEN_HEIGHT, width: SCREEN_WIDTH, backgroundColor: "#000", paddingHorizontal: VIDEO_MARGIN_H, paddingVertical: VIDEO_MARGIN_V }}>
+    <View style={{ height: SCREEN_HEIGHT, width: SCREEN_WIDTH, backgroundColor: "#000", alignItems: "center", justifyContent: "center" }}>
     <Pressable
       onPress={handleTap}
-      style={{ flex: 1, borderRadius: VIDEO_BORDER_RADIUS, overflow: "hidden", backgroundColor: "#000" }}
+      style={{
+        width: SCREEN_WIDTH - VIDEO_MARGIN_H * 2,
+        height: SCREEN_HEIGHT - VIDEO_MARGIN_V * 2,
+        borderRadius: VIDEO_BORDER_RADIUS,
+        overflow: "hidden",
+        backgroundColor: "#111",
+      }}
     >
       {/* Thumbnail */}
       {video.thumbnail_url && (
         <Image
           source={{ uri: video.thumbnail_url }}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+          style={{ ...StyleSheet.absoluteFillObject, borderRadius: VIDEO_BORDER_RADIUS }}
           contentFit="cover"
         />
       )}
 
       {/* Video player */}
       {video.source_url && player ? (
-        <VideoView
-          player={player}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-          contentFit="cover"
-          nativeControls={false}
-        />
+        <View style={{ ...StyleSheet.absoluteFillObject, borderRadius: VIDEO_BORDER_RADIUS, overflow: "hidden" }}>
+          <VideoView
+            player={player}
+            style={{ flex: 1 }}
+            contentFit="cover"
+            nativeControls={false}
+          />
+        </View>
       ) : !video.source_url ? (
-        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" }}>
           <Ionicons name="videocam-off-outline" size={48} color="#444" />
           <Text style={{ color: "#555", fontSize: 13, marginTop: 8 }}>Vidéo indisponible</Text>
         </View>

@@ -106,7 +106,7 @@ export default function FriendsScreen() {
       {/* ─── Header ──────────────────────────────────────────── */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 12 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <Text style={{ fontSize: FONT.sizes["4xl"], fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
+          <Text style={{ fontSize: FONT.sizes["4xl"], fontFamily: FONT_FAMILY.extrabold, color: PALETTE.sarcelle }}>
             Amis
           </Text>
           {pendingCount > 0 && (

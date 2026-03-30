@@ -274,7 +274,7 @@ export default function TournoisScreen() {
             style={{
               fontSize: FONT.sizes["3xl"],
               fontFamily: FONT_FAMILY.black,
-              color: "#1A1A1A",
+              color: PALETTE.sarcelle,
             }}
           >
             Tournois
