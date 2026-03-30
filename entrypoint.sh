@@ -35,25 +35,22 @@ if [ -n "$TUNNEL_URL" ] && [ -n "$DISCORD_BOT_TOKEN" ] && [ -n "$DISCORD_CHANNEL
   BOT_USER_ID=$(curl -s -H "Authorization: ${AUTH_HEADER}" "${DISCORD_API}/users/@me" | node -e "
     let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{try{process.stdout.write(JSON.parse(d).id)}catch(e){}});
   ")
-  if [ -n "$BOT_USER_ID" ]; then
-    MESSAGES=$(curl -s -H "Authorization: ${AUTH_HEADER}" "${DISCORD_API}/channels/${DISCORD_CHANNEL_ID}/messages?limit=50")
-    echo "$MESSAGES" | node -e "
-      let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{
-        try {
-          const msgs = JSON.parse(d);
-          const botMsgs = msgs.filter(m => m.author.id === '$BOT_USER_ID');
-          botMsgs.forEach(m => console.log(m.id));
-        } catch(e) {}
-      });
-    " | while IFS= read -r MSG_ID; do
-      [ -z "$MSG_ID" ] && continue
-      HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
-        -H "Authorization: ${AUTH_HEADER}" \
-        "${DISCORD_API}/channels/${DISCORD_CHANNEL_ID}/messages/${MSG_ID}")
-      echo "Deleted message ${MSG_ID}: HTTP ${HTTP_CODE}"
-      sleep 0.5
-    done
-  fi
+  MESSAGES=$(curl -s -H "Authorization: ${AUTH_HEADER}" "${DISCORD_API}/channels/${DISCORD_CHANNEL_ID}/messages?limit=100")
+  echo "$MESSAGES" | node -e "
+    let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{
+      try {
+        const msgs = JSON.parse(d);
+        msgs.forEach(m => console.log(m.id));
+      } catch(e) {}
+    });
+  " | while IFS= read -r MSG_ID; do
+    [ -z "$MSG_ID" ] && continue
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+      -H "Authorization: ${AUTH_HEADER}" \
+      "${DISCORD_API}/channels/${DISCORD_CHANNEL_ID}/messages/${MSG_ID}")
+    echo "Deleted message ${MSG_ID}: HTTP ${HTTP_CODE}"
+    sleep 0.5
+  done
 
   ENCODED=$(node -e "process.stdout.write(encodeURIComponent('$TUNNEL_URL'))")
   QR_URL="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${ENCODED}"
