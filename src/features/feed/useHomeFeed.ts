@@ -13,7 +13,7 @@ export type HomeFeedVideo = {
   description: string | null;
   created_at: string;
   /** Origine pour l'affichage du badge dans la card */
-  origin: "group" | "friend" | "discover";
+  origin: "group" | "friend";
   submitter: {
     id: string;
     username: string;
@@ -26,14 +26,13 @@ export type HomeFeedVideo = {
 };
 
 /**
- * Feed Home paginé — 3 couches de contenu dans l'ordre :
+ * Feed Home paginé — 2 couches de contenu dans l'ordre :
  * 1. Vidéos de mes groupes (cette semaine et récentes)
  * 2. Vidéos de mes amis (toutes périodes)
- * 3. Vidéos publiques discover
  *
  * Chaque page contient PAGE_SIZE éléments de la couche courante.
  * La pagination avance layer par layer : d'abord toutes les pages groupes,
- * puis amis, puis discover.
+ * puis amis.
  */
 export function useHomeFeed() {
   const user = useAuthStore((s) => s.user);
@@ -153,51 +152,8 @@ export function useHomeFeed() {
           .filter((v): v is HomeFeedVideo => v !== null);
       }
 
-      // ── Couche 2 : discover (groupes publics) ─────────────────────
-      const { data: publicGroups } = await supabase
-        .from("groups")
-        .select("id, name")
-        .eq("is_public", true);
-
-      const publicGroupIds = (publicGroups ?? []).map((g) => g.id);
-      const groupMap = new Map((publicGroups ?? []).map((g) => [g.id, g]));
-
-      if (publicGroupIds.length === 0) return [];
-
-      const { data: videos, error } = await supabase
-        .from("videos")
-        .select("id, source_url, video_path, thumbnail_url, title, description, created_at, submitter_id, group_id")
-        .in("group_id", publicGroupIds)
-        .neq("submitter_id", user.id)
-        .order("created_at", { ascending: false })
-        .range(offset, offset + PAGE_SIZE - 1);
-
-      if (error) throw error;
-      if (!videos || videos.length === 0) return [];
-
-      const userIds = [...new Set(videos.map((v) => v.submitter_id))];
-      const { data: users } = await supabase
-        .from("users").select("id, username, avatar_url").in("id", userIds);
-      const userMap = new Map((users ?? []).map((u) => [u.id, u]));
-
-      return videos
-        .map((v) => {
-          const submitter = userMap.get(v.submitter_id);
-          if (!submitter) return null;
-          return {
-            id: v.id,
-            source_url: v.source_url,
-            video_path: v.video_path,
-            thumbnail_url: v.thumbnail_url,
-            title: v.title,
-            description: v.description,
-            created_at: v.created_at,
-            origin: "discover" as const,
-            submitter,
-            group: v.group_id ? (groupMap.get(v.group_id) ?? null) : null,
-          };
-        })
-        .filter((v): v is HomeFeedVideo => v !== null);
+      // No more layers
+      return [];
     },
 
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
@@ -205,7 +161,7 @@ export function useHomeFeed() {
       if (lastPage.length < PAGE_SIZE) {
         // Couche épuisée → passer à la suivante
         const nextLayer = layer + 1;
-        if (nextLayer > 2) return undefined;
+        if (nextLayer > 1) return undefined;
         return { layer: nextLayer, offset: 0 };
       }
       return { layer, offset: offset + PAGE_SIZE };

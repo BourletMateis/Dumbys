@@ -29,6 +29,16 @@ import {
   SPACING,
 } from "@/src/theme";
 
+// ─── Decorative blob ─────────────────────────────────────────────
+function Blob({ size, color, top, left, right, bottom }: {
+  size: number; color: string;
+  top?: number; left?: number; right?: number; bottom?: number;
+}) {
+  return (
+    <View style={{ position: "absolute", width: size, height: size, borderRadius: size / 2, backgroundColor: color, opacity: 0.15, top, left, right, bottom }} />
+  );
+}
+
 // ─── Layout constants (match Skeleton.tsx exactly) ───────────────
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_MARGIN_H = 24;
@@ -46,7 +56,6 @@ const PHASE_RING: Record<string, string> = {
 const ORIGIN_CONFIG = {
   group: { label: "Mon groupe", color: PALETTE.sarcelle, icon: "people" as const },
   friend: { label: "Ami", color: PALETTE.fuchsia, icon: "person-add" as const },
-  discover: { label: "Découvrir", color: "#999", icon: "compass" as const },
 } as const;
 
 // ─── Stories bar item ────────────────────────────────────────────
@@ -99,7 +108,7 @@ function StoryItem({
 }
 
 // ─── Video card ──────────────────────────────────────────────────
-function VideoCard({ video, index }: { video: HomeFeedVideo; index: number }) {
+function VideoCard({ video, index, filter }: { video: HomeFeedVideo; index: number; filter: FeedFilter }) {
   const origin = ORIGIN_CONFIG[video.origin];
 
   return (
@@ -120,7 +129,7 @@ function VideoCard({ video, index }: { video: HomeFeedVideo; index: number }) {
       <Pressable
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.push({ pathname: "/feed/home", params: { startIndex: String(index) } } as any);
+          router.push({ pathname: "/feed/home", params: { startIndex: String(index), filter } } as any);
         }}
       >
         {/* Thumbnail */}
@@ -243,13 +252,12 @@ function VideoCard({ video, index }: { video: HomeFeedVideo; index: number }) {
 }
 
 // ─── Feed filter type ────────────────────────────────────────────
-type FeedFilter = "all" | "group" | "friend" | "discover";
+type FeedFilter = "all" | "group" | "friend";
 
 const FILTER_OPTIONS: { key: FeedFilter; label: string; icon: keyof typeof Ionicons.glyphMap; color: string }[] = [
   { key: "all", label: "Tout", icon: "flame-outline", color: PALETTE.sarcelle },
   { key: "group", label: "Groupes", icon: "people-outline", color: PALETTE.sarcelle },
   { key: "friend", label: "Amis", icon: "heart-outline", color: PALETTE.fuchsia },
-  { key: "discover", label: "Découvrir", icon: "compass-outline", color: "#999" },
 ];
 
 // ─── Filter chips bar ────────────────────────────────────────────
@@ -317,7 +325,6 @@ function SectionDivider({ origin }: { origin: HomeFeedVideo["origin"] }) {
   const labels: Record<HomeFeedVideo["origin"], string> = {
     group: "Mes groupes",
     friend: "Mes amis",
-    discover: "Découvrir",
   };
   return (
     <View
@@ -409,8 +416,8 @@ export default function HomeScreen() {
     if (item.type === "divider") {
       return <SectionDivider origin={item.origin} />;
     }
-    return <VideoCard video={item.video} index={item.videoIndex} />;
-  }, []);
+    return <VideoCard video={item.video} index={item.videoIndex} filter={activeFilter} />;
+  }, [activeFilter]);
 
   // ── Header ──
   const ListHeader = (
@@ -581,6 +588,9 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F8F8FA" }}>
+      <Blob size={200} color={PALETTE.sarcelle} top={-30} right={-60} />
+      <Blob size={140} color={PALETTE.fuchsia} bottom={300} left={-50} />
+      <Blob size={100} color={PALETTE.jaune} bottom={200} right={-30} />
       <FlatList
         data={listItems}
         keyExtractor={(item) => item.key}

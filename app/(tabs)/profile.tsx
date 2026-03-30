@@ -269,9 +269,14 @@ export default function ProfileScreen() {
           <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: PALETTE.sarcelle }}>
             Dumbys
           </Text>
-          <Pressable hitSlop={8} onPress={() => router.push("/notifications" as any)}>
-            <Ionicons name="notifications-outline" size={22} color="#333" />
-          </Pressable>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+            <Pressable hitSlop={8} onPress={() => router.push("/notifications" as any)}>
+              <Ionicons name="notifications-outline" size={22} color="#333" />
+            </Pressable>
+            <Pressable hitSlop={8} onPress={() => router.push("/settings" as any)}>
+              <Ionicons name="settings-outline" size={22} color="#333" />
+            </Pressable>
+          </View>
         </View>
 
         {/* ─── Profile header ──────────────────────────────────── */}
@@ -497,43 +502,6 @@ export default function ProfileScreen() {
                 ));
               })()}
 
-              {/* NOUVEAU button */}
-              <View style={{ alignItems: "center", marginTop: 8, marginBottom: 8 }}>
-                <AnimatedPressable
-                  onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
-                  style={{ alignItems: "center" }}
-                >
-                  <View
-                    style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: 28,
-                      backgroundColor: PALETTE.sarcelle,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      shadowColor: PALETTE.sarcelle,
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.3,
-                      shadowRadius: 8,
-                      elevation: 4,
-                    }}
-                  >
-                    <Ionicons name="add-circle-outline" size={28} color="#FFFFFF" />
-                  </View>
-                  <Text
-                    style={{
-                      fontSize: FONT.sizes.xs,
-                      fontFamily: FONT_FAMILY.bold,
-                      color: PALETTE.sarcelle,
-                      textTransform: "uppercase",
-                      marginTop: 8,
-                      letterSpacing: 1,
-                    }}
-                  >
-                    NOUVEAU
-                  </Text>
-                </AnimatedPressable>
-              </View>
             </View>
           ) : (
             /* Shorts tab - empty state */
@@ -549,30 +517,6 @@ export default function ProfileScreen() {
         {/* Decorative pink blob for gallery section */}
         <Blob size={180} color={PALETTE.fuchsia} bottom={-40} left={-40} />
 
-        {/* ─── Settings ───────────────────────────────────────── */}
-        <View style={{ paddingHorizontal: 20, marginTop: 32 }}>
-          <AnimatedPressable
-            onPress={() => router.push("/settings" as any)}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 12,
-              backgroundColor: "#FFFFFF",
-              borderRadius: RADIUS.lg,
-              padding: 14,
-              borderWidth: 1,
-              borderColor: "rgba(0,0,0,0.06)",
-            }}
-          >
-            <View style={{ width: 36, height: 36, borderRadius: RADIUS.sm, backgroundColor: `${PALETTE.sarcelle}12`, alignItems: "center", justifyContent: "center" }}>
-              <Ionicons name="settings-outline" size={18} color={PALETTE.sarcelle} />
-            </View>
-            <Text numberOfLines={1} style={{ flex: 1, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.semibold, color: "#1A1A1A" }}>
-              Reglages
-            </Text>
-            <Ionicons name="chevron-forward" size={16} color="#CCC" />
-          </AnimatedPressable>
-        </View>
       </ScrollView>
     </View>
   );

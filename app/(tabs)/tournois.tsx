@@ -20,6 +20,16 @@ import {
 import { PhaseIndicator } from "@/src/components/ui/PhaseIndicator";
 import { FONT, FONT_FAMILY, PALETTE, RADIUS, SPACING } from "@/src/theme";
 
+// ─── Decorative blob ─────────────────────────────────────────────
+function Blob({ size, color, top, left, right, bottom }: {
+  size: number; color: string;
+  top?: number; left?: number; right?: number; bottom?: number;
+}) {
+  return (
+    <View style={{ position: "absolute", width: size, height: size, borderRadius: size / 2, backgroundColor: color, opacity: 0.15, top, left, right, bottom }} />
+  );
+}
+
 type Tab = "mes-tournois" | "decouvrir";
 
 function TournamentCard({
@@ -251,6 +261,9 @@ export default function TournoisScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F8F8FA" }}>
+      <Blob size={200} color={PALETTE.sarcelle} top={-30} right={-60} />
+      <Blob size={140} color={PALETTE.fuchsia} bottom={300} left={-50} />
+      <Blob size={100} color={PALETTE.jaune} bottom={200} right={-30} />
       {/* Header */}
       <View
         style={{

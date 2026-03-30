@@ -110,7 +110,6 @@ export function useRealtimeSubscriptions() {
         { event: "INSERT", schema: "public", table: "videos" },
         (payload) => {
           const row = (payload.new as any);
-          queryClient.invalidateQueries({ queryKey: ["discover-feed"] });
           if (row?.group_id) {
             queryClient.invalidateQueries({ queryKey: ["group-videos", row.group_id] });
           }

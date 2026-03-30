@@ -202,8 +202,6 @@ export default function TabLayout() {
         <Tabs.Screen name="upload" />
         <Tabs.Screen name="friends" />
         <Tabs.Screen name="profile" />
-        {/* Hidden screens */}
-        <Tabs.Screen name="explore" options={{ href: null }} />
       </Tabs>
 
       <UploadSheet

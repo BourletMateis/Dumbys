@@ -31,12 +31,10 @@ const VIDEO_BORDER_RADIUS = 28;
 const ORIGIN_COLOR: Record<HomeFeedVideo["origin"], string> = {
   group: PALETTE.sarcelle,
   friend: PALETTE.fuchsia,
-  discover: "#999",
 };
 const ORIGIN_LABEL: Record<HomeFeedVideo["origin"], string> = {
   group: "Mon groupe",
   friend: "Ami",
-  discover: "Découvrir",
 };
 
 // ─── Single video item ───────────────────────────────────────────
@@ -324,13 +322,16 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
 
 // ─── Screen ──────────────────────────────────────────────────────
 export default function HomeFeedScreen() {
-  const { startIndex } = useLocalSearchParams<{ startIndex?: string }>();
+  const { startIndex, filter } = useLocalSearchParams<{ startIndex?: string; filter?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const initialIndex = Number(startIndex ?? 0);
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useHomeFeed();
-  const videos = data?.pages.flatMap((p) => p).filter((v, i, arr) => arr.findIndex((x) => x.id === v.id) === i) ?? [];
+  const allVideos = data?.pages.flatMap((p) => p).filter((v, i, arr) => arr.findIndex((x) => x.id === v.id) === i) ?? [];
+  const videos = filter && filter !== "all"
+    ? allVideos.filter((v) => v.origin === filter)
+    : allVideos;
 
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const listRef = useRef<FlatList>(null);
