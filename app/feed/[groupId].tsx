@@ -444,20 +444,6 @@ function FeedItem({
             </Text>
           </Pressable>
 
-          {/* Title */}
-          {video.title ? (
-            <Text
-              style={{
-                color: "#FFFFFF",
-                fontSize: FONT.sizes.base,
-                fontFamily: FONT_FAMILY.semibold,
-                marginTop: 6,
-              }}
-              numberOfLines={1}
-            >
-              {video.title}
-            </Text>
-          ) : null}
 
           {/* Description - expandable */}
           {video.description ? (

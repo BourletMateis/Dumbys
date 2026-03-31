@@ -71,6 +71,7 @@ export function useChallengeVideos(challengeId: string) {
 type UploadChallengeVideoInput = {
   videoUri: string;
   challengeId: string;
+  groupId: string;
   title?: string;
   description?: string;
 };
@@ -106,6 +107,7 @@ export function useUploadChallengeVideo() {
       const insertData: Record<string, unknown> = {
         submitter_id: user.id,
         challenge_id: input.challengeId,
+        group_id: input.groupId,
         source_url: videoUrl,
         video_path: videoKey,
         thumbnail_url: thumbnailUrl,

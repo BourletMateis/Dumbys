@@ -3,31 +3,31 @@ import { supabase } from "@/src/lib/supabase";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import type { Challenge } from "@/src/types/database.types";
 
-// Récupérer tous les défis d'un tournoi
-export function useTournamentChallenges(tournamentId: string) {
+// Récupérer tous les défis d'un groupe
+export function useGroupChallenges(groupId: string) {
   return useQuery<Challenge[]>({
-    queryKey: ["tournament-challenges", tournamentId],
+    queryKey: ["group-challenges", groupId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("challenges")
-        .select("*")
-        .eq("tournament_id", tournamentId)
+        .select("id, group_id, title, description, created_by, created_at")
+        .eq("group_id", groupId)
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as Challenge[];
     },
-    enabled: !!tournamentId,
+    enabled: !!groupId,
   });
 }
 
 type CreateChallengeInput = {
-  tournamentId: string;
+  groupId: string;
   title: string;
   description?: string;
 };
 
-// Créer un défi dans un tournoi
+// Créer un défi dans un groupe
 export function useCreateChallenge() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
@@ -39,12 +39,12 @@ export function useCreateChallenge() {
       const { data, error } = await supabase
         .from("challenges")
         .insert({
-          tournament_id: input.tournamentId,
+          group_id: input.groupId,
           title: input.title,
           description: input.description ?? null,
           created_by: user.id,
         })
-        .select("*")
+        .select("id, group_id, title, description, created_by, created_at")
         .single();
 
       if (error) throw error;
@@ -52,7 +52,7 @@ export function useCreateChallenge() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ["tournament-challenges", variables.tournamentId],
+        queryKey: ["group-challenges", variables.groupId],
       });
     },
   });
@@ -65,10 +65,10 @@ export function useDeleteChallenge() {
   return useMutation({
     mutationFn: async ({
       challengeId,
-      tournamentId,
+      groupId,
     }: {
       challengeId: string;
-      tournamentId: string;
+      groupId: string;
     }) => {
       const { error } = await supabase
         .from("challenges")
@@ -76,11 +76,11 @@ export function useDeleteChallenge() {
         .eq("id", challengeId);
 
       if (error) throw error;
-      return tournamentId;
+      return groupId;
     },
-    onSuccess: (tournamentId) => {
+    onSuccess: (groupId) => {
       queryClient.invalidateQueries({
-        queryKey: ["tournament-challenges", tournamentId],
+        queryKey: ["group-challenges", groupId],
       });
     },
   });

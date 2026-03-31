@@ -11,23 +11,12 @@ export type GroupStatus = "private" | "pending_public" | "approved_public";
 export type GroupRole = "owner" | "admin" | "member";
 export type ChallengeType = "private" | "public";
 
-// V4 — Challenges
+// V5 — Challenges (directly in groups, tournaments removed)
 export interface Challenge {
-  id: string;
-  tournament_id: string;
-  title: string;
-  description: string | null;
-  created_by: string;
-  created_at: string;
-}
-
-// V4 — Group Tournaments
-export interface GroupTournament {
   id: string;
   group_id: string;
   title: string;
   description: string | null;
-  reward: string | null;
   created_by: string;
   created_at: string;
 }
@@ -341,32 +330,50 @@ export interface Database {
         };
         Relationships: [];
       };
-      group_tournaments: {
+      conversations: {
         Row: {
           id: string;
-          group_id: string;
-          title: string;
-          description: string | null;
-          reward: string | null;
-          created_by: string;
+          user1_id: string;
+          user2_id: string;
+          last_message_at: string;
           created_at: string;
         };
         Insert: {
           id?: string;
-          group_id: string;
-          title: string;
-          description?: string | null;
-          reward?: string | null;
-          created_by: string;
+          user1_id: string;
+          user2_id: string;
+          last_message_at?: string;
           created_at?: string;
         };
         Update: {
           id?: string;
-          group_id?: string;
-          title?: string;
-          description?: string | null;
-          reward?: string | null;
-          created_by?: string;
+          user1_id?: string;
+          user2_id?: string;
+          last_message_at?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          sender_id: string;
+          text: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          sender_id: string;
+          text: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          conversation_id?: string;
+          sender_id?: string;
+          text?: string;
           created_at?: string;
         };
         Relationships: [];
@@ -374,7 +381,7 @@ export interface Database {
       challenges: {
         Row: {
           id: string;
-          tournament_id: string;
+          group_id: string;
           title: string;
           description: string | null;
           created_by: string;
@@ -382,7 +389,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          tournament_id: string;
+          group_id: string;
           title: string;
           description?: string | null;
           created_by: string;
@@ -390,7 +397,7 @@ export interface Database {
         };
         Update: {
           id?: string;
-          tournament_id?: string;
+          group_id?: string;
           title?: string;
           description?: string | null;
           created_by?: string;

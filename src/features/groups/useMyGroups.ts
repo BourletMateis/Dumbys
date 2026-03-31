@@ -11,6 +11,7 @@ export type GroupWithRole = {
   is_public: boolean;
   invite_code: string;
   cover_url: string | null;
+  category: string | null;
   end_date: string | null;
   goal_description: string | null;
   prize: string | null;
@@ -44,7 +45,7 @@ export function useMyGroups() {
       // Fetch group details
       const { data: groups, error: grpError } = await supabase
         .from("groups")
-        .select("id, name, description, owner_id, is_public, invite_code, cover_url, end_date, goal_description, prize, type, created_at")
+        .select("id, name, description, owner_id, is_public, invite_code, cover_url, category, end_date, goal_description, prize, type, created_at")
         .in("id", groupIds)
         .order("created_at", { ascending: false });
 
@@ -71,6 +72,7 @@ export function useMyGroups() {
         is_public: g.is_public,
         invite_code: g.invite_code,
         cover_url: g.cover_url,
+        category: g.category,
         end_date: g.end_date,
         goal_description: g.goal_description,
         prize: g.prize,

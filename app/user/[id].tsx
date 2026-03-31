@@ -10,19 +10,12 @@ import {
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   usePublicProfile,
   usePublicVideos,
   type PublicVideo,
 } from "@/src/features/profile/usePublicProfile";
-import {
-  useIsFollowing,
-  useFollowerCount,
-  useFollowingCount,
-  useToggleFollow,
-} from "@/src/features/profile/useFollows";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
@@ -120,11 +113,6 @@ export default function UserProfileScreen() {
 
   const { data: profile, isPending, isError } = usePublicProfile(id!);
   const { data: videos, isPending: videosPending } = usePublicVideos(id!);
-  const { data: isFollowing } = useIsFollowing(id!);
-  const { data: followerCount } = useFollowerCount(id!);
-  const { data: followingCount } = useFollowingCount(id!);
-  const toggleFollow = useToggleFollow(id!);
-
   useEffect(() => {
     if (currentUser?.id === id) {
       router.replace("/(tabs)/profile");
@@ -132,11 +120,6 @@ export default function UserProfileScreen() {
   }, [currentUser?.id, id]);
 
   if (currentUser?.id === id) return null;
-
-  const handleFollow = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    toggleFollow.mutate();
-  };
 
   if (isPending) {
     return (
@@ -238,67 +221,6 @@ export default function UserProfileScreen() {
               Membre depuis {formatJoinDate(profile.created_at)}
             </Text>
 
-            {/* Follow Button */}
-            {isFollowing ? (
-              <AnimatedPressable
-                onPress={handleFollow}
-                disabled={toggleFollow.isPending}
-                style={{
-                  marginTop: 18,
-                  paddingHorizontal: 32,
-                  paddingVertical: 12,
-                  borderRadius: RADIUS.md,
-                  backgroundColor: "rgba(0,0,0,0.04)",
-                  borderWidth: 1,
-                  borderColor: "rgba(0,0,0,0.06)",
-                  minWidth: 140,
-                  alignItems: "center",
-                }}
-              >
-                {toggleFollow.isPending ? (
-                  <ActivityIndicator size="small" color="#666" />
-                ) : (
-                  <Text
-                    style={{
-                      color: "#666",
-                      fontSize: FONT.sizes.base,
-                      fontFamily: FONT_FAMILY.bold,
-                    }}
-                  >
-                    Abonné
-                  </Text>
-                )}
-              </AnimatedPressable>
-            ) : (
-              <AnimatedPressable
-                onPress={handleFollow}
-                disabled={toggleFollow.isPending}
-                style={{
-                  marginTop: 18,
-                  borderRadius: RADIUS.md,
-                  minWidth: 140,
-                  overflow: "hidden",
-                  backgroundColor: PALETTE.sarcelle,
-                  paddingHorizontal: 32,
-                  paddingVertical: 12,
-                  alignItems: "center",
-                }}
-              >
-                {toggleFollow.isPending ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text
-                    style={{
-                      color: "#FFFFFF",
-                      fontSize: FONT.sizes.base,
-                      fontFamily: FONT_FAMILY.bold,
-                    }}
-                  >
-                    Suivre
-                  </Text>
-                )}
-              </AnimatedPressable>
-            )}
           </View>
 
           {/* Stats Card */}
@@ -316,8 +238,6 @@ export default function UserProfileScreen() {
             }}
           >
             <StatItem value={(videos ?? []).length} label="Vidéos" />
-            <StatItem value={followerCount ?? 0} label="Abonnés" />
-            <StatItem value={followingCount ?? 0} label="Abonnements" />
           </View>
 
           {/* Video grid header */}

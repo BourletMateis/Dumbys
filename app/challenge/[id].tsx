@@ -13,7 +13,7 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTournamentChallenges } from "@/src/features/groups/useChallenges";
+import { useGroupChallenges } from "@/src/features/groups/useChallenges";
 import { useChallengeVideos, useUploadChallengeVideo, type ChallengeVideo } from "@/src/features/groups/useChallengeVideos";
 import { useDeleteVideo } from "@/src/features/feed/useDeleteVideo";
 import { useLikeCount, useHasLiked, useToggleLike } from "@/src/features/feed/useLikes";
@@ -218,13 +218,13 @@ function VideoCard({
 }
 
 export default function ChallengeScreen() {
-  const { id, tournamentId } = useLocalSearchParams<{ id: string; tournamentId: string }>();
+  const { id, groupId } = useLocalSearchParams<{ id: string; groupId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
 
   // On récupère les infos du défi depuis le hook challenges
-  const { data: challenges } = useTournamentChallenges(tournamentId ?? "");
+  const { data: challenges } = useGroupChallenges(groupId ?? "");
   const challenge = challenges?.find((c) => c.id === id);
 
   const { data: videos, isPending: videosPending } = useChallengeVideos(id!);
@@ -276,6 +276,7 @@ export default function ChallengeScreen() {
       {
         videoUri: pendingUri,
         challengeId: id!,
+        groupId: groupId!,
         title: uploadTitle.trim() || undefined,
         description: uploadDesc.trim() || undefined,
       },

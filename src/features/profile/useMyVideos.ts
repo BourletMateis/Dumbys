@@ -7,6 +7,7 @@ export type MyVideo = {
   source_url: string | null;
   thumbnail_url: string | null;
   video_path: string | null;
+  title: string | null;
   created_at: string;
   group: {
     id: string;
@@ -24,7 +25,7 @@ export function useMyVideos() {
 
       const { data, error } = await supabase
         .from("videos")
-        .select("id, source_url, thumbnail_url, video_path, created_at, group_id")
+        .select("id, source_url, thumbnail_url, video_path, title, created_at, group_id")
         .eq("submitter_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -51,6 +52,7 @@ export function useMyVideos() {
         source_url: v.source_url,
         thumbnail_url: v.thumbnail_url,
         video_path: v.video_path ?? null,
+        title: v.title ?? null,
         created_at: v.created_at,
         group: v.group_id ? groupMap.get(v.group_id) ?? null : null,
       }));

@@ -20,7 +20,7 @@ export default function LoginScreen() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 
-  const { signInWithEmail, signUpWithEmail, signInWithOAuth, isLoading, error, clearError } =
+  const { signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, isLoading, error, clearError } =
     useAuthStore();
 
   const handleSubmit = async () => {
@@ -104,7 +104,7 @@ export default function LoginScreen() {
           <View style={{ gap: SPACING.base, marginBottom: SPACING["3xl"] }}>
             {Platform.OS === "ios" && (
               <AnimatedPressable
-                onPress={() => signInWithOAuth("apple")}
+                onPress={() => signInWithApple()}
                 disabled={isLoading}
                 style={{
                   flexDirection: "row",
@@ -130,7 +130,7 @@ export default function LoginScreen() {
             )}
 
             <AnimatedPressable
-              onPress={() => signInWithOAuth("google")}
+              onPress={() => signInWithGoogle()}
               disabled={isLoading}
               style={{
                 flexDirection: "row",

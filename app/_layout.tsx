@@ -102,11 +102,18 @@ function RootLayoutNav() {
     if (!isInitialized) return;
 
     const inAuthGroup = segments[0] === "(auth)";
+    const inOnboarding = inAuthGroup && segments[1] === "onboarding";
 
     if (!session && !inAuthGroup) {
       router.replace("/(auth)/login");
-    } else if (session && inAuthGroup) {
-      router.replace("/(tabs)");
+    } else if (session && inAuthGroup && !inOnboarding) {
+      // New users (no onboarding_completed) → onboarding, else → tabs
+      const onboardingDone = session.user.user_metadata?.onboarding_completed;
+      if (!onboardingDone) {
+        router.replace("/(auth)/onboarding");
+      } else {
+        router.replace("/(tabs)");
+      }
     }
   }, [session, isInitialized, segments, router]);
 
@@ -118,6 +125,7 @@ function RootLayoutNav() {
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="category/[key]" options={{ headerShown: false, animation: "slide_from_right" }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: "modal" }} />
         <Stack.Screen

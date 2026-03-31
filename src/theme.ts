@@ -110,6 +110,31 @@ export const GRADIENTS = {
   mascotte: [PALETTE.fuchsia, PALETTE.jaune] as const,
 } as const;
 
+// ─── Group banner gradients — un par famille de couleur ─────────
+export const GROUP_BANNER_COLORS: { from: string; to: string }[] = [
+  { from: "#1D4ED8", to: "#60A5FA" }, // bleu électrique
+  { from: "#0369A1", to: "#38BDF8" }, // bleu ciel
+  { from: "#0E7490", to: "#67E8F9" }, // bleu cyan
+  { from: "#1E3A5F", to: "#3B82F6" }, // bleu marine
+  { from: "#4338CA", to: "#818CF8" }, // indigo
+  { from: "#6D28D9", to: "#A78BFA" }, // violet
+  { from: "#7E22CE", to: "#C084FC" }, // mauve
+  { from: "#9D174D", to: "#F472B6" }, // rose foncé
+  { from: "#BE123C", to: "#FB7185" }, // rouge rosé
+  { from: "#B91C1C", to: "#FCA5A5" }, // rouge
+  { from: "#C2410C", to: "#FB923C" }, // orange
+  { from: "#B45309", to: "#FCD34D" }, // ambre
+  { from: "#15803D", to: "#4ADE80" }, // vert
+  { from: "#065F46", to: "#34D399" }, // émeraude
+  { from: "#0F766E", to: "#2DD4BF" }, // teal
+];
+
+export function getGroupBannerColor(id: string): { from: string; to: string } {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  return GROUP_BANNER_COLORS[hash % GROUP_BANNER_COLORS.length];
+}
+
 // ─── Spacing & Layout ───────────────────────────────────────────
 export const RADIUS = {
   xs: 8,

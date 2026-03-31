@@ -15,6 +15,7 @@ export type PublicGroup = {
   type: string;
   created_at: string;
   member_count: number;
+  challenge_count: number;
   is_member: boolean;
 };
 
@@ -53,6 +54,17 @@ export function usePublicGroups(category?: string) {
         countMap.set(m.group_id, (countMap.get(m.group_id) ?? 0) + 1);
       }
 
+      // Get challenge counts
+      const { data: challenges } = await supabase
+        .from("challenges")
+        .select("id, group_id")
+        .in("group_id", groupIds);
+
+      const challengeCountMap = new Map<string, number>();
+      for (const c of challenges ?? []) {
+        challengeCountMap.set(c.group_id, (challengeCountMap.get(c.group_id) ?? 0) + 1);
+      }
+
       // Check which groups the user is already in
       let myGroupIds = new Set<string>();
       if (user) {
@@ -78,6 +90,7 @@ export function usePublicGroups(category?: string) {
         type: g.type,
         created_at: g.created_at,
         member_count: countMap.get(g.id) ?? 0,
+        challenge_count: challengeCountMap.get(g.id) ?? 0,
         is_member: myGroupIds.has(g.id),
       }));
     },

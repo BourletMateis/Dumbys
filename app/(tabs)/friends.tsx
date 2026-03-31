@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   ScrollView,
   FlatList,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,6 +20,7 @@ import {
   useAcceptRequest,
   useRemoveFriendship,
 } from "@/src/features/friends/useFriendActions";
+import { useGetOrCreateConversation } from "@/src/features/messages/useGetOrCreateConversation";
 import { useSuggestedFriends } from "@/src/features/friends/useSuggestedFriends";
 import { UserSearchResult } from "@/src/features/friends/UserSearchResult";
 import { Avatar } from "@/src/components/ui/Avatar";
@@ -65,6 +67,7 @@ export default function FriendsScreen() {
   const sendRequest = useSendRequest();
   const acceptRequest = useAcceptRequest();
   const removeFriendship = useRemoveFriendship();
+  const getOrCreateConversation = useGetOrCreateConversation();
 
   const getFriendStatus = useCallback(
     (userId: string): { status: FriendStatus; friendshipId?: string } => {
@@ -508,32 +511,65 @@ export default function FriendsScreen() {
                     <View style={{ flexDirection: "row", gap: 8 }}>
                       {/* Message */}
                       <Pressable
-                        onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          getOrCreateConversation.mutate(item.otherUser.id, {
+                            onSuccess: (conversationId) => {
+                              router.push({
+                                pathname: "/messages/[conversationId]" as any,
+                                params: {
+                                  conversationId,
+                                  username: item.otherUser.username,
+                                  avatarUrl: item.otherUser.avatar_url ?? "",
+                                  otherUserId: item.otherUser.id,
+                                },
+                              });
+                            },
+                          });
+                        }}
+                        disabled={getOrCreateConversation.isPending}
                         style={{
                           width: 38, height: 38, borderRadius: 12,
                           backgroundColor: PALETTE.sarcelle + "12",
                           alignItems: "center", justifyContent: "center",
                         }}
                       >
-                        <Ionicons name="chatbubble-outline" size={18} color={PALETTE.sarcelle} />
+                        {getOrCreateConversation.isPending ? (
+                          <ActivityIndicator size="small" color={PALETTE.sarcelle} />
+                        ) : (
+                          <Ionicons name="chatbubble-outline" size={18} color={PALETTE.sarcelle} />
+                        )}
                       </Pressable>
-                      {/* More */}
+                      {/* Delete friend */}
                       <Pressable
                         onPress={() => {
-                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                          removeFriendship.mutate(item.id);
+                          Alert.alert(
+                            "Supprimer l'ami",
+                            `Tu veux vraiment retirer ${item.otherUser.username} de tes amis ?`,
+                            [
+                              { text: "Annuler", style: "cancel" },
+                              {
+                                text: "Supprimer",
+                                style: "destructive",
+                                onPress: () => {
+                                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                                  removeFriendship.mutate(item.id);
+                                },
+                              },
+                            ],
+                          );
                         }}
                         disabled={removeFriendship.isPending && removeFriendship.variables === item.id}
                         style={{
                           width: 38, height: 38, borderRadius: 12,
-                          backgroundColor: "#F2F2F2",
+                          backgroundColor: "rgba(239,68,68,0.08)",
                           alignItems: "center", justifyContent: "center",
                         }}
                       >
                         {removeFriendship.isPending && removeFriendship.variables === item.id ? (
-                          <ActivityIndicator size="small" color="#BBB" />
+                          <ActivityIndicator size="small" color="#ef4444" />
                         ) : (
-                          <Ionicons name="ellipsis-horizontal" size={18} color="#999" />
+                          <Ionicons name="trash-outline" size={18} color="#ef4444" />
                         )}
                       </Pressable>
                     </View>

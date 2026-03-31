@@ -63,6 +63,7 @@ export function useRealtimeSubscriptions() {
           // Refresh own groups if it concerns us
           if (memberId === user.id) {
             queryClient.invalidateQueries({ queryKey: ["my-groups"] });
+            queryClient.invalidateQueries({ queryKey: ["home-feed"] });
           }
           // Refresh public groups (member counts change)
           queryClient.invalidateQueries({ queryKey: ["public-groups"] });
@@ -112,12 +113,38 @@ export function useRealtimeSubscriptions() {
           const row = (payload.new as any);
           if (row?.group_id) {
             queryClient.invalidateQueries({ queryKey: ["group-videos", row.group_id] });
+            queryClient.invalidateQueries({ queryKey: ["home-feed"] });
           }
           if (row?.challenge_id) {
             queryClient.invalidateQueries({ queryKey: ["challenge-videos", row.challenge_id] });
           }
           if (row?.submitter_id === user.id) {
             queryClient.invalidateQueries({ queryKey: ["my-videos"] });
+          }
+        },
+      )
+      // ── Messages ──
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload) => {
+          const row = payload.new as any;
+          if (row?.conversation_id) {
+            queryClient.invalidateQueries({
+              queryKey: ["messages", row.conversation_id],
+            });
+            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          }
+        },
+      )
+      // ── Conversations ──
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "conversations" },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as any;
+          if (row?.user1_id === user.id || row?.user2_id === user.id) {
+            queryClient.invalidateQueries({ queryKey: ["conversations"] });
           }
         },
       )

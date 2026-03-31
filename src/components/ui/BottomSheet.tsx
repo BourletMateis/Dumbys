@@ -1,12 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   View,
   Pressable,
   Dimensions,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   Modal,
+  Keyboard,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
@@ -15,6 +15,8 @@ import Animated, {
   withSpring,
   withTiming,
   runOnJS,
+  interpolate,
+  Extrapolation,
 } from "react-native-reanimated";
 import {
   Gesture,
@@ -42,6 +44,30 @@ export function BottomSheet({
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const backdropOpacity = useSharedValue(0);
   const context = useSharedValue(0);
+  const keyboardHeight = useSharedValue(0);
+  // Track current keyboard height so we don't re-animate if it hasn't changed
+  const currentKbHeight = useRef(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const onShow = Keyboard.addListener(showEvent, (e) => {
+      const h = e.endCoordinates.height;
+      if (h === currentKbHeight.current) return; // no change, avoid jump
+      currentKbHeight.current = h;
+      const duration = Platform.OS === "ios" ? e.duration : 200;
+      keyboardHeight.value = withTiming(h, { duration });
+    });
+
+    const onHide = Keyboard.addListener(hideEvent, (e) => {
+      currentKbHeight.current = 0;
+      const duration = Platform.OS === "ios" ? e.duration : 200;
+      keyboardHeight.value = withTiming(0, { duration });
+    });
+
+    return () => { onShow.remove(); onHide.remove(); };
+  }, []);
 
   const maxTranslate = SCREEN_HEIGHT * (1 - snapPoint);
 
@@ -71,9 +97,16 @@ export function BottomSheet({
       }
     });
 
-  const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
+  const sheetStyle = useAnimatedStyle(() => {
+    // Fade out the keyboard offset as the sheet closes so there's no jump
+    const keyboardOffset = interpolate(
+      translateY.value,
+      [maxTranslate, SCREEN_HEIGHT],
+      [keyboardHeight.value, 0],
+      Extrapolation.CLAMP,
+    );
+    return { transform: [{ translateY: translateY.value - keyboardOffset }] };
+  });
 
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: backdropOpacity.value,
@@ -120,16 +153,14 @@ export function BottomSheet({
               <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: "#D0D0D0" }} />
             </View>
 
-            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-              <ScrollView
-                bounces={false}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 20) + 20 }}
-              >
-                {children}
-              </ScrollView>
-            </KeyboardAvoidingView>
+            <ScrollView
+              bounces={false}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 20) + 20 }}
+            >
+              {children}
+            </ScrollView>
           </Animated.View>
         </GestureDetector>
       </GestureHandlerRootView>

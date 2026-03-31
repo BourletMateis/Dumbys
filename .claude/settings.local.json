@@ -20,7 +20,20 @@
       "Bash(while read:*)",
       "Bash(do echo:*)",
       "Bash(find /home/mateis/dumbAward/src -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(find /home/mateis/dumbAward -name *message* -o -name *chat* -o -name *conversation*)",
+      "Bash(find /home/mateis/dumbAward/app -name *tournament* -o -name *tournoi*)",
+      "Bash(find /home/mateis/dumbAward/src -name *tournament* -o -name *Tournament* -o -name *AllPublic*)",
+      "Bash(find /home/mateis/dumbAward -type f \\\\\\(-name *ogin* -o -name *auth* -o -name supabase.ts \\\\\\))",
+      "Bash(find /home/mateis/dumbAward -maxdepth 2 -type f \\\\\\(-name .env* -o -name eas.json \\\\\\))",
+      "Bash(npx expo:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:supabase.com)",
+      "WebSearch",
+      "WebFetch(domain:capgo.app)",
+      "WebFetch(domain:docs-pgth9qjfy-supabase.vercel.app)",
+      "Bash(gh api:*)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }

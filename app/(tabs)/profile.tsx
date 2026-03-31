@@ -1,8 +1,9 @@
-import { View, Text, Pressable, ActivityIndicator, ScrollView, RefreshControl, Dimensions, Alert, Share } from "react-native";
+import { View, Text, Pressable, ActivityIndicator, ScrollView, RefreshControl, Dimensions, Alert, Share, FlatList } from "react-native";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import type { GroupWithRole } from "@/src/features/groups/useMyGroups";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,10 +16,42 @@ import { useAuthStore } from "@/src/store/useAuthStore";
 import { useUpdateAvatar } from "@/src/features/profile/useUpdateAvatar";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
-import { COLORS, PALETTE, RADIUS, FONT, FONT_FAMILY, SPACING } from "@/src/theme";
+import { COLORS, PALETTE, RADIUS, FONT, FONT_FAMILY, SPACING, getGroupBannerColor } from "@/src/theme";
 import { useTheme } from "@/src/providers/ThemeProvider";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+
+// ─── Group chip for horizontal scroll ───────────────────────────
+function GroupChip({ group, onPress }: { group: GroupWithRole; onPress: () => void }) {
+  const banner = getGroupBannerColor(group.id);
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{ alignItems: "center", width: 80 }}
+    >
+      <View style={{ width: 60, height: 60, borderRadius: 18, overflow: "hidden", marginBottom: 6 }}>
+        {group.cover_url ? (
+          <Image source={{ uri: group.cover_url }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+        ) : (
+          <LinearGradient colors={[banner.from, banner.to]} style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontSize: 18, fontFamily: FONT_FAMILY.black, color: "rgba(255,255,255,0.65)" }}>
+              {group.name.slice(0, 2).toUpperCase()}
+            </Text>
+          </LinearGradient>
+        )}
+        {!group.is_public && (
+          <View style={{ position: "absolute", bottom: 4, right: 4, width: 16, height: 16, borderRadius: 8, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" }}>
+            <Ionicons name="lock-closed" size={8} color="#FFF" />
+          </View>
+        )}
+      </View>
+      <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold, color: "#1A1A1A", textAlign: "center" }} numberOfLines={1}>
+        {group.name}
+      </Text>
+    </Pressable>
+  );
+}
 
 // ─── Video card for gallery grid ─────────────────────────────────
 function VideoGalleryCard({ title, emoji, views, date, thumbnailUrl, width, onPress, onDelete, onShare }: {
@@ -358,6 +391,33 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* ─── Mes Groupes ─────────────────────────────────────── */}
+        {(groups ?? []).length > 0 && (
+          <View style={{ marginTop: 28 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 14 }}>
+              <Text style={{ fontSize: FONT.sizes["3xl"], fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
+                Mes Groupes
+              </Text>
+              <Pressable onPress={() => router.push("/(tabs)/explorer" as any)} hitSlop={8}>
+                <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: PALETTE.sarcelle }}>Voir tout</Text>
+              </Pressable>
+            </View>
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={groups ?? []}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 16 }}
+              renderItem={({ item }) => (
+                <GroupChip
+                  group={item}
+                  onPress={() => router.push({ pathname: "/group/[id]", params: { id: item.id } })}
+                />
+              )}
+            />
+          </View>
+        )}
+
         {/* ─── Ma Galerie Vidéo ─────────────────────────────────── */}
         <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
           <Text style={{ fontSize: FONT.sizes["3xl"], fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A", marginBottom: 16 }}>
@@ -435,8 +495,6 @@ export default function ProfileScreen() {
             </View>
         </View>
 
-        {/* Decorative pink blob for gallery section */}
-        <Blob size={180} color={PALETTE.fuchsia} bottom={-40} left={-40} />
 
       </ScrollView>
     </View>

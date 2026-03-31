@@ -29,7 +29,7 @@ export default function CameraScreen() {
 
   const isFocused = useIsFocused();
   const [facing, setFacing] = useState<"front" | "back">("back");
-  const [flash, setFlash] = useState<"off" | "on">("off");
+  const [torchOn, setTorchOn] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState(30);
   const [isRecording, setIsRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -140,7 +140,7 @@ export default function CameraScreen() {
           ref={cameraRef}
           style={StyleSheet.absoluteFill}
           facing={facing}
-          flash={flash}
+          enableTorch={torchOn}
           mode="video"
         />
       )}
@@ -191,13 +191,13 @@ export default function CameraScreen() {
         {/* Flash + Flip */}
         <View style={{ flexDirection: "row", gap: 10 }}>
           <Pressable
-            onPress={() => setFlash(flash === "off" ? "on" : "off")}
-            style={[styles.iconBtn, flash === "on" && { backgroundColor: PALETTE.jaune }]}
+            onPress={() => setTorchOn((v) => !v)}
+            style={[styles.iconBtn, torchOn && { backgroundColor: PALETTE.jaune }]}
           >
             <Ionicons
-              name={flash === "on" ? "flash" : "flash-off"}
+              name={torchOn ? "flash" : "flash-off"}
               size={20}
-              color={flash === "on" ? "#000" : "#FFF"}
+              color={torchOn ? "#000" : "#FFF"}
             />
           </Pressable>
           <Pressable

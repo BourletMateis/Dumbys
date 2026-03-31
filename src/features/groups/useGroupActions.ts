@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/src/lib/supabase";
 import { useAuthStore } from "@/src/store/useAuthStore";
+import { uploadFile } from "@/src/lib/storage";
 
 type CreateGroupInput = {
   name: string;
@@ -11,6 +12,7 @@ type CreateGroupInput = {
   goalDescription?: string;
   prize?: string;
   type?: string;
+  coverUri?: string;
 };
 
 export function useCreateGroup() {
@@ -20,6 +22,12 @@ export function useCreateGroup() {
   return useMutation({
     mutationFn: async (input: CreateGroupInput) => {
       if (!user) throw new Error("Not authenticated");
+
+      let coverUrl: string | null = null;
+      if (input.coverUri) {
+        const key = `groups/${user.id}/${Date.now()}_cover.jpg`;
+        coverUrl = await uploadFile(key, input.coverUri, "image/jpeg");
+      }
 
       const { data, error } = await supabase
         .from("groups")
@@ -34,7 +42,50 @@ export function useCreateGroup() {
           goal_description: input.goalDescription ?? null,
           prize: input.prize ?? null,
           type: input.type ?? (input.isPublic ? "public" : "private"),
+          cover_url: coverUrl,
         })
+        .select("id, name")
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-groups"] });
+      queryClient.invalidateQueries({ queryKey: ["public-groups"] });
+    },
+  });
+}
+
+type UpdateGroupInput = {
+  groupId: string;
+  name?: string;
+  description?: string | null;
+  coverUri?: string;
+};
+
+export function useUpdateGroup() {
+  const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+
+  return useMutation({
+    mutationFn: async (input: UpdateGroupInput) => {
+      if (!user) throw new Error("Not authenticated");
+
+      const updates: Record<string, unknown> = {};
+
+      if (input.name !== undefined) updates.name = input.name;
+      if (input.description !== undefined) updates.description = input.description;
+
+      if (input.coverUri) {
+        const key = `groups/${user.id}/${Date.now()}_cover.jpg`;
+        updates.cover_url = await uploadFile(key, input.coverUri, "image/jpeg");
+      }
+
+      const { data, error } = await supabase
+        .from("groups")
+        .update(updates)
+        .eq("id", input.groupId)
         .select("id, name")
         .single();
 
@@ -72,6 +123,7 @@ export function useJoinPublicGroup() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-groups"] });
       queryClient.invalidateQueries({ queryKey: ["public-groups"] });
+      queryClient.invalidateQueries({ queryKey: ["home-feed"] });
     },
   });
 }
@@ -111,6 +163,8 @@ export function useJoinGroupByCode() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-groups"] });
+      queryClient.invalidateQueries({ queryKey: ["public-groups"] });
+      queryClient.invalidateQueries({ queryKey: ["home-feed"] });
     },
   });
 }
@@ -133,6 +187,7 @@ export function useLeaveGroup() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-groups"] });
+      queryClient.invalidateQueries({ queryKey: ["home-feed"] });
     },
   });
 }
@@ -151,6 +206,7 @@ export function useDeleteGroup() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-groups"] });
+      queryClient.invalidateQueries({ queryKey: ["home-feed"] });
     },
   });
 }

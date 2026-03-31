@@ -19,7 +19,6 @@ import { useMyGroups } from "@/src/features/groups/useMyGroups";
 import { useUploadGroupVideo } from "@/src/features/groups/useUploadGroupVideo";
 import { useTimelineLogic } from "@/src/hooks/useTimelineLogic";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
-import { PUBLIC_CATEGORIES } from "@/src/features/groups/usePublicGroups";
 import { toast } from "@/src/lib/toast";
 
 export default function PostScreen() {
@@ -31,27 +30,22 @@ export default function PostScreen() {
 
   const [description, setDescription] = useState("");
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-
-  // Auto-select first group when groups load
-  useEffect(() => {
-    if (myGroups && myGroups.length > 0 && !selectedGroupId) {
-      setSelectedGroupId(myGroups[0].id);
-    }
-  }, [myGroups]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  const selectedGroup = myGroups?.find((g) => g.id === selectedGroupId) ?? null;
+  const derivedCategory = selectedGroup?.category ?? null;
 
   const handlePublish = () => {
     if (!videoUri) return;
     if (!selectedGroupId) {
-      toast.error("Sélectionne un groupe pour publier ta vidéo.");
+      toast.error("Choisis un groupe pour publier.");
       return;
     }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setIsUploading(true);
     uploadMutation.mutate(
-      { videoUri, groupId: selectedGroupId, weekNumber, year, description: description.trim() || undefined, category: selectedCategory ?? undefined },
+      { videoUri, groupId: selectedGroupId, weekNumber, year, description: description.trim() || undefined, category: derivedCategory ?? undefined },
       {
         onSuccess: () => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -198,7 +192,7 @@ export default function PostScreen() {
                 letterSpacing: 1.4,
               }}
             >
-              Groupe
+              Groupe <Text style={{ color: PALETTE.fuchsia }}>*</Text>
             </Text>
           </View>
           <ScrollView
@@ -208,95 +202,56 @@ export default function PostScreen() {
           >
             {(myGroups ?? []).length === 0 && (
               <Text style={{ color: "rgba(255,255,255,0.35)", fontFamily: FONT_FAMILY.medium, fontSize: FONT.sizes.sm, paddingVertical: 10 }}>
-                Crée d'abord un groupe dans l'onglet Déposer.
+                Crée d'abord un groupe dans l'onglet Découvrir.
               </Text>
             )}
-            {(myGroups ?? []).map((g) => (
-              <Pressable
-                key={g.id}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSelectedGroupId(g.id);
-                }}
-                style={{
-                  paddingHorizontal: 20,
-                  paddingVertical: 10,
-                  borderRadius: RADIUS.full,
-                  backgroundColor:
-                    selectedGroupId === g.id ? `${PALETTE.sarcelle}20` : "rgba(255,255,255,0.05)",
-                  borderWidth: 1.5,
-                  borderColor:
-                    selectedGroupId === g.id ? PALETTE.sarcelle : "rgba(255,255,255,0.1)",
-                }}
-              >
-                <Text
-                  style={{
-                    color: selectedGroupId === g.id ? PALETTE.sarcelle : "rgba(255,255,255,0.45)",
-                    fontFamily: FONT_FAMILY.semibold,
-                    fontSize: FONT.sizes.sm,
-                  }}
-                  numberOfLines={1}
-                >
-                  {g.name}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* ── Catégorie ───────────────────────────────────────────── */}
-        <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 }}>
-            <Ionicons name="grid-outline" size={18} color={PALETTE.fuchsia} />
-            <Text
-              style={{
-                color: "rgba(255,255,255,0.5)",
-                fontFamily: FONT_FAMILY.bold,
-                fontSize: FONT.sizes.xs,
-                textTransform: "uppercase",
-                letterSpacing: 1.4,
-              }}
-            >
-              Catégorie
-            </Text>
-          </View>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-            {PUBLIC_CATEGORIES.map((cat) => {
-              const isSelected = selectedCategory === cat.key;
+            {(myGroups ?? []).map((g) => {
+              const isSelected = selectedGroupId === g.id;
               return (
                 <Pressable
-                  key={cat.key}
+                  key={g.id}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setSelectedCategory(isSelected ? null : cat.key);
+                    setSelectedGroupId(g.id);
                   }}
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 6,
-                    paddingHorizontal: 14,
-                    paddingVertical: 9,
+                    gap: 8,
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
                     borderRadius: RADIUS.full,
-                    backgroundColor: isSelected ? `${PALETTE.fuchsia}20` : "rgba(255,255,255,0.05)",
+                    backgroundColor: isSelected ? `${PALETTE.sarcelle}20` : "rgba(255,255,255,0.05)",
                     borderWidth: 1.5,
-                    borderColor: isSelected ? PALETTE.fuchsia : "rgba(255,255,255,0.1)",
+                    borderColor: isSelected ? PALETTE.sarcelle : "rgba(255,255,255,0.1)",
                   }}
                 >
-                  <Ionicons name={cat.icon} size={14} color={isSelected ? PALETTE.fuchsia : cat.color} />
+                  {isSelected && (
+                    <Ionicons name="checkmark-circle" size={15} color={PALETTE.sarcelle} />
+                  )}
                   <Text
                     style={{
-                      color: isSelected ? PALETTE.fuchsia : "rgba(255,255,255,0.45)",
+                      color: isSelected ? PALETTE.sarcelle : "rgba(255,255,255,0.45)",
                       fontFamily: FONT_FAMILY.semibold,
                       fontSize: FONT.sizes.sm,
                     }}
+                    numberOfLines={1}
                   >
-                    {cat.label}
+                    {g.name}
                   </Text>
+                  {g.category && isSelected && (
+                    <View style={{ backgroundColor: "rgba(255,255,255,0.1)", borderRadius: RADIUS.full, paddingHorizontal: 8, paddingVertical: 2 }}>
+                      <Text style={{ color: "rgba(255,255,255,0.5)", fontFamily: FONT_FAMILY.medium, fontSize: 10 }}>
+                        {g.category}
+                      </Text>
+                    </View>
+                  )}
                 </Pressable>
               );
             })}
-          </View>
+          </ScrollView>
         </View>
+
       </ScrollView>
 
       {/* ── Publish button — fixed bottom ───────────────────────── */}

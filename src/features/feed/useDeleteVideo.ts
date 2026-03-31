@@ -24,9 +24,9 @@ export function useDeleteVideo() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["videos", "today"] });
       queryClient.invalidateQueries({ queryKey: ["my-videos"] });
       queryClient.invalidateQueries({ queryKey: ["group-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["home-feed"] });
     },
   });
 }

@@ -24,9 +24,9 @@ import { useCommentCount } from "@/src/features/feed/useComments";
 import { PALETTE, FONT, FONT_FAMILY } from "@/src/theme";
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
-const VIDEO_MARGIN_H = 12;
-const VIDEO_MARGIN_V = 8;
-const VIDEO_BORDER_RADIUS = 28;
+const VIDEO_MARGIN_H = 0;
+const VIDEO_MARGIN_V = 0;
+const VIDEO_BORDER_RADIUS = 0;
 
 const ORIGIN_COLOR: Record<HomeFeedVideo["origin"], string> = {
   group: PALETTE.sarcelle,
@@ -243,7 +243,7 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             Share.share({
-              message: `Regarde la vidéo "${video.title ?? ""}" de @${video.submitter.username} sur Dumbys !`,
+              message: `Regarde la vidéo de @${video.submitter.username} sur Dumbys !`,
             });
           }}
           style={{ alignItems: "center" }}
@@ -277,22 +277,6 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
           >
             @{video.submitter.username}
           </Text>
-          {video.title && (
-            <Text
-              style={{
-                color: "rgba(255,255,255,0.55)",
-                fontSize: 13,
-                fontFamily: FONT_FAMILY.regular,
-                marginTop: 4,
-                textShadowColor: "rgba(0,0,0,0.4)",
-                textShadowOffset: { width: 0, height: 1 },
-                textShadowRadius: 3,
-              }}
-              numberOfLines={2}
-            >
-              {video.title}
-            </Text>
-          )}
           {video.group && (
             <View
               style={{
@@ -330,7 +314,7 @@ export default function HomeFeedScreen() {
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useHomeFeed();
   const allVideos = data?.pages.flatMap((p) => p).filter((v, i, arr) => arr.findIndex((x) => x.id === v.id) === i) ?? [];
   const videos = filter && filter !== "all"
-    ? allVideos.filter((v) => v.origin === filter)
+    ? allVideos.filter((v) => v.group?.id === filter)
     : allVideos;
 
   const [activeIndex, setActiveIndex] = useState(initialIndex);

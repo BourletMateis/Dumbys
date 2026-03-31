@@ -1,13 +1,12 @@
-import { useState } from "react";
 import { Tabs } from "expo-router";
 import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { PALETTE, FONT, FONT_FAMILY } from "@/src/theme";
-import { UploadSheet } from "@/src/components/ui/UploadSheet";
 
 const FAB_SIZE = 60;
 const FAB_BORDER = 5;
@@ -22,7 +21,7 @@ const TABS: readonly {
   isCenter?: boolean;
 }[] = [
   { name: "index",    label: "Feed",     icon: "home",          iconOutline: "home-outline" },
-  { name: "tournois", label: "Tournois", icon: "trophy",        iconOutline: "trophy-outline" },
+  { name: "explorer", label: "Groupes",  icon: "people-circle", iconOutline: "people-circle-outline" },
   { name: "upload",   label: "",         icon: "add",           iconOutline: "add", isCenter: true },
   { name: "friends",  label: "Amis",     icon: "people",        iconOutline: "people-outline" },
   { name: "profile",  label: "Profil",   icon: "person-circle", iconOutline: "person-circle-outline" },
@@ -184,30 +183,21 @@ function CustomTabBar({ state, navigation, onFabPress }: CustomTabBarProps) {
 }
 
 export default function TabLayout() {
-  const [uploadSheetOpen, setUploadSheetOpen] = useState(false);
-
   return (
-    <>
-      <Tabs
-        tabBar={(props) => (
-          <CustomTabBar
-            {...props}
-            onFabPress={() => setUploadSheetOpen(true)}
-          />
-        )}
-        screenOptions={{ headerShown: false }}
-      >
-        <Tabs.Screen name="index" />
-        <Tabs.Screen name="tournois" />
-        <Tabs.Screen name="upload" />
-        <Tabs.Screen name="friends" />
-        <Tabs.Screen name="profile" />
-      </Tabs>
-
-      <UploadSheet
-        isOpen={uploadSheetOpen}
-        onClose={() => setUploadSheetOpen(false)}
-      />
-    </>
+    <Tabs
+      tabBar={(props) => (
+        <CustomTabBar
+          {...props}
+          onFabPress={() => router.push("/camera" as any)}
+        />
+      )}
+      screenOptions={{ headerShown: false }}
+    >
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="explorer" />
+      <Tabs.Screen name="upload" />
+      <Tabs.Screen name="friends" />
+      <Tabs.Screen name="profile" />
+    </Tabs>
   );
 }

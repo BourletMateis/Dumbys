@@ -220,7 +220,7 @@ function MyVideoFeedItem({
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             Share.share({
-              message: `Regarde ma vidéo "${video.group?.name ?? ""}" sur Dumbys !`,
+              message: `Regarde la vidéo "${video.title ?? ""}" de @${profile?.username ?? ""} sur Dumbys !`,
             });
           }}
           style={{ alignItems: "center" }}
@@ -254,6 +254,22 @@ function MyVideoFeedItem({
           >
             @{profile?.username ?? ""}
           </Text>
+          {video.title && (
+            <Text
+              style={{
+                color: "rgba(255,255,255,0.55)",
+                fontSize: 13,
+                fontFamily: FONT_FAMILY.regular,
+                marginTop: 4,
+                textShadowColor: "rgba(0,0,0,0.4)",
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 3,
+              }}
+              numberOfLines={2}
+            >
+              {video.title}
+            </Text>
+          )}
           {video.group && (
             <View
               style={{

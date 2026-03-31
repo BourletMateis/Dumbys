@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
   Text,
@@ -16,105 +17,173 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHomeFeed, type HomeFeedVideo } from "@/src/features/feed/useHomeFeed";
-import { useMyGroups } from "@/src/features/groups/useMyGroups";
+import { useMyGroups, type GroupWithRole } from "@/src/features/groups/useMyGroups";
 import { useUserProfile } from "@/src/features/profile/useUserProfile";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { HomeFeedSkeleton } from "@/src/components/Skeleton";
 import { getPhaseForDate } from "@/src/hooks/useTimelineLogic";
-import {
-  PALETTE,
-  RADIUS,
-  FONT,
-  FONT_FAMILY,
-  SPACING,
-} from "@/src/theme";
+import { PALETTE, RADIUS, FONT, FONT_FAMILY, SPACING } from "@/src/theme";
 
-// ─── Decorative blob ─────────────────────────────────────────────
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const CARD_MARGIN_H = 24;
+
+// ─── Decorative blob ────────────────────────────────────────────
 function Blob({ size, color, top, left, right, bottom }: {
   size: number; color: string;
   top?: number; left?: number; right?: number; bottom?: number;
 }) {
   return (
-    <View style={{ position: "absolute", width: size, height: size, borderRadius: size / 2, backgroundColor: color, opacity: 0.15, top, left, right, bottom }} />
+    <View
+      style={{
+        position: "absolute",
+        width: size, height: size, borderRadius: size / 2,
+        backgroundColor: color, opacity: 0.10,
+        top, left, right, bottom,
+        pointerEvents: "none",
+      } as any}
+    />
   );
 }
 
-// ─── Layout constants (match Skeleton.tsx exactly) ───────────────
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_MARGIN_H = 24;
-const CARD_WIDTH = SCREEN_WIDTH - CARD_MARGIN_H * 2;
-const THUMB_HEIGHT = CARD_WIDTH * (9 / 16);
+// ─── Group filter type ───────────────────────────────────────────
+// null = Tous, string = group id
+type GroupFilter = null | string;
 
-// ─── Phase ring color ────────────────────────────────────────────
-const PHASE_RING: Record<string, string> = {
-  upload: "#22C55E",
-  vote: "#F97316",
-  podium: PALETTE.jaune,
-};
+// ─── Activity dot detection ──────────────────────────────────────
+const RECENT_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours
 
-// ─── Origin badge config ─────────────────────────────────────────
-const ORIGIN_CONFIG = {
-  group: { label: "Mon groupe", color: PALETTE.sarcelle, icon: "people" as const },
-  friend: { label: "Ami", color: PALETTE.fuchsia, icon: "person-add" as const },
-} as const;
+function hasUnseenActivity(groupId: string, videos: HomeFeedVideo[], lastSeenAt: number) {
+  const cutoff = Date.now() - RECENT_MS;
+  return videos.some(
+    (v) =>
+      v.group?.id === groupId &&
+      new Date(v.created_at).getTime() > cutoff &&
+      new Date(v.created_at).getTime() > lastSeenAt,
+  );
+}
 
-// ─── Stories bar item ────────────────────────────────────────────
-function StoryItem({
-  id,
-  name,
-  coverUrl,
-  ringColor,
-}: {
-  id: string;
-  name: string;
-  coverUrl: string | null;
-  ringColor: string;
-}) {
+// ─── "Tous" story item ───────────────────────────────────────────
+function AllGroupsItem({ isActive, onPress }: { isActive: boolean; onPress: () => void }) {
   return (
-    <Pressable
-      onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push({ pathname: "/group/[id]", params: { id } });
-      }}
-      style={{ alignItems: "center", gap: 5, width: 64 }}
-    >
+    <Pressable onPress={onPress} style={{ alignItems: "center", gap: 5, width: 60 }}>
       <View
         style={{
-          width: 56,
-          height: 56,
-          borderRadius: 28,
+          width: 54,
+          height: 54,
+          borderRadius: 27,
           borderWidth: 2.5,
-          borderColor: ringColor,
+          borderColor: isActive ? PALETTE.sarcelle : "rgba(0,0,0,0.08)",
           alignItems: "center",
           justifyContent: "center",
-          padding: 2,
+          backgroundColor: isActive ? `${PALETTE.sarcelle}12` : "#F2F3F7",
         }}
       >
-        <Avatar url={coverUrl} username={name} size={46} />
+        <Ionicons name="grid" size={22} color={isActive ? PALETTE.sarcelle : "#AAA"} />
       </View>
+      <Text
+        style={{
+          fontSize: FONT.sizes.xs,
+          fontFamily: isActive ? FONT_FAMILY.bold : FONT_FAMILY.medium,
+          color: isActive ? PALETTE.sarcelle : "#888",
+        }}
+      >
+        Tous
+      </Text>
+    </Pressable>
+  );
+}
+
+// ─── Group story item ─────────────────────────────────────────────
+function GroupStoryItem({
+  group,
+  isActive,
+  hasActivity,
+  onPress,
+}: {
+  group: GroupWithRole;
+  isActive: boolean;
+  hasActivity: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} style={{ alignItems: "center", gap: 5, width: 64 }}>
+      <View style={{ position: "relative" }}>
+        <View
+          style={{
+            width: 54,
+            height: 54,
+            borderRadius: 27,
+            borderWidth: 2.5,
+            borderColor: isActive ? PALETTE.sarcelle : hasActivity ? `${PALETTE.fuchsia}60` : "rgba(0,0,0,0.08)",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 2,
+            backgroundColor: "#FFF",
+          }}
+        >
+          <Avatar url={group.cover_url} username={group.name} size={44} />
+        </View>
+
+        {/* Activity dot */}
+        {hasActivity && !isActive && (
+          <View
+            style={{
+              position: "absolute",
+              bottom: 1,
+              right: 1,
+              width: 13,
+              height: 13,
+              borderRadius: 7,
+              backgroundColor: PALETTE.fuchsia,
+              borderWidth: 2,
+              borderColor: "#FFF",
+            }}
+          />
+        )}
+
+        {/* Private lock */}
+        {!group.is_public && (
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              width: 16,
+              height: 16,
+              borderRadius: 8,
+              backgroundColor: "#555",
+              borderWidth: 1.5,
+              borderColor: "#FFF",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name="lock-closed" size={8} color="#FFF" />
+          </View>
+        )}
+      </View>
+
       <Text
         numberOfLines={1}
         style={{
           fontSize: FONT.sizes.xs,
-          fontFamily: FONT_FAMILY.medium,
-          color: "#555",
+          fontFamily: isActive ? FONT_FAMILY.bold : FONT_FAMILY.medium,
+          color: isActive ? PALETTE.sarcelle : "#777",
           maxWidth: 64,
         }}
       >
-        {name}
+        {group.name}
       </Text>
     </Pressable>
   );
 }
 
 // ─── Video card ──────────────────────────────────────────────────
-function VideoCard({ video, index, filter }: { video: HomeFeedVideo; index: number; filter: FeedFilter }) {
-  const origin = ORIGIN_CONFIG[video.origin];
-
+function VideoCard({ video, index, groupFilter }: { video: HomeFeedVideo; index: number; groupFilter: GroupFilter }) {
   return (
     <View
       style={{
-        marginHorizontal: 24,
+        marginHorizontal: CARD_MARGIN_H,
         marginBottom: 20,
         borderRadius: 20,
         backgroundColor: "#FFFFFF",
@@ -129,7 +198,7 @@ function VideoCard({ video, index, filter }: { video: HomeFeedVideo; index: numb
       <Pressable
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.push({ pathname: "/feed/home", params: { startIndex: String(index), filter } } as any);
+          router.push({ pathname: "/feed/home", params: { startIndex: String(index), filter: groupFilter ?? "all" } } as any);
         }}
       >
         {/* Thumbnail */}
@@ -141,14 +210,7 @@ function VideoCard({ video, index, filter }: { video: HomeFeedVideo; index: numb
               contentFit="cover"
             />
           ) : (
-            <View
-              style={{
-                flex: 1,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: `${PALETTE.fuchsia}08`,
-              }}
-            >
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: `${PALETTE.fuchsia}08` }}>
               <Ionicons name="play-circle-outline" size={40} color={PALETTE.fuchsia} />
             </View>
           )}
@@ -156,27 +218,11 @@ function VideoCard({ video, index, filter }: { video: HomeFeedVideo; index: numb
           {/* Gradient overlay */}
           <LinearGradient
             colors={["transparent", "rgba(0,0,0,0.65)"]}
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: "55%",
-              justifyContent: "flex-end",
-              padding: 14,
-            }}
+            style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "55%", justifyContent: "flex-end", padding: 14 }}
           >
-            {video.title ? (
-              <Text
-                numberOfLines={1}
-                style={{
-                  fontSize: FONT.sizes.base,
-                  fontFamily: FONT_FAMILY.semibold,
-                  color: "#FFF",
-                  marginBottom: 6,
-                }}
-              >
-                {video.title}
+            {video.description ? (
+              <Text numberOfLines={2} style={{ color: "rgba(255,255,255,0.85)", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular, marginBottom: 8, lineHeight: 18 }}>
+                {video.description}
               </Text>
             ) : null}
 
@@ -190,166 +236,48 @@ function VideoCard({ video, index, filter }: { video: HomeFeedVideo; index: numb
                   borderWidth={1.5}
                 />
                 <View style={{ flex: 1 }}>
-                  <Text
-                    numberOfLines={1}
-                    style={{ color: "#FFF", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.semibold }}
-                  >
+                  <Text numberOfLines={1} style={{ color: "#FFF", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.semibold }}>
                     {video.submitter.username}
                   </Text>
-                  {video.group ? (
+                  {video.group && (
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 }}>
                       <Ionicons name="people-outline" size={10} color="rgba(255,255,255,0.6)" />
-                      <Text
-                        numberOfLines={1}
-                        style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: "rgba(255,255,255,0.6)" }}
-                      >
+                      <Text numberOfLines={1} style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: "rgba(255,255,255,0.6)" }}>
                         {video.group.name}
                       </Text>
                     </View>
-                  ) : null}
+                  )}
                 </View>
               </View>
 
-              <View
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 17,
-                  backgroundColor: "rgba(255,255,255,0.15)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
+              <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" }}>
                 <Ionicons name="play" size={15} color="#FFF" />
               </View>
             </View>
           </LinearGradient>
 
-          {/* Origin badge */}
-          <View
-            style={{
-              position: "absolute",
-              top: 12,
-              left: 12,
-              backgroundColor: "rgba(0,0,0,0.5)",
-              borderRadius: RADIUS.full,
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 5,
-            }}
-          >
-            <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: origin.color }} />
-            <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold, color: "#FFF" }}>
-              {origin.label}
-            </Text>
-          </View>
-        </View>
-      </Pressable>
-    </View>
-  );
-}
-
-// ─── Feed filter type ────────────────────────────────────────────
-type FeedFilter = "all" | "group" | "friend";
-
-const FILTER_OPTIONS: { key: FeedFilter; label: string; icon: keyof typeof Ionicons.glyphMap; color: string }[] = [
-  { key: "all", label: "Tout", icon: "flame-outline", color: PALETTE.sarcelle },
-  { key: "group", label: "Groupes", icon: "people-outline", color: PALETTE.sarcelle },
-  { key: "friend", label: "Amis", icon: "heart-outline", color: PALETTE.fuchsia },
-];
-
-// ─── Filter chips bar ────────────────────────────────────────────
-function FilterChips({
-  active,
-  onChange,
-}: {
-  active: FeedFilter;
-  onChange: (f: FeedFilter) => void;
-}) {
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{
-        paddingHorizontal: CARD_MARGIN_H,
-        paddingTop: 14,
-        paddingBottom: 6,
-        gap: 8,
-      }}
-    >
-      {FILTER_OPTIONS.map((opt) => {
-        const isActive = active === opt.key;
-        return (
-          <Pressable
-            key={opt.key}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              onChange(opt.key);
-            }}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              borderRadius: 20,
-              backgroundColor: isActive ? opt.color : "rgba(0,0,0,0.04)",
-            }}
-          >
-            <Ionicons
-              name={opt.icon}
-              size={14}
-              color={isActive ? "#FFF" : "#999"}
-            />
-            <Text
+          {/* Origin badge — uniquement en mode "Tous" */}
+          {!groupFilter && video.origin === "friend" && (
+            <View
               style={{
-                fontSize: FONT.sizes.sm,
-                fontFamily: isActive ? FONT_FAMILY.bold : FONT_FAMILY.medium,
-                color: isActive ? "#FFF" : "#777",
+                position: "absolute",
+                top: 12,
+                left: 12,
+                backgroundColor: `${PALETTE.fuchsia}CC`,
+                borderRadius: RADIUS.full,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 5,
               }}
             >
-              {opt.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
-  );
-}
-
-// ─── Section divider ─────────────────────────────────────────────
-function SectionDivider({ origin }: { origin: HomeFeedVideo["origin"] }) {
-  const cfg = ORIGIN_CONFIG[origin];
-  const labels: Record<HomeFeedVideo["origin"], string> = {
-    group: "Mes groupes",
-    friend: "Mes amis",
-  };
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: CARD_MARGIN_H,
-        paddingVertical: SPACING.base,
-        gap: 8,
-        marginTop: SPACING.xs,
-      }}
-    >
-      <Ionicons name={cfg.icon} size={15} color={cfg.color} />
-      <Text
-        style={{
-          fontSize: FONT.sizes.xs,
-          fontFamily: FONT_FAMILY.bold,
-          color: cfg.color,
-          textTransform: "uppercase",
-          letterSpacing: 1.2,
-        }}
-      >
-        {labels[origin]}
-      </Text>
-      <View style={{ flex: 1, height: 1, backgroundColor: `${cfg.color}25` }} />
+              <Ionicons name="person" size={10} color="#FFF" />
+              <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold, color: "#FFF" }}>Ami</Text>
+            </View>
+          )}
+        </View>
+      </Pressable>
     </View>
   );
 }
@@ -359,67 +287,107 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { data: profile } = useUserProfile();
   const { data: myGroups } = useMyGroups();
-  const [activeFilter, setActiveFilter] = useState<FeedFilter>("all");
+  const [groupFilter, setGroupFilter] = useState<GroupFilter>(null);
+  const storiesRef = useRef<ScrollView>(null);
+  // lastSeenAt[groupId] = timestamp de la dernière fois que l'user a cliqué sur ce groupe
+  const lastSeenAt = useRef<Record<string, number>>({});
 
-  const {
-    data,
-    isLoading,
-    isFetchingNextPage,
-    fetchNextPage,
-    hasNextPage,
-    refetch,
-    isRefetching,
-  } = useHomeFeed();
+  // Charge lastSeenAt depuis AsyncStorage au montage
+  useEffect(() => {
+    AsyncStorage.getItem("lastSeenAt").then((raw) => {
+      if (raw) {
+        try { lastSeenAt.current = JSON.parse(raw); } catch {}
+      }
+    });
+  }, []);
 
+  const { data, isLoading, isFetchingNextPage, fetchNextPage, hasNextPage, refetch, isRefetching } = useHomeFeed();
   const { phase } = getPhaseForDate(new Date());
-  const ringColor = PHASE_RING[phase];
 
-  // Deduplicate videos by id (same video can appear in multiple layers)
-  const allVideos = data?.pages.flatMap((p) => p) ?? [];
-  const seen = new Set<string>();
-  const videos: HomeFeedVideo[] = [];
-  for (const v of allVideos) {
-    if (!seen.has(v.id)) {
-      seen.add(v.id);
-      videos.push(v);
+  // Toutes les vidéos dédupliquées
+  const allVideos = useMemo(() => {
+    const raw = (data?.pages.flatMap((p) => p) ?? []) as HomeFeedVideo[];
+    const seen = new Set<string>();
+    const result: HomeFeedVideo[] = [];
+    for (const v of raw) {
+      if (!seen.has(v.id)) { seen.add(v.id); result.push(v); }
     }
-  }
+    return result;
+  }, [data]);
 
-  // Filter by active chip
-  const filteredVideos = activeFilter === "all"
-    ? videos
-    : videos.filter((v) => v.origin === activeFilter);
+  // Filtrage par groupe sélectionné
+  const filteredVideos = useMemo(() => {
+    if (!groupFilter) return allVideos;
+    return allVideos.filter((v) => v.group?.id === groupFilter);
+  }, [allVideos, groupFilter]);
 
-  // Build list items: inject section dividers only in "all" mode
+  // Ordre des groupes dans la stories bar : non-vus en premier, privés devant
+  const sortedGroups = useMemo(() => {
+    if (!myGroups) return [];
+    return [...myGroups].sort((a, b) => {
+      const aUnseen = hasUnseenActivity(a.id, allVideos, lastSeenAt.current[a.id] ?? 0) ? 1 : 0;
+      const bUnseen = hasUnseenActivity(b.id, allVideos, lastSeenAt.current[b.id] ?? 0) ? 1 : 0;
+      if (aUnseen !== bUnseen) return bUnseen - aUnseen;
+      if (!a.is_public && b.is_public) return -1;
+      if (a.is_public && !b.is_public) return 1;
+      return 0;
+    });
+  }, [myGroups, allVideos]);
+
+  const handleGroupSelect = (id: GroupFilter) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (id) {
+      lastSeenAt.current[id] = Date.now();
+      AsyncStorage.setItem("lastSeenAt", JSON.stringify(lastSeenAt.current));
+    }
+    setGroupFilter((prev) => (prev === id ? null : id));
+  };
+
   type ListItem =
-    | { type: "divider"; origin: HomeFeedVideo["origin"]; key: string }
-    | { type: "video"; video: HomeFeedVideo; videoIndex: number; key: string };
+    | { type: "video"; video: HomeFeedVideo; videoIndex: number; key: string }
+    | { type: "section"; label: string; key: string };
 
-  const listItems: ListItem[] = [];
-  let lastOrigin: HomeFeedVideo["origin"] | null = null;
-  let videoIndex = 0;
-  for (const video of filteredVideos) {
-    if (activeFilter === "all" && video.origin !== lastOrigin) {
-      listItems.push({ type: "divider", origin: video.origin, key: `divider-${video.origin}` });
-      lastOrigin = video.origin;
+  const listItems = useMemo<ListItem[]>(() => {
+    const items: ListItem[] = [];
+    // En mode "Tous", injecter un séparateur entre groupes et amis
+    if (!groupFilter) {
+      let passedToFriends = false;
+      let videoIndex = 0;
+      for (const video of filteredVideos) {
+        if (video.origin === "friend" && !passedToFriends) {
+          items.push({ type: "section", label: "Amis", key: "section-friends" });
+          passedToFriends = true;
+        }
+        items.push({ type: "video", video, videoIndex: videoIndex++, key: video.id });
+      }
+    } else {
+      filteredVideos.forEach((video, idx) => {
+        items.push({ type: "video", video, videoIndex: idx, key: video.id });
+      });
     }
-    listItems.push({ type: "video", video, videoIndex: videoIndex++, key: `${video.origin}-${video.id}` });
-  }
+    return items;
+  }, [filteredVideos, groupFilter]);
 
   const onEndReached = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const renderItem = useCallback(({ item }: { item: ListItem }) => {
-    if (item.type === "divider") {
-      return <SectionDivider origin={item.origin} />;
+    if (item.type === "section") {
+      return (
+        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: CARD_MARGIN_H, paddingVertical: 10, gap: 8, marginTop: 4 }}>
+          <Ionicons name="heart" size={13} color={PALETTE.fuchsia} />
+          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: PALETTE.fuchsia, textTransform: "uppercase", letterSpacing: 1.2 }}>
+            Amis
+          </Text>
+          <View style={{ flex: 1, height: 1, backgroundColor: `${PALETTE.fuchsia}25` }} />
+        </View>
+      );
     }
-    return <VideoCard video={item.video} index={item.videoIndex} filter={activeFilter} />;
-  }, [activeFilter]);
+    return <VideoCard video={item.video} index={item.videoIndex} groupFilter={groupFilter} />;
+  }, [groupFilter]);
 
-  // ── Header ──
+  // ── Header ─────────────────────────────────────────────────────
   const ListHeader = (
     <>
       {/* Top bar */}
@@ -439,41 +407,23 @@ export default function HomeScreen() {
           onPress={() => router.push("/(tabs)/profile")}
           style={{ width: 38, height: 38, borderRadius: 19, overflow: "hidden" }}
         >
-          <Avatar
-            url={profile?.avatar_url}
-            username={profile?.username ?? ""}
-            size={38}
-          />
+          <Avatar url={profile?.avatar_url} username={profile?.username ?? ""} size={38} />
         </Pressable>
 
-        <Text
-          style={{
-            fontSize: FONT.sizes["2xl"],
-            fontFamily: FONT_FAMILY.black,
-            color: PALETTE.sarcelle,
-            letterSpacing: -0.5,
-          }}
-        >
+        <Text style={{ fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.black, color: PALETTE.sarcelle, letterSpacing: -0.5 }}>
           Dumbys
         </Text>
 
         <Pressable
           hitSlop={12}
           onPress={() => router.push("/notifications" as any)}
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: 12,
-            backgroundColor: "rgba(0,0,0,0.04)",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
+          style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.04)", alignItems: "center", justifyContent: "center" }}
         >
           <Ionicons name="notifications-outline" size={22} color="#333" />
         </Pressable>
       </View>
 
-      {/* Stories / groups bar */}
+      {/* ── Stories / group selector ─────────────────────────── */}
       {myGroups && myGroups.length > 0 && (
         <View
           style={{
@@ -484,31 +434,53 @@ export default function HomeScreen() {
           }}
         >
           <ScrollView
+            ref={storiesRef}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingHorizontal: CARD_MARGIN_H,
-              paddingTop: SPACING.base,
-              gap: SPACING.lg,
-            }}
+            contentContainerStyle={{ paddingHorizontal: CARD_MARGIN_H, paddingTop: SPACING.base, gap: SPACING.lg }}
           >
-            {myGroups.map((group) => (
-              <StoryItem
+            {/* Tous */}
+            <AllGroupsItem
+              isActive={groupFilter === null}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setGroupFilter(null); }}
+            />
+
+            {/* Groupes triés */}
+            {sortedGroups.map((group) => (
+              <GroupStoryItem
                 key={group.id}
-                id={group.id}
-                name={group.name}
-                coverUrl={group.cover_url}
-                ringColor={ringColor}
+                group={group}
+                isActive={groupFilter === group.id}
+                hasActivity={hasUnseenActivity(group.id, allVideos, lastSeenAt.current[group.id] ?? 0)}
+                onPress={() => handleGroupSelect(group.id)}
               />
             ))}
           </ScrollView>
         </View>
       )}
 
-      {/* Filter chips */}
-      <FilterChips active={activeFilter} onChange={setActiveFilter} />
+      {/* Label du filtre actif */}
+      {groupFilter && (() => {
+        const g = myGroups?.find((gr) => gr.id === groupFilter);
+        if (!g) return null;
+        return (
+          <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: CARD_MARGIN_H, paddingTop: 14, paddingBottom: 4, gap: 8 }}>
+            <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: "#1A1A1A" }}>
+              {g.name}
+            </Text>
+            {!g.is_public && <Ionicons name="lock-closed" size={12} color="#999" />}
+            <Pressable
+              onPress={() => setGroupFilter(null)}
+              style={{ marginLeft: "auto", flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(0,0,0,0.05)", borderRadius: RADIUS.full, paddingHorizontal: 10, paddingVertical: 4 }}
+            >
+              <Ionicons name="close" size={12} color="#777" />
+              <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.medium, color: "#777" }}>Tous</Text>
+            </Pressable>
+          </View>
+        );
+      })()}
 
-      <View style={{ height: SPACING.xs }} />
+      <View style={{ height: SPACING.base }} />
     </>
   );
 
@@ -520,29 +492,22 @@ export default function HomeScreen() {
 
   const ListEmpty = !isLoading ? (
     <View style={{ alignItems: "center", paddingTop: 60, paddingHorizontal: CARD_MARGIN_H }}>
-      <Ionicons name="film-outline" size={52} color="#DDD" />
-      <Text
-        style={{
-          marginTop: SPACING.lg,
-          fontSize: FONT.sizes.lg,
-          fontFamily: FONT_FAMILY.semibold,
-          color: "#CCC",
-          textAlign: "center",
-        }}
-      >
-        Pas encore de vidéos
+      <Ionicons name={groupFilter ? "videocam-outline" : "film-outline"} size={52} color="#DDD" />
+      <Text style={{ marginTop: SPACING.lg, fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold, color: "#CCC", textAlign: "center" }}>
+        {groupFilter ? "Aucune vidéo dans ce groupe" : "Pas encore de vidéos"}
       </Text>
-      <Text
-        style={{
-          marginTop: SPACING.xs,
-          fontSize: FONT.sizes.sm,
-          fontFamily: FONT_FAMILY.regular,
-          color: "#DDD",
-          textAlign: "center",
-        }}
-      >
-        Rejoins un groupe ou commence à uploader !
+      <Text style={{ marginTop: SPACING.xs, fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular, color: "#DDD", textAlign: "center" }}>
+        {groupFilter ? "Sois le premier à poster !" : "Rejoins un groupe ou commence à uploader !"}
       </Text>
+      {!groupFilter && (
+        <Pressable
+          onPress={() => router.push("/(tabs)/explorer")}
+          style={{ marginTop: SPACING.xl, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: PALETTE.sarcelle, paddingHorizontal: 20, paddingVertical: 12, borderRadius: RADIUS.full }}
+        >
+          <Ionicons name="compass-outline" size={18} color="#FFF" />
+          <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.bold, color: "#FFF" }}>Découvrir des groupes</Text>
+        </Pressable>
+      )}
     </View>
   ) : null;
 
@@ -560,23 +525,8 @@ export default function HomeScreen() {
             backgroundColor: "#FFFFFF",
           }}
         >
-          <View
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 12,
-              backgroundColor: `${PALETTE.fuchsia}15`,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.black, color: PALETTE.fuchsia }}>
-              D
-            </Text>
-          </View>
-          <Text style={{ fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.black, color: PALETTE.sarcelle, letterSpacing: -0.5 }}>
-            Dumbys
-          </Text>
+          <View style={{ width: 38 }} />
+          <Text style={{ fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.black, color: PALETTE.sarcelle, letterSpacing: -0.5 }}>Dumbys</Text>
           <View style={{ width: 38 }} />
         </View>
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -587,10 +537,10 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#F8F8FA" }}>
-      <Blob size={200} color={PALETTE.sarcelle} top={-30} right={-60} />
-      <Blob size={140} color={PALETTE.fuchsia} bottom={300} left={-50} />
-      <Blob size={100} color={PALETTE.jaune} bottom={200} right={-30} />
+    <View style={{ flex: 1, backgroundColor: "#F2F3F7" }}>
+      <Blob size={220} color={PALETTE.sarcelle} top={-60} right={-70} />
+      <Blob size={160} color={PALETTE.fuchsia} top={300} left={-60} />
+      <Blob size={120} color={PALETTE.jaune} bottom={220} right={-40} />
       <FlatList
         data={listItems}
         keyExtractor={(item) => item.key}
@@ -602,13 +552,7 @@ export default function HomeScreen() {
         onEndReachedThreshold={0.4}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={PALETTE.fuchsia}
-          />
-        }
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={PALETTE.fuchsia} />}
       />
     </View>
   );
