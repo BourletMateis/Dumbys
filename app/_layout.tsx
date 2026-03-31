@@ -150,8 +150,7 @@ function RootLayoutNav() {
         <Stack.Screen
           name="user/[id]"
           options={{
-            headerStyle: { backgroundColor: "#121212" },
-            headerTintColor: "#fff",
+            headerShown: false,
             animation: "slide_from_right",
           }}
         />

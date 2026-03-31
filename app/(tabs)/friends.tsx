@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -21,6 +23,8 @@ import {
   useRemoveFriendship,
 } from "@/src/features/friends/useFriendActions";
 import { useGetOrCreateConversation } from "@/src/features/messages/useGetOrCreateConversation";
+import { useConversations } from "@/src/features/messages/useConversations";
+import { useAuthStore } from "@/src/store/useAuthStore";
 import { useSuggestedFriends } from "@/src/features/friends/useSuggestedFriends";
 import { UserSearchResult } from "@/src/features/friends/UserSearchResult";
 import { Avatar } from "@/src/components/ui/Avatar";
@@ -68,6 +72,34 @@ export default function FriendsScreen() {
   const acceptRequest = useAcceptRequest();
   const removeFriendship = useRemoveFriendship();
   const getOrCreateConversation = useGetOrCreateConversation();
+  const user = useAuthStore((s) => s.user);
+  const { data: conversations } = useConversations();
+  const [lastSeenConvs, setLastSeenConvs] = useState<Record<string, number>>({});
+
+  // Recharge le lastSeen à chaque fois que l'écran est focalisé (ex: retour du chat)
+  useFocusEffect(useCallback(() => {
+    AsyncStorage.getItem("conversationLastSeen").then((raw) => {
+      if (raw) setLastSeenConvs(JSON.parse(raw));
+    });
+  }, []));
+
+  const convByUserId = useMemo(() => {
+    const map = new Map<string, typeof conversations extends (infer T)[] | undefined ? NonNullable<T> : never>();
+    for (const c of conversations ?? []) (map as any).set(c.otherUser.id, c);
+    return map as Map<string, NonNullable<typeof conversations>[number]>;
+  }, [conversations]);
+
+  const hasUnread = useCallback((userId: string) => {
+    const conv = convByUserId.get(userId);
+    if (!conv?.lastMessage) return false;
+    if (conv.lastMessage.sender_id === user?.id) return false;
+    return new Date(conv.lastMessage.created_at).getTime() > (lastSeenConvs[conv.id] ?? 0);
+  }, [convByUserId, lastSeenConvs, user?.id]);
+
+  const sortedFriends = useMemo(() => [
+    ...(friendships?.accepted ?? []),
+  ].sort((a, b) => (hasUnread(b.otherUser.id) ? 1 : 0) - (hasUnread(a.otherUser.id) ? 1 : 0)),
+  [friendships?.accepted, hasUnread]);
 
   const getFriendStatus = useCallback(
     (userId: string): { status: FriendStatus; friendshipId?: string } => {
@@ -210,7 +242,7 @@ export default function FriendsScreen() {
                     <Text style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
                       {"Suggestions 💡"}
                     </Text>
-                    <Pressable>
+                    <Pressable onPress={() => router.push("/friends/suggestions" as any)}>
                       <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: PALETTE.sarcelle, textTransform: "uppercase" }}>
                         VOIR TOUT
                       </Text>
@@ -257,9 +289,11 @@ export default function FriendsScreen() {
                           >
                             {user.username}
                           </Text>
-                          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: "#AAA", marginTop: 2 }}>
-                            {user.shared_groups} groupe{user.shared_groups !== 1 ? "s" : ""} en commun
-                          </Text>
+                          {user.shared_groups > 0 && (
+                            <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: "#AAA", marginTop: 2 }}>
+                              {user.shared_groups} groupe{user.shared_groups !== 1 ? "s" : ""} en commun
+                            </Text>
+                          )}
 
                           {status === "none" && (
                             <AnimatedPressable
@@ -446,7 +480,7 @@ export default function FriendsScreen() {
                 </View>
               </View>
 
-              {friendsCount === 0 ? (
+              {sortedFriends.length === 0 ? (
                 <View style={{ alignItems: "center", paddingVertical: 40, paddingHorizontal: 40 }}>
                   <View
                     style={{
@@ -466,8 +500,9 @@ export default function FriendsScreen() {
                   </Text>
                 </View>
               ) : (
-                friendships.accepted.map((item) => (
-                  <AnimatedPressable
+                sortedFriends.map((item) => {
+                  const unread = hasUnread(item.otherUser.id);
+                  return (<AnimatedPressable
                     key={item.id}
                     onPress={() => router.push({ pathname: "/user/[id]", params: { id: item.otherUser.id } })}
                     style={{
@@ -475,36 +510,38 @@ export default function FriendsScreen() {
                       alignItems: "center",
                       marginHorizontal: 20,
                       marginBottom: 6,
-                      backgroundColor: "#FFFFFF",
+                      backgroundColor: unread ? `${PALETTE.fuchsia}06` : "#FFFFFF",
                       borderRadius: 16,
                       padding: 14,
                       borderWidth: 1,
-                      borderColor: "rgba(0,0,0,0.04)",
+                      borderColor: unread ? `${PALETTE.fuchsia}20` : "rgba(0,0,0,0.04)",
                     }}
                   >
                     <View style={{ position: "relative" }}>
                       <Avatar url={item.otherUser.avatar_url} username={item.otherUser.username} size={52} />
-                      {/* Online dot */}
-                      <View
-                        style={{
-                          position: "absolute",
-                          bottom: 0, right: 0,
-                          width: 14, height: 14, borderRadius: 7,
-                          backgroundColor: "#10B981",
-                          borderWidth: 2.5,
-                          borderColor: "#FFFFFF",
-                        }}
-                      />
+                      {/* Unread dot */}
+                      {unread && (
+                        <View
+                          style={{
+                            position: "absolute",
+                            top: 0, right: 0,
+                            width: 14, height: 14, borderRadius: 7,
+                            backgroundColor: PALETTE.fuchsia,
+                            borderWidth: 2.5,
+                            borderColor: "#FFFFFF",
+                          }}
+                        />
+                      )}
                     </View>
                     <View style={{ flex: 1, marginLeft: 14 }}>
                       <Text
-                        style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: "#1A1A1A" }}
+                        style={{ fontSize: FONT.sizes.lg, fontFamily: unread ? FONT_FAMILY.bold : FONT_FAMILY.bold, color: "#1A1A1A" }}
                         numberOfLines={1}
                       >
                         {item.otherUser.username}
                       </Text>
-                      <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: "#BBB", marginTop: 2 }}>
-                        Ami
+                      <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: unread ? PALETTE.fuchsia : "#BBB", marginTop: 2, fontFamily: unread ? FONT_FAMILY.semibold : FONT_FAMILY.regular } as any}>
+                        {unread ? "Nouveau message" : "Ami"}
                       </Text>
                     </View>
 
@@ -530,14 +567,14 @@ export default function FriendsScreen() {
                         disabled={getOrCreateConversation.isPending}
                         style={{
                           width: 38, height: 38, borderRadius: 12,
-                          backgroundColor: PALETTE.sarcelle + "12",
+                          backgroundColor: unread ? PALETTE.fuchsia : PALETTE.sarcelle + "12",
                           alignItems: "center", justifyContent: "center",
                         }}
                       >
                         {getOrCreateConversation.isPending ? (
-                          <ActivityIndicator size="small" color={PALETTE.sarcelle} />
+                          <ActivityIndicator size="small" color={unread ? "#FFF" : PALETTE.sarcelle} />
                         ) : (
-                          <Ionicons name="chatbubble-outline" size={18} color={PALETTE.sarcelle} />
+                          <Ionicons name="chatbubble" size={18} color={unread ? "#FFF" : PALETTE.sarcelle} />
                         )}
                       </Pressable>
                       {/* Delete friend */}
@@ -573,8 +610,8 @@ export default function FriendsScreen() {
                         )}
                       </Pressable>
                     </View>
-                  </AnimatedPressable>
-                ))
+                  </AnimatedPressable>);
+                })
               )}
             </>
           ) : null}

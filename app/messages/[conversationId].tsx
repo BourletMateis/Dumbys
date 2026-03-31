@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
   Text,
@@ -116,6 +117,16 @@ export default function ChatScreen() {
 
   const [text, setText] = useState("");
   const flatListRef = useRef<FlatList>(null);
+
+  // Marque la conversation comme vue dès l'ouverture
+  useEffect(() => {
+    if (!conversationId) return;
+    AsyncStorage.getItem("conversationLastSeen").then((raw) => {
+      const map = raw ? JSON.parse(raw) : {};
+      map[conversationId] = Date.now();
+      AsyncStorage.setItem("conversationLastSeen", JSON.stringify(map));
+    });
+  }, [conversationId]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -237,6 +248,7 @@ export default function ChatScreen() {
             data={messages ?? []}
             keyExtractor={(item) => item.id}
             renderItem={renderMessage}
+            style={{ flex: 1 }}
             contentContainerStyle={{
               paddingTop: 12,
               paddingBottom: 8,
@@ -312,16 +324,16 @@ export default function ChatScreen() {
               width: 44,
               height: 44,
               borderRadius: 22,
-              backgroundColor: text.trim() ? PALETTE.sarcelle : "#E8E8E8",
+              backgroundColor: PALETTE.sarcelle,
               alignItems: "center",
               justifyContent: "center",
-              opacity: pressed ? 0.8 : 1,
+              opacity: !text.trim() || sendMessage.isPending ? 0.3 : pressed ? 0.8 : 1,
             })}
           >
             {sendMessage.isPending ? (
               <ActivityIndicator size="small" color="#FFF" />
             ) : (
-              <Ionicons name="send" size={20} color={text.trim() ? "#FFF" : "#CCC"} />
+              <Ionicons name="send" size={20} color="#FFF" />
             )}
           </Pressable>
         </View>

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useVideoPlayer, VideoView } from "expo-video";
+import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
@@ -25,7 +27,8 @@ import { getPhaseForDate } from "@/src/hooks/useTimelineLogic";
 import { PALETTE, RADIUS, FONT, FONT_FAMILY, SPACING } from "@/src/theme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_MARGIN_H = 24;
+const CARD_MARGIN_H = 24; // pour le header / stories
+const VIEWABILITY_CONFIG = { itemVisiblePercentThreshold: 50 };
 
 // ─── Decorative blob ────────────────────────────────────────────
 function Blob({ size, color, top, left, right, bottom }: {
@@ -178,21 +181,48 @@ function GroupStoryItem({
   );
 }
 
+// ─── Video inline preview ─────────────────────────────────────────
+function VideoPreview({ url }: { url: string }) {
+  const [muted, setMuted] = useState(false);
+  const player = useVideoPlayer(url, (p) => {
+    p.loop = true;
+    p.muted = false;
+    p.play();
+  });
+
+  return (
+    <View style={{ position: "absolute", width: "100%", height: "100%" }}>
+      <VideoView
+        player={player}
+        style={{ width: "100%", height: "100%" }}
+        contentFit="cover"
+        nativeControls={false}
+      />
+      <Pressable
+        onPress={() => { player.muted = !muted; setMuted((m) => !m); }}
+        style={{ position: "absolute", bottom: 58, right: 14, width: 34, height: 34, borderRadius: 17, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" }}
+      >
+        <Ionicons name={muted ? "volume-mute" : "volume-high"} size={15} color="#FFF" />
+      </Pressable>
+    </View>
+  );
+}
+
 // ─── Video card ──────────────────────────────────────────────────
-function VideoCard({ video, index, groupFilter }: { video: HomeFeedVideo; index: number; groupFilter: GroupFilter }) {
+function VideoCard({ video, index, groupFilter, isPreviewActive }: {
+  video: HomeFeedVideo;
+  index: number;
+  groupFilter: GroupFilter;
+  isPreviewActive: boolean;
+}) {
   return (
     <View
       style={{
-        marginHorizontal: CARD_MARGIN_H,
-        marginBottom: 20,
-        borderRadius: 20,
-        backgroundColor: "#FFFFFF",
+        marginHorizontal: 0,
+        marginBottom: 10,
+        borderRadius: 0,
+        backgroundColor: "#000",
         overflow: "hidden",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 4,
       }}
     >
       <Pressable
@@ -202,7 +232,7 @@ function VideoCard({ video, index, groupFilter }: { video: HomeFeedVideo; index:
         }}
       >
         {/* Thumbnail */}
-        <View style={{ aspectRatio: 16 / 9, backgroundColor: "#E8E8E8" }}>
+        <View style={{ aspectRatio: 16 / 9, backgroundColor: "#111" }}>
           {video.thumbnail_url ? (
             <Image
               source={{ uri: video.thumbnail_url }}
@@ -213,6 +243,11 @@ function VideoCard({ video, index, groupFilter }: { video: HomeFeedVideo; index:
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: `${PALETTE.fuchsia}08` }}>
               <Ionicons name="play-circle-outline" size={40} color={PALETTE.fuchsia} />
             </View>
+          )}
+
+          {/* Inline video preview */}
+          {isPreviewActive && video.source_url && (
+            <VideoPreview url={video.source_url} />
           )}
 
           {/* Gradient overlay */}
@@ -288,9 +323,40 @@ export default function HomeScreen() {
   const { data: profile } = useUserProfile();
   const { data: myGroups } = useMyGroups();
   const [groupFilter, setGroupFilter] = useState<GroupFilter>(null);
+  const [previewVideoId, setPreviewVideoId] = useState<string | null>(null);
   const storiesRef = useRef<ScrollView>(null);
+  const viewableItemsRef = useRef<any[]>([]);
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // lastSeenAt[groupId] = timestamp de la dernière fois que l'user a cliqué sur ce groupe
   const lastSeenAt = useRef<Record<string, number>>({});
+
+  // Stoppe la preview en quittant l'écran
+  useFocusEffect(useCallback(() => {
+    return () => {
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+      setPreviewVideoId(null);
+    };
+  }, []));
+
+  const startPreviewTimer = useCallback(() => {
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = setTimeout(() => {
+      const videoItems = viewableItemsRef.current.filter((t) => t.item?.type === "video");
+      if (videoItems.length > 0) {
+        const mid = videoItems[Math.floor(videoItems.length / 2)];
+        setPreviewVideoId(mid.item.video.id);
+      }
+    }, 2000);
+  }, []);
+
+  const stopPreview = useCallback(() => {
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    setPreviewVideoId(null);
+  }, []);
+
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: any[] }) => {
+    viewableItemsRef.current = viewableItems;
+  }, []);
 
   // Charge lastSeenAt depuis AsyncStorage au montage
   useEffect(() => {
@@ -384,8 +450,8 @@ export default function HomeScreen() {
         </View>
       );
     }
-    return <VideoCard video={item.video} index={item.videoIndex} groupFilter={groupFilter} />;
-  }, [groupFilter]);
+    return <VideoCard video={item.video} index={item.videoIndex} groupFilter={groupFilter} isPreviewActive={item.video.id === previewVideoId} />;
+  }, [groupFilter, previewVideoId]);
 
   // ── Header ─────────────────────────────────────────────────────
   const ListHeader = (
@@ -553,6 +619,11 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={PALETTE.fuchsia} />}
+        onScrollBeginDrag={stopPreview}
+        onScrollEndDrag={startPreviewTimer}
+        onMomentumScrollEnd={startPreviewTimer}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={VIEWABILITY_CONFIG}
       />
     </View>
   );

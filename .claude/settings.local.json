@@ -33,7 +33,9 @@
       "WebFetch(domain:capgo.app)",
       "WebFetch(domain:docs-pgth9qjfy-supabase.vercel.app)",
       "Bash(gh api:*)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(find /home/mateis/dumbAward/app/tournament -name *.tsx)",
+      "Bash(find /home/mateis/dumbAward/src -name *.ts)"
     ]
   }
 }

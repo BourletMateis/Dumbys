@@ -198,29 +198,31 @@ function HomeFeedItem({ video, isActive }: { video: HomeFeedVideo; isActive: boo
           gap: 22,
         }}
       >
-        {video.submitter.avatar_url ? (
-          <Image
-            source={{ uri: video.submitter.avatar_url }}
-            style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: "white" }}
-          />
-        ) : (
-          <View
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              backgroundColor: originColor,
-              alignItems: "center",
-              justifyContent: "center",
-              borderWidth: 2,
-              borderColor: "white",
-            }}
-          >
-            <Text style={{ color: "white", fontSize: 16, fontFamily: FONT_FAMILY.bold }}>
-              {video.submitter.username.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <Pressable onPress={() => router.push({ pathname: "/user/[id]", params: { id: video.submitter.id } })}>
+          {video.submitter.avatar_url ? (
+            <Image
+              source={{ uri: video.submitter.avatar_url }}
+              style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: "white" }}
+            />
+          ) : (
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: originColor,
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 2,
+                borderColor: "white",
+              }}
+            >
+              <Text style={{ color: "white", fontSize: 16, fontFamily: FONT_FAMILY.bold }}>
+                {video.submitter.username.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+        </Pressable>
 
         <Pressable
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); toggleLike.mutate(); }}

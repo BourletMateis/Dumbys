@@ -17,34 +17,7 @@ export function useSuggestedFriends() {
     queryFn: async () => {
       if (!user) throw new Error("Not authenticated");
 
-      // Get user's group IDs
-      const { data: myMemberships, error: memErr } = await supabase
-        .from("group_members")
-        .select("group_id")
-        .eq("user_id", user.id);
-
-      if (memErr) throw memErr;
-      if (!myMemberships || myMemberships.length === 0) return [];
-
-      const myGroupIds = myMemberships.map((m) => m.group_id);
-
-      // Get other users in those groups
-      const { data: otherMembers, error: otherErr } = await supabase
-        .from("group_members")
-        .select("user_id, group_id")
-        .in("group_id", myGroupIds)
-        .neq("user_id", user.id);
-
-      if (otherErr) throw otherErr;
-      if (!otherMembers || otherMembers.length === 0) return [];
-
-      // Count shared groups per user
-      const sharedMap = new Map<string, number>();
-      for (const m of otherMembers) {
-        sharedMap.set(m.user_id, (sharedMap.get(m.user_id) ?? 0) + 1);
-      }
-
-      // Get existing friendships to exclude
+      // Get existing friendships to exclude (needed for both paths)
       const { data: friendships } = await supabase
         .from("friendships")
         .select("requester_id, addressee_id")
@@ -55,29 +28,72 @@ export function useSuggestedFriends() {
         friendIds.add(f.requester_id === user.id ? f.addressee_id : f.requester_id);
       }
 
-      // Filter to non-friends, sort by shared groups
-      const candidateIds = [...sharedMap.entries()]
-        .filter(([uid]) => !friendIds.has(uid))
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([uid]) => uid);
+      // Get user's group IDs
+      const { data: myMemberships, error: memErr } = await supabase
+        .from("group_members")
+        .select("group_id")
+        .eq("user_id", user.id);
 
-      if (candidateIds.length === 0) return [];
+      if (memErr) throw memErr;
 
-      // Fetch user profiles
-      const { data: users, error: usersErr } = await supabase
+      let groupCandidateIds: string[] = [];
+      const sharedMap = new Map<string, number>();
+
+      if (myMemberships && myMemberships.length > 0) {
+        const myGroupIds = myMemberships.map((m) => m.group_id);
+
+        // Get other users in those groups
+        const { data: otherMembers } = await supabase
+          .from("group_members")
+          .select("user_id, group_id")
+          .in("group_id", myGroupIds)
+          .neq("user_id", user.id);
+
+        for (const m of otherMembers ?? []) {
+          sharedMap.set(m.user_id, (sharedMap.get(m.user_id) ?? 0) + 1);
+        }
+
+        groupCandidateIds = [...sharedMap.entries()]
+          .filter(([uid]) => !friendIds.has(uid))
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([uid]) => uid);
+      }
+
+      // If we have group-based candidates, use them
+      if (groupCandidateIds.length > 0) {
+        const { data: users, error: usersErr } = await supabase
+          .from("users")
+          .select("id, username, avatar_url")
+          .in("id", groupCandidateIds);
+
+        if (usersErr) throw usersErr;
+
+        return (users ?? []).map((u) => ({
+          id: u.id,
+          username: u.username,
+          avatar_url: u.avatar_url,
+          shared_groups: sharedMap.get(u.id) ?? 0,
+        })).sort((a, b) => b.shared_groups - a.shared_groups);
+      }
+
+      // Fallback: suggest recent users when no group-based suggestions exist
+      const excludeIds = [user.id, ...friendIds];
+      const { data: recentUsers, error: recentErr } = await supabase
         .from("users")
         .select("id, username, avatar_url")
-        .in("id", candidateIds);
+        .not("id", "in", `(${excludeIds.join(",")})`)
+        .order("created_at", { ascending: false })
+        .limit(8);
 
-      if (usersErr) throw usersErr;
+      if (recentErr) throw recentErr;
 
-      return (users ?? []).map((u) => ({
+      return (recentUsers ?? []).map((u) => ({
         id: u.id,
         username: u.username,
         avatar_url: u.avatar_url,
-        shared_groups: sharedMap.get(u.id) ?? 0,
-      })).sort((a, b) => b.shared_groups - a.shared_groups);
+        shared_groups: 0,
+      }));
     },
     enabled: !!user,
   });
