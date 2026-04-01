@@ -39,7 +39,7 @@ function ChallengeFeedItem({
   const toggleLike = useToggleLike(video.id);
   const { data: commentCount } = useCommentCount(video.id);
 
-  const player = useVideoPlayer(video.source_url ?? null, (p) => {
+  const player = useVideoPlayer(video.stream_url ?? video.source_url ?? null, (p) => {
     p.loop = true;
     p.muted = false;
   });
@@ -47,10 +47,10 @@ function ChallengeFeedItem({
   useEffect(() => {
     if (!player) return;
     if (isActive) {
+      player.currentTime = 0;
       player.play();
     } else {
       player.pause();
-      player.currentTime = 0;
     }
   }, [isActive, player]);
 
@@ -367,8 +367,8 @@ export default function ChallengeFeedScreen() {
           index,
         })}
         initialScrollIndex={initialIndex}
-        windowSize={3}
-        maxToRenderPerBatch={3}
+        windowSize={5}
+        maxToRenderPerBatch={2}
         removeClippedSubviews={false}
       />
     </>

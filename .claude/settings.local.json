@@ -35,7 +35,16 @@
       "Bash(gh api:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(find /home/mateis/dumbAward/app/tournament -name *.tsx)",
-      "Bash(find /home/mateis/dumbAward/src -name *.ts)"
+      "Bash(find /home/mateis/dumbAward/src -name *.ts)",
+      "Bash(find /home/mateis/dumbAward/app -type f -name *.tsx)",
+      "Bash(cat -n /home/mateis/dumbAward/app/feed/[groupId].tsx)",
+      "Bash(sed:*)",
+      "Bash(cat -n /home/mateis/dumbAward/app/feed/challenge/[id].tsx)",
+      "Bash(cat:*)",
+      "Bash(find /home/mateis/dumbAward -type f \\\\\\(-name *[Gg]roup*[Cc]ard* -o -name *group-card* \\\\\\))",
+      "Bash(find /home/mateis/dumbAward/src -name toast*)",
+      "Bash(find /home/mateis/dumbAward/app -name *camera* -o -name *upload*)",
+      "Bash(find /home/mateis/dumbAward -type f \\\\\\(-name *bottom* -o -name *sheet* -o -name *keyboard* \\\\\\) ! -path */node_modules/*)"
     ]
   }
 }

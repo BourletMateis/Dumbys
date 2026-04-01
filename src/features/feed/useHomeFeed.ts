@@ -7,6 +7,7 @@ const PAGE_SIZE = 15;
 export type HomeFeedVideo = {
   id: string;
   source_url: string | null;
+  stream_url: string | null;
   video_path: string | null;
   thumbnail_url: string | null;
   title: string | null;
@@ -64,7 +65,7 @@ export function useHomeFeed() {
 
         const { data: videos, error } = await supabase
           .from("videos")
-          .select("id, source_url, video_path, thumbnail_url, title, description, created_at, submitter_id, group_id")
+          .select("id, source_url, stream_url, video_path, thumbnail_url, title, description, created_at, submitter_id, group_id")
           .in("group_id", myGroupIds)
           .order("created_at", { ascending: false })
           .range(offset, offset + PAGE_SIZE - 1);
@@ -84,6 +85,7 @@ export function useHomeFeed() {
             return {
               id: v.id,
               source_url: v.source_url,
+              stream_url: v.stream_url,
               video_path: v.video_path,
               thumbnail_url: v.thumbnail_url,
               title: v.title,
@@ -113,7 +115,7 @@ export function useHomeFeed() {
 
         const { data: videos, error } = await supabase
           .from("videos")
-          .select("id, source_url, video_path, thumbnail_url, title, description, created_at, submitter_id, group_id")
+          .select("id, source_url, stream_url, video_path, thumbnail_url, title, description, created_at, submitter_id, group_id")
           .in("submitter_id", friendIds)
           .order("created_at", { ascending: false })
           .range(offset, offset + PAGE_SIZE - 1);
@@ -139,6 +141,7 @@ export function useHomeFeed() {
             return {
               id: v.id,
               source_url: v.source_url,
+              stream_url: v.stream_url,
               video_path: v.video_path,
               thumbnail_url: v.thumbnail_url,
               title: v.title,

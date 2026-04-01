@@ -10,6 +10,7 @@ export type FriendshipStatus = "pending" | "accepted";
 export type GroupStatus = "private" | "pending_public" | "approved_public";
 export type GroupRole = "owner" | "admin" | "member";
 export type ChallengeType = "private" | "public";
+export type ChallengeStatus = "open" | "qualifying" | "battle" | "ended";
 
 // V5 — Challenges (directly in groups, tournaments removed)
 export interface Challenge {
@@ -17,7 +18,35 @@ export interface Challenge {
   group_id: string;
   title: string;
   description: string | null;
+  prize: string | null;
+  rules: string | null;
   created_by: string;
+  created_at: string;
+  // V6 — Battle qualifié
+  status: ChallengeStatus;
+  submission_end: string | null;
+  bracket_size: 4 | 8;
+  current_round: number;
+  round_end: string | null;
+}
+
+export interface BracketMatch {
+  id: string;
+  challenge_id: string;
+  round: number;
+  match_index: number;
+  video_a_id: string | null;
+  video_b_id: string | null;
+  winner_video_id: string | null;
+  created_at: string;
+}
+
+export interface BracketVote {
+  id: string;
+  challenge_id: string;
+  match_id: string;
+  voter_id: string;
+  video_id: string;
   created_at: string;
 }
 
@@ -384,24 +413,93 @@ export interface Database {
           group_id: string;
           title: string;
           description: string | null;
+          prize: string | null;
+          rules: string | null;
           created_by: string;
           created_at: string;
+          status: ChallengeStatus;
+          submission_end: string | null;
+          bracket_size: number;
+          current_round: number;
+          round_end: string | null;
         };
         Insert: {
           id?: string;
           group_id: string;
           title: string;
           description?: string | null;
+          prize?: string | null;
+          rules?: string | null;
           created_by: string;
           created_at?: string;
+          status?: ChallengeStatus;
+          submission_end?: string | null;
+          bracket_size?: number;
+          current_round?: number;
+          round_end?: string | null;
         };
         Update: {
           id?: string;
           group_id?: string;
           title?: string;
           description?: string | null;
+          prize?: string | null;
+          rules?: string | null;
           created_by?: string;
           created_at?: string;
+          status?: ChallengeStatus;
+          submission_end?: string | null;
+          bracket_size?: number;
+          current_round?: number;
+          round_end?: string | null;
+        };
+        Relationships: [];
+      };
+      challenge_bracket_matches: {
+        Row: {
+          id: string;
+          challenge_id: string;
+          round: number;
+          match_index: number;
+          video_a_id: string | null;
+          video_b_id: string | null;
+          winner_video_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          challenge_id: string;
+          round: number;
+          match_index: number;
+          video_a_id?: string | null;
+          video_b_id?: string | null;
+          winner_video_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          winner_video_id?: string | null;
+        };
+        Relationships: [];
+      };
+      challenge_bracket_votes: {
+        Row: {
+          id: string;
+          challenge_id: string;
+          match_id: string;
+          voter_id: string;
+          video_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          challenge_id: string;
+          match_id: string;
+          voter_id: string;
+          video_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
         };
         Relationships: [];
       };

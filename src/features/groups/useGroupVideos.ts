@@ -5,6 +5,7 @@ import { useAuthStore } from "@/src/store/useAuthStore";
 export type GroupVideo = {
   id: string;
   source_url: string | null;
+  stream_url: string | null;
   video_path: string | null;
   thumbnail_url: string | null;
   title: string | null;
@@ -29,7 +30,7 @@ export function useGroupVideos(groupId: string, weekNumber: number, year: number
 
       const { data, error } = await supabase
         .from("videos")
-        .select("id, source_url, video_path, thumbnail_url, title, description, week_number, year, created_at, submitter_id")
+        .select("id, source_url, stream_url, video_path, thumbnail_url, title, description, week_number, year, created_at, submitter_id")
         .eq("group_id", groupId)
         .eq("week_number", weekNumber)
         .eq("year", year)
@@ -56,6 +57,7 @@ export function useGroupVideos(groupId: string, weekNumber: number, year: number
           return {
             id: v.id,
             source_url: v.source_url,
+            stream_url: v.stream_url,
             video_path: v.video_path,
             thumbnail_url: v.thumbnail_url,
             title: v.title,

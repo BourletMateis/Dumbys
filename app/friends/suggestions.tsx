@@ -1,5 +1,5 @@
 import { View, Text, Pressable, FlatList, ActivityIndicator } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -22,6 +22,7 @@ export default function SuggestionsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F8F8FA" }}>
+      <Stack.Screen options={{ headerShown: false }} />
       {/* Header */}
       <View style={{
         paddingTop: insets.top + 8,

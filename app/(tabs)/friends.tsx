@@ -178,6 +178,7 @@ export default function FriendsScreen() {
             placeholderTextColor="#CCCCCC"
             autoCapitalize="none"
             autoCorrect={false}
+            returnKeyType="search"
             style={{
               flex: 1,
               color: "#1A1A1A",

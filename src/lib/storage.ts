@@ -9,6 +9,8 @@
 const WORKER_URL = (process.env.EXPO_PUBLIC_STORAGE_WORKER_URL ?? "").replace(/\/$/, "");
 const AUTH_SECRET = process.env.EXPO_PUBLIC_STORAGE_AUTH_SECRET!;
 
+const STREAM_ENCODER_URL = (process.env.EXPO_PUBLIC_STREAM_ENCODER_URL ?? "").replace(/\/$/, "");
+
 /**
  * Upload a file to R2 via the Worker.
  * @param key - Storage path (e.g. "videos/userId/groupId/123.mp4")
@@ -75,4 +77,33 @@ export async function deleteFiles(keys: string[]): Promise<void> {
  */
 export function getPublicUrl(key: string): string {
   return `${WORKER_URL}/${key}`;
+}
+
+/**
+ * Trigger async HLS encoding on Cloudflare Stream for a video already on R2.
+ * Fire-and-forget: encoding happens in the background; the stream_url will be
+ * populated in Supabase once ready (webhook → stream_status = "ready").
+ *
+ * @param videoId  - Supabase video row UUID
+ * @param videoUrl - Public R2 URL of the raw video file
+ */
+export async function triggerStreamEncode(videoId: string, videoUrl: string): Promise<void> {
+  if (!STREAM_ENCODER_URL) return; // not configured, skip silently
+
+  try {
+    const res = await fetch(`${STREAM_ENCODER_URL}/encode`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${AUTH_SECRET}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ videoId, videoUrl }),
+    });
+    if (!res.ok) {
+      console.warn("[Stream] encode trigger failed:", await res.text());
+    }
+  } catch (err) {
+    // Non-blocking — raw R2 URL still works as fallback
+    console.warn("[Stream] encode trigger error:", err);
+  }
 }

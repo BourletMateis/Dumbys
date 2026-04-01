@@ -25,9 +25,9 @@ import { useCommentCount } from "@/src/features/feed/useComments";
 import { PALETTE, FONT, FONT_FAMILY } from "@/src/theme";
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
-const VIDEO_MARGIN_H = 12;
-const VIDEO_MARGIN_V = 8;
-const VIDEO_BORDER_RADIUS = 28;
+const VIDEO_MARGIN_H = 0;
+const VIDEO_MARGIN_V = 0;
+const VIDEO_BORDER_RADIUS = 0;
 
 // ─── Single video item ───────────────────────────────────────────
 function MyVideoFeedItem({
@@ -47,7 +47,7 @@ function MyVideoFeedItem({
   const toggleLike = useToggleLike(video.id);
   const { data: commentCount } = useCommentCount(video.id);
 
-  const player = useVideoPlayer(video.source_url ?? null, (p) => {
+  const player = useVideoPlayer(video.stream_url ?? video.source_url ?? null, (p) => {
     p.loop = true;
     p.muted = false;
   });
@@ -55,10 +55,10 @@ function MyVideoFeedItem({
   useEffect(() => {
     if (!player) return;
     if (isActive) {
+      player.currentTime = 0;
       player.play();
     } else {
       player.pause();
-      player.currentTime = 0;
     }
   }, [isActive, player]);
 
@@ -415,8 +415,8 @@ export default function MyVideosFeedScreen() {
           index,
         })}
         initialScrollIndex={initialIndex}
-        windowSize={3}
-        maxToRenderPerBatch={3}
+        windowSize={5}
+        maxToRenderPerBatch={2}
         removeClippedSubviews={false}
       />
     </View>

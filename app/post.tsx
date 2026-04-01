@@ -1,12 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
   TextInput,
   ScrollView,
   Pressable,
-  ActivityIndicator,
-  Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,24 +14,32 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { PALETTE, FONT, FONT_FAMILY, RADIUS } from "@/src/theme";
 import { useMyGroups } from "@/src/features/groups/useMyGroups";
-import { useUploadGroupVideo } from "@/src/features/groups/useUploadGroupVideo";
+import { useGroupChallenges } from "@/src/features/groups/useChallenges";
+import { useUploadStore } from "@/src/store/useUploadStore";
 import { useTimelineLogic } from "@/src/hooks/useTimelineLogic";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { toast } from "@/src/lib/toast";
 
 export default function PostScreen() {
   const insets = useSafeAreaInsets();
-  const { videoUri, thumbnailUri } = useLocalSearchParams<{ videoUri: string; thumbnailUri: string }>();
+  const params = useLocalSearchParams<{ videoUri: string; thumbnailUri: string; groupId?: string; challengeId?: string }>();
+  const videoUri = Array.isArray(params.videoUri) ? params.videoUri[0] : params.videoUri;
+  const thumbnailUri = Array.isArray(params.thumbnailUri) ? params.thumbnailUri[0] : (params.thumbnailUri ?? null);
   const { data: myGroups } = useMyGroups();
-  const uploadMutation = useUploadGroupVideo();
+  const addUpload = useUploadStore((s) => s.addUpload);
   const { weekNumber, year } = useTimelineLogic();
 
+  const preselectedGroupId = Array.isArray(params.groupId) ? params.groupId[0] : (params.groupId ?? null);
+  const preselectedChallengeId = Array.isArray(params.challengeId) ? params.challengeId[0] : (params.challengeId ?? null);
+
   const [description, setDescription] = useState("");
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(preselectedGroupId);
+  const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(preselectedChallengeId);
+
+  const { data: groupChallenges } = useGroupChallenges(selectedGroupId ?? "");
+  const openChallenges = (groupChallenges ?? []).filter((c) => c.status === "open");
 
   const selectedGroup = myGroups?.find((g) => g.id === selectedGroupId) ?? null;
-  const derivedCategory = selectedGroup?.category ?? null;
 
   const handlePublish = () => {
     if (!videoUri) return;
@@ -42,20 +48,18 @@ export default function PostScreen() {
       return;
     }
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    setIsUploading(true);
-    uploadMutation.mutate(
-      { videoUri, groupId: selectedGroupId, weekNumber, year, description: description.trim() || undefined, category: derivedCategory ?? undefined },
-      {
-        onSuccess: () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          toast.success("Ta vidéo est en ligne !");
-          router.dismissAll();
-        },
-        onError: (err) => toast.error(err.message),
-        onSettled: () => setIsUploading(false),
-      }
-    );
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    addUpload({
+      localId: `${Date.now()}-${Math.random()}`,
+      videoUri,
+      thumbnailUri: thumbnailUri ?? null,
+      groupId: selectedGroupId,
+      challengeId: selectedChallengeId ?? undefined,
+      weekNumber,
+      year,
+    });
+    router.dismissAll();
+    router.push("/(tabs)/profile");
   };
 
   return (
@@ -140,6 +144,8 @@ export default function PostScreen() {
               placeholder={"Décris ta vidéo...\n#défi #dumbys 🔥"}
               placeholderTextColor="rgba(255,255,255,0.2)"
               multiline
+              returnKeyType="done"
+              blurOnSubmit={true}
               style={{
                 flex: 1,
                 color: "#FFF",
@@ -213,6 +219,7 @@ export default function PostScreen() {
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     setSelectedGroupId(g.id);
+                    setSelectedChallengeId(null);
                   }}
                   style={{
                     flexDirection: "row",
@@ -239,18 +246,140 @@ export default function PostScreen() {
                   >
                     {g.name}
                   </Text>
-                  {g.category && isSelected && (
-                    <View style={{ backgroundColor: "rgba(255,255,255,0.1)", borderRadius: RADIUS.full, paddingHorizontal: 8, paddingVertical: 2 }}>
-                      <Text style={{ color: "rgba(255,255,255,0.5)", fontFamily: FONT_FAMILY.medium, fontSize: 10 }}>
-                        {g.category}
-                      </Text>
-                    </View>
-                  )}
                 </Pressable>
               );
             })}
           </ScrollView>
         </View>
+
+        {/* ── Défi (optionnel) — visible only when group has open challenges ── */}
+        {selectedGroupId && openChallenges.length > 0 && (
+          <>
+            <View
+              style={{
+                marginHorizontal: 20,
+                height: 1,
+                backgroundColor: "rgba(255,255,255,0.06)",
+                marginBottom: 28,
+              }}
+            />
+            <View style={{ paddingHorizontal: 20, marginBottom: 28 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                <Ionicons name="flag-outline" size={18} color={PALETTE.fuchsia} />
+                <Text
+                  style={{
+                    color: "rgba(255,255,255,0.5)",
+                    fontFamily: FONT_FAMILY.bold,
+                    fontSize: FONT.sizes.xs,
+                    textTransform: "uppercase",
+                    letterSpacing: 1.4,
+                  }}
+                >
+                  Participer à un défi{" "}
+                  <Text style={{ color: "rgba(255,255,255,0.25)", fontFamily: FONT_FAMILY.regular, textTransform: "none", letterSpacing: 0 }}>
+                    (optionnel)
+                  </Text>
+                </Text>
+              </View>
+
+              {/* "Aucun" pill to deselect */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 10, paddingRight: 20 }}
+              >
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setSelectedChallengeId(null);
+                  }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    borderRadius: RADIUS.full,
+                    backgroundColor: selectedChallengeId === null ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.04)",
+                    borderWidth: 1.5,
+                    borderColor: selectedChallengeId === null ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: selectedChallengeId === null ? "#FFF" : "rgba(255,255,255,0.35)",
+                      fontFamily: FONT_FAMILY.semibold,
+                      fontSize: FONT.sizes.sm,
+                    }}
+                  >
+                    Aucun
+                  </Text>
+                </Pressable>
+
+                {openChallenges.map((c) => {
+                  const isSelected = selectedChallengeId === c.id;
+                  return (
+                    <Pressable
+                      key={c.id}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setSelectedChallengeId(c.id);
+                      }}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                        paddingHorizontal: 16,
+                        paddingVertical: 10,
+                        borderRadius: RADIUS.full,
+                        backgroundColor: isSelected ? `${PALETTE.fuchsia}20` : "rgba(255,255,255,0.04)",
+                        borderWidth: 1.5,
+                        borderColor: isSelected ? PALETTE.fuchsia : "rgba(255,255,255,0.08)",
+                      }}
+                    >
+                      {isSelected && (
+                        <Ionicons name="checkmark-circle" size={15} color={PALETTE.fuchsia} />
+                      )}
+                      <Ionicons name="flag" size={13} color={isSelected ? PALETTE.fuchsia : "rgba(255,255,255,0.3)"} />
+                      <Text
+                        style={{
+                          color: isSelected ? PALETTE.fuchsia : "rgba(255,255,255,0.45)",
+                          fontFamily: FONT_FAMILY.semibold,
+                          fontSize: FONT.sizes.sm,
+                          maxWidth: 160,
+                        }}
+                        numberOfLines={1}
+                      >
+                        {c.title}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+
+              {selectedChallengeId && (
+                <View
+                  style={{
+                    marginTop: 12,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    backgroundColor: `${PALETTE.fuchsia}10`,
+                    borderRadius: RADIUS.lg,
+                    padding: 12,
+                    borderWidth: 1,
+                    borderColor: `${PALETTE.fuchsia}20`,
+                  }}
+                >
+                  <Ionicons name="information-circle-outline" size={16} color={PALETTE.fuchsia} />
+                  <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, flex: 1 }}>
+                    Ta vidéo sera soumise au défi et comptera pour la phase de qualification.
+                  </Text>
+                </View>
+              )}
+            </View>
+          </>
+        )}
 
       </ScrollView>
 
@@ -269,9 +398,9 @@ export default function PostScreen() {
           borderTopColor: "rgba(255,255,255,0.06)",
         }}
       >
-        <AnimatedPressable onPress={handlePublish} disabled={isUploading}>
+        <AnimatedPressable onPress={handlePublish}>
           <LinearGradient
-            colors={[PALETTE.fuchsia, PALETTE.sarcelle]}
+            colors={selectedChallengeId ? [PALETTE.fuchsia, "#C0007A"] : [PALETTE.fuchsia, PALETTE.sarcelle]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={{
@@ -283,19 +412,9 @@ export default function PostScreen() {
               gap: 10,
             }}
           >
-            {isUploading ? (
-              <ActivityIndicator color="#FFF" />
-            ) : (
-              <Ionicons name="send" size={20} color="#FFF" />
-            )}
-            <Text
-              style={{
-                color: "#FFF",
-                fontFamily: FONT_FAMILY.extrabold,
-                fontSize: FONT.sizes.xl,
-              }}
-            >
-              {isUploading ? "Publication..." : "Publier maintenant"}
+            <Ionicons name={selectedChallengeId ? "flag" : "send"} size={20} color="#FFF" />
+            <Text style={{ color: "#FFF", fontFamily: FONT_FAMILY.extrabold, fontSize: FONT.sizes.xl }}>
+              {selectedChallengeId ? "Soumettre au défi" : "Publier"}
             </Text>
           </LinearGradient>
         </AnimatedPressable>

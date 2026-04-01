@@ -5,6 +5,7 @@ import { useAuthStore } from "@/src/store/useAuthStore";
 export type MyVideo = {
   id: string;
   source_url: string | null;
+  stream_url: string | null;
   thumbnail_url: string | null;
   video_path: string | null;
   title: string | null;
@@ -25,7 +26,7 @@ export function useMyVideos() {
 
       const { data, error } = await supabase
         .from("videos")
-        .select("id, source_url, thumbnail_url, video_path, title, created_at, group_id")
+        .select("id, source_url, stream_url, thumbnail_url, video_path, title, created_at, group_id")
         .eq("submitter_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -50,6 +51,7 @@ export function useMyVideos() {
       return data.map((v) => ({
         id: v.id,
         source_url: v.source_url,
+        stream_url: v.stream_url,
         thumbnail_url: v.thumbnail_url,
         video_path: v.video_path ?? null,
         title: v.title ?? null,

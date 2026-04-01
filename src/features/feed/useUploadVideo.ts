@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/src/lib/supabase";
-import { uploadFile } from "@/src/lib/storage";
+import { uploadFile, triggerStreamEncode } from "@/src/lib/storage";
 import { useAuthStore } from "@/src/store/useAuthStore";
 
 type UploadVideoInput = {
@@ -54,6 +54,10 @@ export function useUploadVideo() {
         .single();
 
       if (error) throw error;
+
+      // Trigger async HLS encoding (fire-and-forget, fallback = source_url)
+      triggerStreamEncode(data.id, videoUrl);
+
       return data;
     },
     onSuccess: () => {

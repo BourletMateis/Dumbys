@@ -6,7 +6,8 @@ import { uploadFile } from "@/src/lib/storage";
 type CreateGroupInput = {
   name: string;
   description?: string;
-  isPublic: boolean;
+  requestPublic?: boolean;   // true = demande public (en attente validation admin)
+  publicRequestReason?: string;
   category?: string;
   endDate?: string;
   goalDescription?: string;
@@ -29,19 +30,26 @@ export function useCreateGroup() {
         coverUrl = await uploadFile(key, input.coverUri, "image/jpeg");
       }
 
+      // Groups are always created private.
+      // requestPublic = true → status "pending_public", admin validates later.
+      // The DB trigger auto-sets is_public = true when status → "approved_public".
+      const status = input.requestPublic ? "pending_public" : "private";
+
       const { data, error } = await supabase
         .from("groups")
         .insert({
           name: input.name,
           description: input.description ?? null,
           owner_id: user.id,
-          is_public: input.isPublic,
-          status: input.isPublic ? "approved_public" : "private",
+          is_public: false,
+          status,
+          public_request_reason: input.publicRequestReason ?? null,
+          public_request_at: input.requestPublic ? new Date().toISOString() : null,
           category: input.category ?? null,
           end_date: input.endDate ?? null,
           goal_description: input.goalDescription ?? null,
           prize: input.prize ?? null,
-          type: input.type ?? (input.isPublic ? "public" : "private"),
+          type: "private",
           cover_url: coverUrl,
         })
         .select("id, name")

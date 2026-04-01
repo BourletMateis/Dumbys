@@ -3,12 +3,15 @@ import { supabase } from "@/src/lib/supabase";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import type { GroupRole } from "@/src/types/database.types";
 
+export type GroupStatus = "private" | "pending_public" | "approved_public" | "rejected_public";
+
 export type GroupWithRole = {
   id: string;
   name: string;
   description: string | null;
   owner_id: string;
   is_public: boolean;
+  status: GroupStatus;
   invite_code: string;
   cover_url: string | null;
   category: string | null;
@@ -45,7 +48,7 @@ export function useMyGroups() {
       // Fetch group details
       const { data: groups, error: grpError } = await supabase
         .from("groups")
-        .select("id, name, description, owner_id, is_public, invite_code, cover_url, category, end_date, goal_description, prize, type, created_at")
+        .select("id, name, description, owner_id, is_public, status, invite_code, cover_url, category, end_date, goal_description, prize, type, created_at")
         .in("id", groupIds)
         .order("created_at", { ascending: false });
 
@@ -70,6 +73,7 @@ export function useMyGroups() {
         description: g.description,
         owner_id: g.owner_id,
         is_public: g.is_public,
+        status: (g.status ?? "private") as GroupStatus,
         invite_code: g.invite_code,
         cover_url: g.cover_url,
         category: g.category,

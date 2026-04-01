@@ -61,19 +61,27 @@ function FeedItem({
   const toggleLike = useToggleLike(video.id);
   const { data: commentCount } = useCommentCount(video.id);
 
-  const player = useVideoPlayer(video.source_url ?? null, (p) => {
+  const player = useVideoPlayer(video.stream_url ?? video.source_url ?? null, (p) => {
     p.loop = true;
     p.muted = false;
   });
 
+  // Track previous isActive to detect "first activation" vs "resume from pause"
+  const prevIsActiveRef = useRef(false);
+
   useEffect(() => {
     if (!player) return;
     if (isActive && !isPaused && !forcePaused) {
+      // Only seek to 0 when the video first becomes active (not on pause→play)
+      if (!prevIsActiveRef.current) {
+        player.currentTime = 0;
+      }
       player.play();
     } else {
       player.pause();
-      if (!isActive) player.currentTime = 0;
+      // Don't reset currentTime — keeps buffer warm for next play
     }
+    prevIsActiveRef.current = isActive;
   }, [isActive, isPaused, forcePaused, player]);
 
   useEffect(() => {
@@ -577,6 +585,7 @@ export default function FeedScreen() {
   const [pendingVideoUri, setPendingVideoUri] = useState<string | null>(null);
   const [uploadTitle, setUploadTitle] = useState("");
   const [uploadDesc, setUploadDesc] = useState("");
+  const uploadDescRef = useRef<any>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [feedPaused, setFeedPaused] = useState(false);
 
@@ -796,8 +805,8 @@ export default function FeedScreen() {
           offset: SCREEN_HEIGHT * index,
           index,
         })}
-        windowSize={3}
-        maxToRenderPerBatch={3}
+        windowSize={5}
+        maxToRenderPerBatch={2}
         removeClippedSubviews={false}
       />
 
@@ -885,12 +894,16 @@ export default function FeedScreen() {
               marginBottom: 16,
             }}
             maxLength={100}
+            returnKeyType="next"
+            onSubmitEditing={() => uploadDescRef.current?.focus()}
+            blurOnSubmit={false}
           />
 
           <Text style={{ ...SECTION_HEADER_STYLE, marginBottom: 8 }}>
             Description (optionnel)
           </Text>
           <TextInput
+            ref={uploadDescRef}
             value={uploadDesc}
             onChangeText={setUploadDesc}
             placeholder="Qu'est-ce qui se passe dans cette vidéo ?"
@@ -904,6 +917,8 @@ export default function FeedScreen() {
               textAlignVertical: "top",
             }}
             maxLength={300}
+            returnKeyType="done"
+            blurOnSubmit={true}
           />
 
           <AnimatedPressable

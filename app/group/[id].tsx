@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import * as Haptics from "expo-haptics";
 import { PUBLIC_CATEGORIES } from "@/src/features/groups/usePublicGroups";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useGroupVideos, type GroupVideo } from "@/src/features/groups/useGroupVideos";
-import { useDeleteGroup, useLeaveGroup, useUpdateGroup } from "@/src/features/groups/useGroupActions";
+import { useDeleteGroup, useLeaveGroup, useUpdateGroup, useJoinGroupByCode } from "@/src/features/groups/useGroupActions";
 import * as ImagePicker from "expo-image-picker";
 import { useWeeklyPodium } from "@/src/features/groups/useWeeklyPodium";
 import { useMyVote, useVoteCounts, useCastVote } from "@/src/features/groups/useWeeklyVote";
@@ -34,7 +34,7 @@ import { useRealtimeGroupVideos } from "@/src/features/groups/useRealtimeGroupVi
 import { useGroupChallenges, useCreateChallenge } from "@/src/features/groups/useChallenges";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
-import { BottomSheet } from "@/src/components/ui/BottomSheet";
+import { BottomSheet, type BottomSheetHandle } from "@/src/components/ui/BottomSheet";
 import { PhaseIndicator } from "@/src/components/ui/PhaseIndicator";
 import { EmptyState } from "@/src/components/ui/EmptyState";
 import { toast } from "@/src/lib/toast";
@@ -327,11 +327,23 @@ export default function GroupScreen() {
   const { weekNumber, year, canUpload, canVote, prevWeek, prevYear, phase } =
     useTimelineLogic();
 
+  const [activeTab, setActiveTab] = useState<"videos" | "defis">("videos");
   const [showMembers, setShowMembers] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [showJoinCode, setShowJoinCode] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
+  const joinByCode = useJoinGroupByCode();
   const [showCreateChallenge, setShowCreateChallenge] = useState(false);
+  const challengeSheetRef = useRef<BottomSheetHandle>(null);
+  const challengeDescRef = useRef<any>(null);
+  const challengePrizeRef = useRef<any>(null);
+  const challengeRulesRef = useRef<any>(null);
+  const editDescRef = useRef<any>(null);
   const [challengeTitle, setChallengeTitle] = useState("");
   const [challengeDesc, setChallengeDesc] = useState("");
+  const [challengePrize, setChallengePrize] = useState("");
+  const [challengeRules, setChallengeRules] = useState("");
+  const [challengeDays, setChallengeDays] = useState(7);
   const [isCreatingChallenge, setIsCreatingChallenge] = useState(false);
 
   // Edit group
@@ -362,24 +374,34 @@ export default function GroupScreen() {
 
   const myRole = members?.find((m) => m.user_id === user?.id)?.role;
   const isOwner = myRole === "owner";
+  const isMember = !!myRole;
   const challengeEnded = group?.end_date
     ? new Date(group.end_date).getTime() < Date.now()
     : false;
 
   const handleCreateChallenge = () => {
     if (!challengeTitle.trim()) return;
+    const submissionEnd = new Date(
+      Date.now() + challengeDays * 24 * 60 * 60 * 1000,
+    ).toISOString();
     setIsCreatingChallenge(true);
     createChallengeMut.mutate(
       {
         groupId: id!,
         title: challengeTitle.trim(),
         description: challengeDesc.trim() || undefined,
+        prize: challengePrize.trim() || undefined,
+        rules: challengeRules.trim() || undefined,
+        submissionEnd,
       },
       {
         onSuccess: (c) => {
           setShowCreateChallenge(false);
           setChallengeTitle("");
           setChallengeDesc("");
+          setChallengePrize("");
+          setChallengeRules("");
+          setChallengeDays(7);
           router.push({ pathname: "/challenge/[id]" as any, params: { id: c.id, groupId: id } });
         },
         onError: (err) => toast.error(err.message),
@@ -496,8 +518,8 @@ export default function GroupScreen() {
     router.push(`/camera?groupId=${id}` as any);
   };
 
-  // ── Videos tab content ──────────────────────────────────────────
-  const VideosTab = (
+  // ── Videos content ──────────────────────────────────────────────
+  const VideosContent = (
     <>
       {/* Podium — last week's winners */}
       {podium && podium.length > 0 && (
@@ -612,134 +634,107 @@ export default function GroupScreen() {
           />
         ))
       )}
-      {/* ── Challenges section ─────────────────────────────── */}
-      <View style={{ marginTop: 28 }}>
-        <View
+    </>
+  );
+
+  // ── Challenges content ───────────────────────────────────────────
+  const ChallengesContent = (
+    <>
+      {/* Header row */}
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: "#1A1A1A" }}>
+          {(challenges ?? []).length} défi{(challenges ?? []).length !== 1 ? "s" : ""}
+        </Text>
+        <AnimatedPressable
+          onPress={() => setShowCreateChallenge(true)}
           style={{
             flexDirection: "row",
-            justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: 16,
+            gap: 4,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: RADIUS.sm,
+            backgroundColor: PALETTE.fuchsia + "12",
+            borderWidth: 1,
+            borderColor: PALETTE.fuchsia + "20",
           }}
         >
-          <Text
-            style={{
-              fontSize: FONT.sizes.lg,
-              fontFamily: FONT_FAMILY.bold,
-              color: "#1A1A1A",
-            }}
-          >
-            Défis ({(challenges ?? []).length})
+          <Ionicons name="add" size={16} color={PALETTE.fuchsia} />
+          <Text style={{ color: PALETTE.fuchsia, fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold }}>
+            Créer
           </Text>
-          <AnimatedPressable
-            onPress={() => setShowCreateChallenge(true)}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 4,
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: RADIUS.sm,
-              backgroundColor: PALETTE.fuchsia + "12",
-              borderWidth: 1,
-              borderColor: PALETTE.fuchsia + "20",
-            }}
-          >
-            <Ionicons name="add" size={16} color={PALETTE.fuchsia} />
-            <Text
-              style={{
-                color: PALETTE.fuchsia,
-                fontSize: FONT.sizes.sm,
-                fontFamily: FONT_FAMILY.bold,
-              }}
-            >
-              Créer
-            </Text>
-          </AnimatedPressable>
-        </View>
+        </AnimatedPressable>
+      </View>
 
-        {(challenges ?? []).length === 0 ? (
-          <View
-            style={{
-              backgroundColor: "#F8F8FA",
-              borderRadius: RADIUS.lg,
-              padding: 24,
-              alignItems: "center",
-              borderWidth: 1,
-              borderColor: "rgba(0,0,0,0.04)",
-            }}
-          >
-            <Ionicons name="flag-outline" size={32} color="#CCC" />
-            <Text
-              style={{
-                color: "#BBB",
-                fontSize: FONT.sizes.base,
-                fontFamily: FONT_FAMILY.medium,
-                marginTop: 10,
-                textAlign: "center",
-              }}
-            >
-              Aucun défi pour l'instant
-            </Text>
-          </View>
-        ) : (
-          (challenges ?? []).map((c) => (
+      {(challenges ?? []).length === 0 ? (
+        <EmptyState
+          icon="flag-outline"
+          title="Aucun défi pour l'instant"
+          subtitle="Lance le premier défi du groupe !"
+        />
+      ) : (
+        (challenges ?? []).map((c) => {
+          const statusConfig = {
+            open: { label: "Soumissions ouvertes", color: PALETTE.sarcelle, icon: "videocam" as const, bg: PALETTE.sarcelle + "12" },
+            qualifying: { label: "Qualification", color: PALETTE.jaune, icon: "podium" as const, bg: PALETTE.jaune + "12" },
+            battle: { label: "Battle en cours !", color: PALETTE.fuchsia, icon: "flash" as const, bg: PALETTE.fuchsia + "12" },
+            ended: { label: "Terminé", color: "#888", icon: "trophy" as const, bg: "#8882" },
+          };
+          const cfg = statusConfig[c.status as keyof typeof statusConfig] ?? statusConfig.open;
+          const isActive = c.status !== "ended";
+          return (
             <AnimatedPressable
               key={c.id}
-              onPress={() =>
-                router.push({ pathname: "/challenge/[id]" as any, params: { id: c.id, groupId: id } })
-              }
+              onPress={() => router.push({ pathname: "/challenge/[id]" as any, params: { id: c.id, groupId: id } })}
               style={{
-                ...CARD_STYLE,
-                flexDirection: "row",
-                alignItems: "center",
-                padding: 14,
-                marginBottom: 8,
-                gap: 12,
+                backgroundColor: "#FFF",
+                borderRadius: RADIUS.xl,
+                marginBottom: 10,
+                overflow: "hidden",
+                borderWidth: 1,
+                borderColor: isActive ? cfg.color + "30" : "rgba(0,0,0,0.06)",
+                shadowColor: isActive ? cfg.color : "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: isActive ? 0.10 : 0.04,
+                shadowRadius: 8,
+                elevation: isActive ? 4 : 1,
               }}
             >
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: RADIUS.md,
-                  backgroundColor: PALETTE.fuchsia + "12",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Ionicons name="flag" size={22} color={PALETTE.fuchsia} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    color: "#1A1A1A",
-                    fontSize: FONT.sizes.base,
-                    fontFamily: FONT_FAMILY.semibold,
-                  }}
-                  numberOfLines={1}
-                >
-                  {c.title}
-                </Text>
-                {c.description ? (
-                  <Text
-                    style={{
-                      color: "#999",
-                      fontSize: FONT.sizes.xs,
-                      fontFamily: FONT_FAMILY.regular,
-                      marginTop: 2,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {c.description}
+              {/* Colored top stripe for active challenges */}
+              {isActive && (
+                <View style={{ height: 3, backgroundColor: cfg.color }} />
+              )}
+              <View style={{ flexDirection: "row", alignItems: "center", padding: 14, gap: 12 }}>
+                <View style={{ width: 48, height: 48, borderRadius: RADIUS.lg, backgroundColor: cfg.bg, alignItems: "center", justifyContent: "center" }}>
+                  <Ionicons name={cfg.icon} size={24} color={cfg.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.bold }} numberOfLines={1}>
+                    {c.title}
                   </Text>
-                ) : null}
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
+                    <View style={{ backgroundColor: cfg.bg, borderRadius: RADIUS.full, paddingHorizontal: 8, paddingVertical: 3 }}>
+                      <Text style={{ color: cfg.color, fontFamily: FONT_FAMILY.bold, fontSize: FONT.sizes.xs }}>
+                        {cfg.label}
+                      </Text>
+                    </View>
+                    {c.prize ? (
+                      <Text style={{ color: "#999", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular }} numberOfLines={1}>
+                        🏆 {c.prize}
+                      </Text>
+                    ) : c.description ? (
+                      <Text style={{ color: "#999", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, flex: 1 }} numberOfLines={1}>
+                        {c.description}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={isActive ? cfg.color : "#CCC"} />
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#CCC" />
             </AnimatedPressable>
-          ))
-        )}
-      </View>
+          );
+        })
+      )}
     </>
   );
 
@@ -888,7 +883,7 @@ export default function GroupScreen() {
           })() : null;
 
           return (
-            <View style={{ height: 200 }}>
+            <View style={{ height: 260 }}>
               {/* Cover or banner */}
               {group?.cover_url ? (
                 <Image source={{ uri: group.cover_url }} style={{ position: "absolute", width: "100%", height: "100%" }} contentFit="cover" />
@@ -941,10 +936,22 @@ export default function GroupScreen() {
                       <Text style={{ color: "#FFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold }}>{catMeta.label}</Text>
                     </View>
                   )}
-                  <View style={{ backgroundColor: group?.is_public ? "rgba(63,208,201,0.7)" : "rgba(0,0,0,0.45)", borderRadius: RADIUS.full, paddingHorizontal: 9, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 4 }}>
-                    <Ionicons name={group?.is_public ? "globe-outline" : "lock-closed-outline"} size={10} color="#FFF" />
-                    <Text style={{ color: "#FFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold }}>{group?.is_public ? "Public" : "Privé"}</Text>
-                  </View>
+                  {group?.status === "pending_public" ? (
+                    <View style={{ backgroundColor: "rgba(253,184,19,0.92)", borderRadius: RADIUS.full, paddingHorizontal: 9, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <Ionicons name="time-outline" size={10} color="#1A1A1A" />
+                      <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold }}>En révision</Text>
+                    </View>
+                  ) : group?.status === "rejected_public" ? (
+                    <View style={{ backgroundColor: "rgba(244,63,94,0.88)", borderRadius: RADIUS.full, paddingHorizontal: 9, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <Ionicons name="close-circle-outline" size={10} color="#FFF" />
+                      <Text style={{ color: "#FFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold }}>Demande refusée</Text>
+                    </View>
+                  ) : (
+                    <View style={{ backgroundColor: group?.is_public ? "rgba(63,208,201,0.7)" : "rgba(0,0,0,0.45)", borderRadius: RADIUS.full, paddingHorizontal: 9, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <Ionicons name={group?.is_public ? "globe-outline" : "lock-closed-outline"} size={10} color="#FFF" />
+                      <Text style={{ color: "#FFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold }}>{group?.is_public ? "Public" : "Privé"}</Text>
+                    </View>
+                  )}
                   {endDate && (
                     <View style={{ backgroundColor: "rgba(0,0,0,0.45)", borderRadius: RADIUS.full, paddingHorizontal: 9, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 4 }}>
                       <Ionicons name="time-outline" size={10} color={endDate.color} />
@@ -966,6 +973,95 @@ export default function GroupScreen() {
           );
         })()}
 
+        {/* ── Status banner (pending / rejected) ───────── */}
+        {group?.status === "pending_public" && (
+          <View style={{ backgroundColor: "#FFFBEB", borderBottomWidth: 1, borderBottomColor: "#FDE68A", paddingHorizontal: SPACING.lg, paddingVertical: 12, flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+            <Ionicons name="time-outline" size={18} color="#D97706" style={{ marginTop: 1 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: "#92400E" }}>Groupe en révision</Text>
+              <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: "#B45309", marginTop: 2, lineHeight: 16 }}>
+                Un admin va examiner ta demande. Tu seras notifié dès qu'une décision est prise. En attendant, le groupe reste privé.
+              </Text>
+            </View>
+          </View>
+        )}
+        {group?.status === "rejected_public" && (
+          <View style={{ backgroundColor: "#FFF1F2", borderBottomWidth: 1, borderBottomColor: "#FECDD3", paddingHorizontal: SPACING.lg, paddingVertical: 12, flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+            <Ionicons name="close-circle-outline" size={18} color="#E11D48" style={{ marginTop: 1 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: "#9F1239" }}>Demande refusée</Text>
+              <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: "#BE123C", marginTop: 2, lineHeight: 16 }}>
+                Ta demande de groupe public n'a pas été approuvée. Le groupe reste privé, tu peux continuer à inviter des membres.
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* ── Tab switcher ───────────────────────────────── */}
+        {(() => {
+          const activeCount = (challenges ?? []).filter((c) => c.status !== "ended").length;
+          return (
+            <View style={{ flexDirection: "row", paddingHorizontal: SPACING.lg, paddingVertical: 10, backgroundColor: "#F8F8FA", gap: 8 }}>
+              <AnimatedPressable
+                onPress={() => setActiveTab("videos")}
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  paddingVertical: 10,
+                  borderRadius: RADIUS.lg,
+                  backgroundColor: activeTab === "videos" ? "#FFF" : "transparent",
+                  borderWidth: 1,
+                  borderColor: activeTab === "videos" ? "rgba(0,0,0,0.08)" : "transparent",
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: activeTab === "videos" ? 0.06 : 0,
+                  shadowRadius: 4,
+                  elevation: activeTab === "videos" ? 2 : 0,
+                }}
+              >
+                <Ionicons name="videocam-outline" size={16} color={activeTab === "videos" ? "#1A1A1A" : "#999"} />
+                <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: activeTab === "videos" ? "#1A1A1A" : "#999" }}>
+                  Vidéos
+                </Text>
+              </AnimatedPressable>
+
+              <AnimatedPressable
+                onPress={() => setActiveTab("defis")}
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  paddingVertical: 10,
+                  borderRadius: RADIUS.lg,
+                  backgroundColor: activeTab === "defis" ? "#FFF" : "transparent",
+                  borderWidth: 1,
+                  borderColor: activeTab === "defis" ? PALETTE.fuchsia + "30" : "transparent",
+                  shadowColor: PALETTE.fuchsia,
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: activeTab === "defis" ? 0.10 : 0,
+                  shadowRadius: 4,
+                  elevation: activeTab === "defis" ? 2 : 0,
+                }}
+              >
+                <Ionicons name="flag-outline" size={16} color={activeTab === "defis" ? PALETTE.fuchsia : "#999"} />
+                <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: activeTab === "defis" ? PALETTE.fuchsia : "#999" }}>
+                  Défis
+                </Text>
+                {activeCount > 0 && (
+                  <View style={{ backgroundColor: PALETTE.fuchsia, borderRadius: RADIUS.full, minWidth: 18, height: 18, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 }}>
+                    <Text style={{ color: "#FFF", fontSize: 10, fontFamily: FONT_FAMILY.bold }}>{activeCount}</Text>
+                  </View>
+                )}
+              </AnimatedPressable>
+            </View>
+          );
+        })()}
+
         {/* ── Content ────────────────────────────────────── */}
         <ScrollView
           contentContainerStyle={{
@@ -982,11 +1078,85 @@ export default function GroupScreen() {
           }
           showsVerticalScrollIndicator={false}
         >
-          {VideosTab}
+          {activeTab === "videos" ? VideosContent : ChallengesContent}
         </ScrollView>
 
         {/* ── Sticky bottom CTA ─────────────────────────────── */}
         {BottomCTA}
+
+        {/* ── Join by code sheet ────────────────────────────── */}
+        <BottomSheet isOpen={showJoinCode} onClose={() => { setShowJoinCode(false); setJoinCode(""); }} snapPoint={0.4}>
+          <View style={{ paddingHorizontal: SPACING["2xl"], paddingTop: 8 }}>
+            <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.bold, marginBottom: 6 }}>
+              Rejoindre un groupe
+            </Text>
+            <Text style={{ color: "#999", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular, marginBottom: 24 }}>
+              Entre le code d'invitation partagé par le créateur du groupe.
+            </Text>
+
+            <Text style={{ color: "#999", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8 }}>
+              Code d'invitation
+            </Text>
+            <TextInput
+              value={joinCode}
+              onChangeText={(t) => setJoinCode(t.toLowerCase().trim())}
+              placeholder="ex: a1b2c3d4"
+              placeholderTextColor="#CCC"
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={12}
+              returnKeyType="done"
+              style={{
+                backgroundColor: "#F5F5F5",
+                borderRadius: RADIUS.md,
+                paddingVertical: 14,
+                paddingHorizontal: 18,
+                borderWidth: 1.5,
+                borderColor: joinCode.length > 0 ? PALETTE.sarcelle : "rgba(0,0,0,0.06)",
+                fontSize: FONT.sizes["2xl"],
+                fontFamily: "SpaceMono",
+                color: "#1A1A1A",
+                letterSpacing: 4,
+                marginBottom: 20,
+              }}
+            />
+
+            {joinByCode.isError && (
+              <View style={{ backgroundColor: "rgba(244,63,94,0.08)", borderRadius: RADIUS.md, padding: SPACING.base, flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <Ionicons name="alert-circle-outline" size={16} color="#F43F5E" />
+                <Text style={{ flex: 1, fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.medium, color: "#F43F5E" }}>
+                  {(joinByCode.error as Error)?.message ?? "Code invalide"}
+                </Text>
+              </View>
+            )}
+
+            <AnimatedPressable
+              disabled={joinCode.length < 4 || joinByCode.isPending}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                joinByCode.mutate(joinCode, {
+                  onSuccess: () => {
+                    setShowJoinCode(false);
+                    setJoinCode("");
+                    toast.success("Tu as rejoint le groupe !");
+                  },
+                });
+              }}
+              style={{ borderRadius: RADIUS.lg, overflow: "hidden", opacity: joinCode.length < 4 ? 0.4 : 1 }}
+            >
+              <LinearGradient
+                colors={[PALETTE.sarcelle, "#2ABFB8"]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                style={{ paddingVertical: 16, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+              >
+                {joinByCode.isPending
+                  ? <ActivityIndicator color="#FFF" />
+                  : <><Ionicons name="enter-outline" size={20} color="#FFF" /><Text style={{ color: "#FFF", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>Rejoindre</Text></>
+                }
+              </LinearGradient>
+            </AnimatedPressable>
+          </View>
+        </BottomSheet>
 
         {/* ── Invite sheet ──────────────────────────────────── */}
         <BottomSheet isOpen={showInvite} onClose={() => setShowInvite(false)} snapPoint={0.35}>
@@ -1307,6 +1477,9 @@ export default function GroupScreen() {
               placeholderTextColor="#CCC"
               style={{ ...INPUT_STYLE, marginBottom: 16 }}
               maxLength={50}
+              returnKeyType="next"
+              onSubmitEditing={() => editDescRef.current?.focus()}
+              blurOnSubmit={false}
             />
 
             {/* Description */}
@@ -1323,6 +1496,7 @@ export default function GroupScreen() {
               DESCRIPTION
             </Text>
             <TextInput
+              ref={editDescRef}
               value={editDesc}
               onChangeText={setEditDesc}
               placeholder="Décris ton groupe..."
@@ -1336,6 +1510,8 @@ export default function GroupScreen() {
                 textAlignVertical: "top",
               }}
               maxLength={200}
+              returnKeyType="done"
+              blurOnSubmit={true}
             />
 
             {/* Save */}
@@ -1373,13 +1549,17 @@ export default function GroupScreen() {
 
         {/* ── Create challenge sheet ────────────────────────── */}
         <BottomSheet
+          ref={challengeSheetRef}
           isOpen={showCreateChallenge}
           onClose={() => {
             setShowCreateChallenge(false);
             setChallengeTitle("");
             setChallengeDesc("");
+            setChallengePrize("");
+            setChallengeRules("");
+            setChallengeDays(7);
           }}
-          snapPoint={0.5}
+          snapPoint={0.92}
         >
           <View style={{ paddingHorizontal: SPACING["2xl"], paddingTop: 8 }}>
             <Text
@@ -1413,6 +1593,9 @@ export default function GroupScreen() {
               style={{ ...INPUT_STYLE, marginBottom: 16 }}
               maxLength={100}
               autoFocus
+              returnKeyType="next"
+              onSubmitEditing={() => challengeDescRef.current?.focus()}
+              blurOnSubmit={false}
             />
 
             <Text
@@ -1428,6 +1611,7 @@ export default function GroupScreen() {
               DESCRIPTION (optionnel)
             </Text>
             <TextInput
+              ref={challengeDescRef}
               value={challengeDesc}
               onChangeText={setChallengeDesc}
               placeholder="Décris le défi..."
@@ -1442,6 +1626,104 @@ export default function GroupScreen() {
               }}
               maxLength={300}
             />
+
+            <Text
+              style={{
+                fontSize: FONT.sizes.xs,
+                fontFamily: FONT_FAMILY.bold,
+                color: "#B0B0B0",
+                textTransform: "uppercase",
+                letterSpacing: 1.2,
+                marginBottom: 8,
+              }}
+            >
+              GAIN / RÉCOMPENSE (optionnel)
+            </Text>
+            <TextInput
+              ref={challengePrizeRef}
+              value={challengePrize}
+              onChangeText={setChallengePrize}
+              placeholder="Ex: Le gagnant choisit l'activité 🏆"
+              placeholderTextColor="#CCC"
+              style={{ ...INPUT_STYLE, marginBottom: 16 }}
+              maxLength={150}
+              returnKeyType="next"
+              onSubmitEditing={() => challengeRulesRef.current?.focus()}
+              blurOnSubmit={false}
+              onFocus={() => challengeSheetRef.current?.scrollTo(250)}
+            />
+
+            <Text
+              style={{
+                fontSize: FONT.sizes.xs,
+                fontFamily: FONT_FAMILY.bold,
+                color: "#B0B0B0",
+                textTransform: "uppercase",
+                letterSpacing: 1.2,
+                marginBottom: 8,
+              }}
+            >
+              RÈGLES (optionnel)
+            </Text>
+            <TextInput
+              ref={challengeRulesRef}
+              value={challengeRules}
+              onChangeText={setChallengeRules}
+              placeholder="Ex: Vidéo max 30s, en extérieur uniquement..."
+              placeholderTextColor="#CCC"
+              multiline
+              numberOfLines={3}
+              style={{
+                ...INPUT_STYLE,
+                marginBottom: 24,
+                minHeight: 80,
+                textAlignVertical: "top",
+              }}
+              maxLength={500}
+              returnKeyType="done"
+              blurOnSubmit={true}
+              onFocus={() => challengeSheetRef.current?.scrollToEnd()}
+            />
+
+            <Text
+              style={{
+                fontSize: FONT.sizes.xs,
+                fontFamily: FONT_FAMILY.bold,
+                color: "#B0B0B0",
+                textTransform: "uppercase",
+                letterSpacing: 1.2,
+                marginBottom: 10,
+              }}
+            >
+              DURÉE DES SOUMISSIONS
+            </Text>
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 24 }}>
+              {[3, 7, 14].map((d) => (
+                <Pressable
+                  key={d}
+                  onPress={() => setChallengeDays(d)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    borderRadius: RADIUS.md,
+                    alignItems: "center",
+                    backgroundColor: challengeDays === d ? PALETTE.fuchsia + "18" : "rgba(0,0,0,0.04)",
+                    borderWidth: 1.5,
+                    borderColor: challengeDays === d ? PALETTE.fuchsia : "rgba(0,0,0,0.06)",
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: challengeDays === d ? PALETTE.fuchsia : "#999",
+                      fontFamily: FONT_FAMILY.bold,
+                      fontSize: FONT.sizes.sm,
+                    }}
+                  >
+                    {d}j
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
 
             <AnimatedPressable
               onPress={handleCreateChallenge}

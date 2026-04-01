@@ -196,6 +196,7 @@ export default function OnboardingScreen() {
                 autoCorrect={false}
                 autoFocus
                 maxLength={24}
+                returnKeyType="done"
                 style={{ flex: 1, fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.bold, color: "#1A1A1A", paddingVertical: 16 }}
               />
               {isValid && !usernameError && (

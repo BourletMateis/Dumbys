@@ -14,7 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import * as VideoThumbnails from "expo-video-thumbnails";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PALETTE, FONT_FAMILY, FONT, RADIUS } from "@/src/theme";
 
@@ -23,6 +23,9 @@ const DURATIONS = [15, 30, 60];
 
 export default function CameraScreen() {
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ groupId?: string; challengeId?: string }>();
+  const preGroupId = Array.isArray(params.groupId) ? params.groupId[0] : (params.groupId ?? undefined);
+  const preChallengeId = Array.isArray(params.challengeId) ? params.challengeId[0] : (params.challengeId ?? undefined);
   const [camPerm, requestCamPerm] = useCameraPermissions();
   const [micPerm, requestMicPerm] = useMicrophonePermissions();
   const cameraRef = useRef<CameraView>(null);
@@ -66,7 +69,7 @@ export default function CameraScreen() {
       const thumb = await VideoThumbnails.getThumbnailAsync(uri, { time: 500, quality: 0.6 });
       thumbUri = thumb.uri;
     } catch {}
-    router.push({ pathname: "/post" as any, params: { videoUri: uri, thumbnailUri: thumbUri } });
+    router.push({ pathname: "/post" as any, params: { videoUri: uri, thumbnailUri: thumbUri, ...(preGroupId ? { groupId: preGroupId } : {}), ...(preChallengeId ? { challengeId: preChallengeId } : {}) } });
   };
 
   const handleRecord = async () => {

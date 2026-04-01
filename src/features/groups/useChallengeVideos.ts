@@ -1,12 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/src/lib/supabase";
-import { uploadFile } from "@/src/lib/storage";
+import { uploadFile, triggerStreamEncode } from "@/src/lib/storage";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import * as VideoThumbnails from "expo-video-thumbnails";
 
 export type ChallengeVideo = {
   id: string;
   source_url: string | null;
+  stream_url: string | null;
   video_path: string | null;
   thumbnail_url: string | null;
   title: string | null;
@@ -30,7 +31,7 @@ export function useChallengeVideos(challengeId: string) {
 
       const { data, error } = await supabase
         .from("videos")
-        .select("id, source_url, video_path, thumbnail_url, title, description, created_at, submitter_id")
+        .select("id, source_url, stream_url, video_path, thumbnail_url, title, description, created_at, submitter_id")
         .eq("challenge_id", challengeId)
         .order("created_at", { ascending: false });
 
@@ -54,6 +55,7 @@ export function useChallengeVideos(challengeId: string) {
           return {
             id: v.id,
             source_url: v.source_url,
+            stream_url: v.stream_url,
             video_path: v.video_path,
             thumbnail_url: v.thumbnail_url,
             title: v.title,
@@ -124,6 +126,10 @@ export function useUploadChallengeVideo() {
         .single();
 
       if (error) throw error;
+
+      // Trigger async HLS encoding (fire-and-forget, fallback = source_url)
+      triggerStreamEncode(data.id, videoUrl);
+
       return data;
     },
     onSuccess: (_, variables) => {

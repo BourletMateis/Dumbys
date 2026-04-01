@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { loginSchema, signUpSchema } from "@/src/lib/schemas";
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const passwordRef = useRef<any>(null);
   const [isSignUp, setIsSignUp] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 
@@ -190,6 +191,9 @@ export default function LoginScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                blurOnSubmit={false}
                 style={{
                   backgroundColor: "rgba(0,0,0,0.04)",
                   borderWidth: 1,
@@ -210,12 +214,15 @@ export default function LoginScreen() {
             </View>
             <View>
               <TextInput
+                ref={passwordRef}
                 value={password}
                 onChangeText={(t) => { setPassword(t); setFieldErrors((e) => ({ ...e, password: undefined })); }}
                 placeholder="Mot de passe"
                 placeholderTextColor="#BBB"
                 secureTextEntry
                 autoCapitalize="none"
+                returnKeyType="done"
+                onSubmitEditing={handleSubmit}
                 style={{
                   backgroundColor: "rgba(0,0,0,0.04)",
                   borderWidth: 1,

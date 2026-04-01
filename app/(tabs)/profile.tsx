@@ -13,6 +13,7 @@ import { useMyVideos } from "@/src/features/profile/useMyVideos";
 import { useMyGroups } from "@/src/features/groups/useMyGroups";
 import { useDeleteVideo } from "@/src/features/feed/useDeleteVideo";
 import { useAuthStore } from "@/src/store/useAuthStore";
+import { useUploadStore } from "@/src/store/useUploadStore";
 import { useUpdateAvatar } from "@/src/features/profile/useUpdateAvatar";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
@@ -246,6 +247,8 @@ export default function ProfileScreen() {
   const { data: myVideos } = useMyVideos();
   const { data: groups } = useMyGroups();
   const deleteVideo = useDeleteVideo();
+  const allUploads = useUploadStore((s) => s.uploads);
+  const pendingUploads = allUploads.filter((u) => u.status !== "done");
 
   const CARD_GAP = 12;
   const CARD_WIDTH = (SCREEN_WIDTH - 40 - CARD_GAP) / 2;
@@ -424,30 +427,33 @@ export default function ProfileScreen() {
             Ma Galerie Vidéo
           </Text>
 
-          {/* Video grid */}
+          {/* Grille unifiée : uploads en cours + vidéos réelles */}
           <View>
             {(() => {
-                const hasRealVideos = (myVideos ?? []).length > 0;
-                const videos = hasRealVideos
-                  ? (myVideos ?? []).map((v, index) => ({
-                      id: v.id,
-                      videoPath: v.video_path,
-                      index,
-                      title: v.group?.name ?? "Vidéo",
-                      emoji: "",
-                      views: "—",
-                      date: new Date(v.created_at).toLocaleDateString("fr-FR", { month: "short", year: "numeric" }).toUpperCase(),
-                      thumbnail: v.thumbnail_url,
-                    }))
-                  : [];
+                type GridItem =
+                  | { kind: "pending"; localId: string; thumbnailUri: string | null; status: string }
+                  | { kind: "video"; id: string; videoPath: string | null; index: number; title: string; date: string; thumbnail: string | null };
 
-                // Chunk into rows of 2
-                const rows: typeof videos[] = [];
-                for (let i = 0; i < videos.length; i += 2) {
-                  rows.push(videos.slice(i, i + 2));
-                }
+                const pendingItems: GridItem[] = pendingUploads.map((u) => ({
+                  kind: "pending",
+                  localId: u.localId,
+                  thumbnailUri: u.thumbnailUri,
+                  status: u.status,
+                }));
 
-                if (!hasRealVideos) {
+                const videoItems: GridItem[] = (myVideos ?? []).map((v, index) => ({
+                  kind: "video",
+                  id: v.id,
+                  videoPath: v.video_path,
+                  index,
+                  title: v.group?.name ?? "Vidéo",
+                  date: new Date(v.created_at).toLocaleDateString("fr-FR", { month: "short", year: "numeric" }).toUpperCase(),
+                  thumbnail: v.thumbnail_url,
+                }));
+
+                const allItems: GridItem[] = [...pendingItems, ...videoItems];
+
+                if (allItems.length === 0) {
                   return (
                     <View style={{ alignItems: "center", paddingVertical: 40 }}>
                       <Ionicons name="videocam-outline" size={48} color="#D0D0D0" />
@@ -461,38 +467,62 @@ export default function ProfileScreen() {
                   );
                 }
 
+                const rows: GridItem[][] = [];
+                for (let i = 0; i < allItems.length; i += 2) {
+                  rows.push(allItems.slice(i, i + 2));
+                }
+
                 return rows.map((row, rowIndex) => (
                   <View key={rowIndex} style={{ flexDirection: "row", gap: CARD_GAP, marginBottom: CARD_GAP }}>
-                    {row.map((video) => (
-                      <VideoGalleryCard
-                        key={video.id}
-                        title={video.title}
-                        emoji={video.emoji}
-                        views={video.views}
-                        date={video.date}
-                        thumbnailUrl={video.thumbnail}
-                        width={CARD_WIDTH}
-                        onPress={hasRealVideos ? () => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          router.push({ pathname: "/feed/my-videos", params: { startIndex: String(video.index) } });
-                        } : undefined}
-                        onDelete={hasRealVideos ? () => {
-                          deleteVideo.mutate({ videoId: video.id, videoPath: (video as any).videoPath });
-                        } : undefined}
-                        onShare={hasRealVideos ? () => {
-                          Share.share({
-                            message: `Regarde ma vidéo "${video.title}" sur Dumbys !`,
-                          });
-                        } : undefined}
-                      />
-                    ))}
-                    {/* Fill empty space if odd number */}
+                    {row.map((item) => {
+                      if (item.kind === "pending") {
+                        return (
+                          <View
+                            key={item.localId}
+                            style={{ width: CARD_WIDTH, aspectRatio: 9 / 16, borderRadius: RADIUS.xl, backgroundColor: "#1A1A1A", overflow: "hidden" }}
+                          >
+                            {item.thumbnailUri ? (
+                              <Image source={{ uri: item.thumbnailUri }} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" />
+                            ) : null}
+                            <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                              {item.status === "error" ? (
+                                <>
+                                  <Ionicons name="alert-circle-outline" size={28} color="#F43F5E" />
+                                  <Text style={{ color: "#F43F5E", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold }}>Échec</Text>
+                                </>
+                              ) : (
+                                <>
+                                  <ActivityIndicator color="#FFF" size="large" />
+                                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold }}>En cours...</Text>
+                                </>
+                              )}
+                            </View>
+                          </View>
+                        );
+                      }
+                      return (
+                        <VideoGalleryCard
+                          key={item.id}
+                          title={item.title}
+                          emoji=""
+                          views="—"
+                          date={item.date}
+                          thumbnailUrl={item.thumbnail}
+                          width={CARD_WIDTH}
+                          onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            router.push({ pathname: "/feed/my-videos", params: { startIndex: String(item.index) } });
+                          }}
+                          onDelete={() => deleteVideo.mutate({ videoId: item.id, videoPath: item.videoPath })}
+                          onShare={() => Share.share({ message: `Regarde ma vidéo "${item.title}" sur Dumbys !` })}
+                        />
+                      );
+                    })}
                     {row.length === 1 && <View style={{ width: CARD_WIDTH }} />}
                   </View>
                 ));
               })()}
-
-            </View>
+          </View>
         </View>
 
 

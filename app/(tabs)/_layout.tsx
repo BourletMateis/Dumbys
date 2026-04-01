@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
 import { View, Text, Pressable } from "react-native";
+import { useBackgroundUpload } from "@/src/hooks/useBackgroundUpload";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -183,6 +184,7 @@ function CustomTabBar({ state, navigation, onFabPress }: CustomTabBarProps) {
 }
 
 export default function TabLayout() {
+  useBackgroundUpload();
   return (
     <Tabs
       tabBar={(props) => (

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/src/lib/supabase";
-import { uploadFile, getPublicUrl } from "@/src/lib/storage";
+import { uploadFile, getPublicUrl, triggerStreamEncode } from "@/src/lib/storage";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import * as VideoThumbnails from "expo-video-thumbnails";
 
@@ -66,6 +66,10 @@ export function useUploadGroupVideo() {
         .single();
 
       if (error) throw error;
+
+      // Trigger async HLS encoding (fire-and-forget, fallback = source_url)
+      triggerStreamEncode(data.id, videoUrl);
+
       return data;
     },
     onSuccess: (_data, variables) => {

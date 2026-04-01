@@ -314,6 +314,7 @@ export default function SettingsScreen() {
                     maxLength={24}
                     placeholder="Ton pseudo"
                     placeholderTextColor="#CCC"
+                    returnKeyType="done"
                     style={{
                       flex: 1,
                       color: "#1A1A1A",

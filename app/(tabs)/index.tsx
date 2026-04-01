@@ -55,11 +55,12 @@ type GroupFilter = null | string;
 // ─── Activity dot detection ──────────────────────────────────────
 const RECENT_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours
 
-function hasUnseenActivity(groupId: string, videos: HomeFeedVideo[], lastSeenAt: number) {
+function hasUnseenActivity(groupId: string, videos: HomeFeedVideo[], lastSeenAt: number, currentUserId?: string) {
   const cutoff = Date.now() - RECENT_MS;
   return videos.some(
     (v) =>
       v.group?.id === groupId &&
+      v.submitter.id !== currentUserId &&
       new Date(v.created_at).getTime() > cutoff &&
       new Date(v.created_at).getTime() > lastSeenAt,
   );
@@ -144,8 +145,44 @@ function GroupStoryItem({
           />
         )}
 
-        {/* Private lock */}
-        {!group.is_public && (
+        {/* Status badge */}
+        {group.status === "pending_public" ? (
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              width: 16,
+              height: 16,
+              borderRadius: 8,
+              backgroundColor: "#FDB813",
+              borderWidth: 1.5,
+              borderColor: "#FFF",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name="time" size={8} color="#1A1A1A" />
+          </View>
+        ) : group.status === "rejected_public" ? (
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              width: 16,
+              height: 16,
+              borderRadius: 8,
+              backgroundColor: "#F43F5E",
+              borderWidth: 1.5,
+              borderColor: "#FFF",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name="close" size={8} color="#FFF" />
+          </View>
+        ) : !group.is_public ? (
           <View
             style={{
               position: "absolute",
@@ -163,7 +200,7 @@ function GroupStoryItem({
           >
             <Ionicons name="lock-closed" size={8} color="#FFF" />
           </View>
-        )}
+        ) : null}
       </View>
 
       <Text
@@ -182,7 +219,9 @@ function GroupStoryItem({
 }
 
 // ─── Video inline preview ─────────────────────────────────────────
-function VideoPreview({ url }: { url: string }) {
+// - visible=false : player créé + buffering en silence (preload)
+// - visible=true  : affiché, vidéo déjà bufferisée → quasi instantané
+function VideoPreview({ url, visible }: { url: string; visible: boolean }) {
   const [muted, setMuted] = useState(false);
   const player = useVideoPlayer(url, (p) => {
     p.loop = true;
@@ -190,39 +229,62 @@ function VideoPreview({ url }: { url: string }) {
     p.play();
   });
 
+  const [isPlaying, setIsPlaying] = useState(false);
+  useEffect(() => {
+    const sub = player.addListener("playingChange", ({ isPlaying: playing }) => {
+      setIsPlaying(playing);
+    });
+    return () => sub.remove();
+  }, [player]);
+
   return (
-    <View style={{ position: "absolute", width: "100%", height: "100%" }}>
+    <View
+      style={{ position: "absolute", width: "100%", height: "100%", opacity: visible ? 1 : 0 }}
+      pointerEvents={visible ? "auto" : "none"}
+    >
       <VideoView
         player={player}
         style={{ width: "100%", height: "100%" }}
         contentFit="cover"
         nativeControls={false}
       />
-      <Pressable
-        onPress={() => { player.muted = !muted; setMuted((m) => !m); }}
-        style={{ position: "absolute", bottom: 58, right: 14, width: 34, height: 34, borderRadius: 17, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" }}
-      >
-        <Ionicons name={muted ? "volume-mute" : "volume-high"} size={15} color="#FFF" />
-      </Pressable>
+      {visible && (isPlaying ? (
+        <Pressable
+          onPress={() => { player.muted = !muted; setMuted((m) => !m); }}
+          style={{ position: "absolute", bottom: 58, right: 14, width: 34, height: 34, borderRadius: 17, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" }}
+        >
+          <Ionicons name={muted ? "volume-mute" : "volume-high"} size={15} color="#FFF" />
+        </Pressable>
+      ) : (
+        <View style={{ position: "absolute", bottom: 58, right: 14, width: 34, height: 34, borderRadius: 17, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="small" color="#FFF" />
+        </View>
+      ))}
     </View>
   );
 }
 
 // ─── Video card ──────────────────────────────────────────────────
-function VideoCard({ video, index, groupFilter, isPreviewActive }: {
+function VideoCard({ video, index, groupFilter, isPreviewActive, isPreloading }: {
   video: HomeFeedVideo;
   index: number;
   groupFilter: GroupFilter;
   isPreviewActive: boolean;
+  isPreloading: boolean;
 }) {
   return (
     <View
       style={{
-        marginHorizontal: 0,
-        marginBottom: 10,
-        borderRadius: 0,
-        backgroundColor: "#000",
+        marginHorizontal: CARD_MARGIN_H,
+        marginBottom: 20,
+        borderRadius: 20,
+        backgroundColor: "#FFFFFF",
         overflow: "hidden",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 4,
       }}
     >
       <Pressable
@@ -232,7 +294,7 @@ function VideoCard({ video, index, groupFilter, isPreviewActive }: {
         }}
       >
         {/* Thumbnail */}
-        <View style={{ aspectRatio: 16 / 9, backgroundColor: "#111" }}>
+        <View style={{ aspectRatio: 16 / 9, backgroundColor: "#E8E8E8" }}>
           {video.thumbnail_url ? (
             <Image
               source={{ uri: video.thumbnail_url }}
@@ -245,9 +307,9 @@ function VideoCard({ video, index, groupFilter, isPreviewActive }: {
             </View>
           )}
 
-          {/* Inline video preview */}
-          {isPreviewActive && video.source_url && (
-            <VideoPreview url={video.source_url} />
+          {/* Inline video preview — rendu dès le preload, visible seulement quand actif */}
+          {(isPreviewActive || isPreloading) && video.source_url && (
+            <VideoPreview url={video.stream_url ?? video.source_url} visible={isPreviewActive} />
           )}
 
           {/* Gradient overlay */}
@@ -324,6 +386,7 @@ export default function HomeScreen() {
   const { data: myGroups } = useMyGroups();
   const [groupFilter, setGroupFilter] = useState<GroupFilter>(null);
   const [previewVideoId, setPreviewVideoId] = useState<string | null>(null);
+  const [preloadVideoId, setPreloadVideoId] = useState<string | null>(null);
   const storiesRef = useRef<ScrollView>(null);
   const viewableItemsRef = useRef<any[]>([]);
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -335,23 +398,32 @@ export default function HomeScreen() {
     return () => {
       if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
       setPreviewVideoId(null);
+      setPreloadVideoId(null);
     };
   }, []));
 
+  const getCandidateVideoId = useCallback(() => {
+    const videoItems = viewableItemsRef.current.filter((t) => t.item?.type === "video");
+    if (videoItems.length === 0) return null;
+    return videoItems[Math.floor(videoItems.length / 2)].item.video.id as string;
+  }, []);
+
   const startPreviewTimer = useCallback(() => {
     if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    // Preload immédiatement (buffering silencieux)
+    const candidate = getCandidateVideoId();
+    if (candidate) setPreloadVideoId(candidate);
+    // Affiche après 2s (déjà bufferisé → quasi instantané)
     previewTimerRef.current = setTimeout(() => {
-      const videoItems = viewableItemsRef.current.filter((t) => t.item?.type === "video");
-      if (videoItems.length > 0) {
-        const mid = videoItems[Math.floor(videoItems.length / 2)];
-        setPreviewVideoId(mid.item.video.id);
-      }
-    }, 2000);
-  }, []);
+      const id = getCandidateVideoId();
+      if (id) setPreviewVideoId(id);
+    }, 1000);
+  }, [getCandidateVideoId]);
 
   const stopPreview = useCallback(() => {
     if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
     setPreviewVideoId(null);
+    setPreloadVideoId(null);
   }, []);
 
   const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: any[] }) => {
@@ -391,7 +463,7 @@ export default function HomeScreen() {
   const sortedGroups = useMemo(() => {
     if (!myGroups) return [];
     return [...myGroups].sort((a, b) => {
-      const aUnseen = hasUnseenActivity(a.id, allVideos, lastSeenAt.current[a.id] ?? 0) ? 1 : 0;
+      const aUnseen = hasUnseenActivity(a.id, allVideos, lastSeenAt.current[a.id] ?? 0, profile?.id) ? 1 : 0;
       const bUnseen = hasUnseenActivity(b.id, allVideos, lastSeenAt.current[b.id] ?? 0) ? 1 : 0;
       if (aUnseen !== bUnseen) return bUnseen - aUnseen;
       if (!a.is_public && b.is_public) return -1;
@@ -450,8 +522,8 @@ export default function HomeScreen() {
         </View>
       );
     }
-    return <VideoCard video={item.video} index={item.videoIndex} groupFilter={groupFilter} isPreviewActive={item.video.id === previewVideoId} />;
-  }, [groupFilter, previewVideoId]);
+    return <VideoCard video={item.video} index={item.videoIndex} groupFilter={groupFilter} isPreviewActive={item.video.id === previewVideoId} isPreloading={item.video.id === preloadVideoId && item.video.id !== previewVideoId} />;
+  }, [groupFilter, previewVideoId, preloadVideoId]);
 
   // ── Header ─────────────────────────────────────────────────────
   const ListHeader = (
@@ -517,7 +589,7 @@ export default function HomeScreen() {
                 key={group.id}
                 group={group}
                 isActive={groupFilter === group.id}
-                hasActivity={hasUnseenActivity(group.id, allVideos, lastSeenAt.current[group.id] ?? 0)}
+                hasActivity={hasUnseenActivity(group.id, allVideos, lastSeenAt.current[group.id] ?? 0, profile?.id)}
                 onPress={() => handleGroupSelect(group.id)}
               />
             ))}

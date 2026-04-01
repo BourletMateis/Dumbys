@@ -127,7 +127,6 @@ function RootLayoutNav() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="category/[key]" options={{ headerShown: false, animation: "slide_from_right" }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: "modal" }} />
         <Stack.Screen
           name="camera"
           options={{ presentation: "fullScreenModal", headerShown: false, animation: "fade" }}
@@ -142,6 +141,13 @@ function RootLayoutNav() {
         />
         <Stack.Screen
           name="group/[id]"
+          options={{
+            headerShown: false,
+            animation: "slide_from_right",
+          }}
+        />
+        <Stack.Screen
+          name="challenge/[id]"
           options={{
             headerShown: false,
             animation: "slide_from_right",
@@ -185,10 +191,6 @@ function RootLayoutNav() {
         <Stack.Screen
           name="settings"
           options={{ headerShown: false, animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="groups/create"
-          options={{ headerShown: false, animation: "slide_from_bottom" }}
         />
       </Stack>
     </NavThemeProvider>

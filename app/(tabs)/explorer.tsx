@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   Alert,
   ScrollView,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,7 +22,7 @@ import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { usePublicGroups, PUBLIC_CATEGORIES, type PublicGroup } from "@/src/features/groups/usePublicGroups";
 import { useMyGroups, type GroupWithRole } from "@/src/features/groups/useMyGroups";
-import { useJoinPublicGroup, useCreateGroup } from "@/src/features/groups/useGroupActions";
+import { useJoinPublicGroup, useCreateGroup, useJoinGroupByCode } from "@/src/features/groups/useGroupActions";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { BottomSheet } from "@/src/components/ui/BottomSheet";
 import { createGroupSchema } from "@/src/lib/schemas";
@@ -29,7 +31,7 @@ import { FONT, FONT_FAMILY, PALETTE, RADIUS, SPACING, getGroupBannerColor } from
 
 type Tab = "mes-groupes" | "decouvrir";
 type GroupType = "thematic" | "private";
-type CreateStep = "type" | "category" | "details";
+type CreateStep = "type" | "category" | "details" | "join";
 
 function getCategoryMeta(key: string | null) {
   if (!key) return null;
@@ -95,11 +97,24 @@ function MyGroupCard({ group }: { group: GroupWithRole }) {
               <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold }}>Créateur</Text>
             </View>
           )}
-          <View style={{ backgroundColor: group.is_public ? "rgba(63,208,201,0.88)" : "rgba(0,0,0,0.45)", borderRadius: RADIUS.full, paddingHorizontal: 9, paddingVertical: 3 }}>
-            <Text style={{ color: "#FFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold }}>
-              {group.is_public ? "Public" : "Privé"}
-            </Text>
-          </View>
+          {group.status === "pending_public" ? (
+            <View style={{ backgroundColor: "rgba(253,184,19,0.92)", borderRadius: RADIUS.full, paddingHorizontal: 9, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Ionicons name="time-outline" size={10} color="#1A1A1A" />
+              <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold }}>En révision</Text>
+            </View>
+          ) : group.status === "rejected_public" ? (
+            <View style={{ backgroundColor: "rgba(244,63,94,0.88)", borderRadius: RADIUS.full, paddingHorizontal: 9, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Ionicons name="close-circle-outline" size={10} color="#FFF" />
+              <Text style={{ color: "#FFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold }}>Refusé</Text>
+            </View>
+          ) : (
+            <View style={{ backgroundColor: group.is_public ? "rgba(63,208,201,0.88)" : "rgba(0,0,0,0.45)", borderRadius: RADIUS.full, paddingHorizontal: 9, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Ionicons name={group.is_public ? "globe-outline" : "lock-closed-outline"} size={10} color="#FFF" />
+              <Text style={{ color: "#FFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold }}>
+                {group.is_public ? "Public" : "Privé"}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={{ position: "absolute", bottom: 16, left: 16, right: 16, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" }}>
@@ -236,12 +251,15 @@ export default function GroupsScreen() {
   const [groupType, setGroupType] = useState<GroupType | null>(null);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const newDescRef = useRef<any>(null);
   const [newCoverUri, setNewCoverUri] = useState<string | null>(null);
   const [newCategory, setNewCategory] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [nameError, setNameError] = useState<string | undefined>();
 
   const createGroup = useCreateGroup();
+  const joinByCode = useJoinGroupByCode();
+  const [joinCode, setJoinCode] = useState("");
 
   const resetCreate = () => {
     setShowCreate(false);
@@ -249,6 +267,7 @@ export default function GroupsScreen() {
     setGroupType(null);
     setNewName(""); setNewDesc(""); setNewCoverUri(null); setNewCategory(null);
     setNameError(undefined);
+    setJoinCode("");
   };
 
   const pickCover = async () => {
@@ -268,12 +287,18 @@ export default function GroupsScreen() {
       {
         name: newName.trim(),
         description: newDesc.trim() || undefined,
-        isPublic: groupType === "thematic",
+        requestPublic: groupType === "thematic",
         category: groupType === "thematic" ? (newCategory ?? undefined) : undefined,
         coverUri: newCoverUri ?? undefined,
       },
       {
-        onSuccess: (data) => { resetCreate(); router.push({ pathname: "/group/[id]", params: { id: data.id } }); },
+        onSuccess: (data) => {
+          resetCreate();
+          if (groupType === "thematic") {
+            toast.info("Un admin va examiner ta demande.", "Demande envoyée !");
+          }
+          router.push({ pathname: "/group/[id]", params: { id: data.id } });
+        },
         onError: (err) => toast.error(err.message),
         onSettled: () => setIsCreating(false),
       },
@@ -339,6 +364,7 @@ export default function GroupsScreen() {
             placeholderTextColor="#BBBBC0"
             autoCapitalize="none"
             autoCorrect={false}
+            returnKeyType="search"
             style={{ flex: 1, color: "#1A1A1A", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, paddingVertical: 11 }}
           />
           {search.length > 0 && <Pressable onPress={() => setSearch("")}><Ionicons name="close-circle" size={18} color="#CCC" /></Pressable>}
@@ -462,7 +488,7 @@ export default function GroupsScreen() {
       <BottomSheet
         isOpen={showCreate}
         onClose={resetCreate}
-        snapPoint={createStep === "type" ? 0.5 : createStep === "category" ? 0.65 : 0.92}
+        snapPoint={createStep === "type" ? 0.72 : createStep === "join" ? 0.55 : createStep === "category" ? 0.65 : 0.92}
       >
         <ScrollView style={{ paddingHorizontal: SPACING["2xl"], paddingTop: 8 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets>
 
@@ -470,10 +496,10 @@ export default function GroupsScreen() {
           {createStep === "type" && (
             <>
               <Text style={{ fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.bold, color: "#1A1A1A", marginBottom: 6 }}>
-                Créer un groupe
+                Groupes
               </Text>
               <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular, color: "#AAAAAA", marginBottom: 28 }}>
-                Quel type de groupe veux-tu créer ?
+                Crée un groupe ou rejoins-en un avec un code.
               </Text>
 
               {/* Thématique */}
@@ -492,7 +518,7 @@ export default function GroupsScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: "#FFF" }}>Thématique</Text>
                     <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular, color: "rgba(255,255,255,0.8)", marginTop: 3 }}>
-                      Public, avec une catégorie. Ouvert à tous.
+                      Demande de groupe public · Validation admin requise
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
@@ -506,7 +532,7 @@ export default function GroupsScreen() {
                   setGroupType("private");
                   setCreateStep("details");
                 }}
-                style={{ borderRadius: RADIUS.xl, backgroundColor: "#F2F3F7", borderWidth: 1.5, borderColor: "rgba(0,0,0,0.06)", padding: 20, flexDirection: "row", alignItems: "center", gap: 16, marginBottom: 40 }}
+                style={{ borderRadius: RADIUS.xl, backgroundColor: "#F2F3F7", borderWidth: 1.5, borderColor: "rgba(0,0,0,0.06)", padding: 20, flexDirection: "row", alignItems: "center", gap: 16, marginBottom: 14 }}
               >
                 <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: "#E8E8EF", alignItems: "center", justifyContent: "center" }}>
                   <Ionicons name="lock-closed" size={24} color="#555" />
@@ -515,6 +541,26 @@ export default function GroupsScreen() {
                   <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: "#1A1A1A" }}>Entre potes</Text>
                   <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular, color: "#AAAAAA", marginTop: 3 }}>
                     Privé, sur invitation. Juste votre cercle.
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#CCC" />
+              </AnimatedPressable>
+
+              {/* Rejoindre avec un code */}
+              <AnimatedPressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  setCreateStep("join");
+                }}
+                style={{ borderRadius: RADIUS.xl, backgroundColor: "#F2F3F7", borderWidth: 1.5, borderColor: "rgba(0,0,0,0.06)", padding: 20, flexDirection: "row", alignItems: "center", gap: 16, marginBottom: 40 }}
+              >
+                <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: `${PALETTE.sarcelle}18`, alignItems: "center", justifyContent: "center" }}>
+                  <Ionicons name="key-outline" size={24} color={PALETTE.sarcelle} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: "#1A1A1A" }}>Rejoindre un groupe</Text>
+                  <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular, color: "#AAAAAA", marginTop: 3 }}>
+                    Tu as un code d'invitation ?
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#CCC" />
@@ -572,6 +618,85 @@ export default function GroupsScreen() {
             </>
           )}
 
+          {/* ── Step join : Rejoindre avec un code ───────────── */}
+          {createStep === "join" && (
+            <>
+              <Pressable onPress={() => setCreateStep("type")} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 20 }}>
+                <Ionicons name="chevron-back" size={18} color="#AAA" />
+                <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.medium, color: "#AAA" }}>Retour</Text>
+              </Pressable>
+
+              <Text style={{ fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.bold, color: "#1A1A1A", marginBottom: 6 }}>
+                Rejoindre un groupe
+              </Text>
+              <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular, color: "#AAAAAA", marginBottom: 24 }}>
+                Entre le code partagé par le créateur du groupe.
+              </Text>
+
+              <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#BBBBC0", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8 }}>
+                CODE D'INVITATION
+              </Text>
+              <TextInput
+                value={joinCode}
+                onChangeText={(t) => setJoinCode(t.toLowerCase().replace(/\s/g, ""))}
+                placeholder="ex: a1b2c3d4"
+                placeholderTextColor="#CCC"
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={12}
+                returnKeyType="done"
+                style={{
+                  backgroundColor: "#F2F3F7",
+                  borderRadius: 14,
+                  paddingHorizontal: 18,
+                  paddingVertical: 16,
+                  borderWidth: 1.5,
+                  borderColor: joinCode.length > 0 ? PALETTE.sarcelle : "transparent",
+                  fontSize: FONT.sizes["2xl"],
+                  fontFamily: "SpaceMono",
+                  color: "#1A1A1A",
+                  letterSpacing: 4,
+                  marginBottom: joinByCode.isError ? 10 : 24,
+                }}
+              />
+
+              {joinByCode.isError && (
+                <View style={{ backgroundColor: "rgba(244,63,94,0.08)", borderRadius: RADIUS.md, padding: 12, flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                  <Ionicons name="alert-circle-outline" size={16} color="#F43F5E" />
+                  <Text style={{ flex: 1, fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.medium, color: "#F43F5E" }}>
+                    {(joinByCode.error as Error)?.message ?? "Code invalide"}
+                  </Text>
+                </View>
+              )}
+
+              <AnimatedPressable
+                disabled={joinCode.length < 4 || joinByCode.isPending}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  joinByCode.mutate(joinCode, {
+                    onSuccess: (group) => {
+                      resetCreate();
+                      toast.success("Tu as rejoint le groupe !");
+                      router.push({ pathname: "/group/[id]", params: { id: group.id } });
+                    },
+                  });
+                }}
+                style={{ overflow: "hidden", borderRadius: 14, marginBottom: 40, opacity: joinCode.length < 4 ? 0.4 : 1 }}
+              >
+                <LinearGradient
+                  colors={[PALETTE.sarcelle, "#2ABFB8"]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  style={{ paddingVertical: 16, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+                >
+                  {joinByCode.isPending
+                    ? <ActivityIndicator color="#FFF" />
+                    : <><Ionicons name="enter-outline" size={20} color="#FFF" /><Text style={{ color: "#FFF", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>Rejoindre</Text></>
+                  }
+                </LinearGradient>
+              </AnimatedPressable>
+            </>
+          )}
+
           {/* ── Step 3 : Détails ──────────────────────────────── */}
           {createStep === "details" && (
             <>
@@ -619,12 +744,16 @@ export default function GroupsScreen() {
                 placeholderTextColor="#CCC"
                 style={{ backgroundColor: "#F2F3F7", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#1A1A1A", borderWidth: 1.5, borderColor: nameError ? "#F43F5E" : "transparent", marginBottom: nameError ? 4 : 18 }}
                 maxLength={50}
+                returnKeyType="next"
+                onSubmitEditing={() => newDescRef.current?.focus()}
+                blurOnSubmit={false}
               />
               {nameError && <Text style={{ color: "#F43F5E", fontSize: 12, fontFamily: FONT_FAMILY.medium, marginBottom: 14, marginLeft: 2 }}>{nameError}</Text>}
 
               {/* Description */}
               <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#BBBBC0", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8 }}>DESCRIPTION (optionnel)</Text>
               <TextInput
+                ref={newDescRef}
                 value={newDesc}
                 onChangeText={setNewDesc}
                 placeholder="Décris ton groupe..."
@@ -633,6 +762,8 @@ export default function GroupsScreen() {
                 numberOfLines={2}
                 style={{ backgroundColor: "#F2F3F7", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#1A1A1A", borderWidth: 1.5, borderColor: "transparent", marginBottom: 24, minHeight: 72, textAlignVertical: "top" }}
                 maxLength={200}
+                returnKeyType="done"
+                blurOnSubmit={true}
               />
 
               {/* Submit */}

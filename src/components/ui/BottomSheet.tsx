@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import {
   View,
   Pressable,
@@ -15,8 +15,6 @@ import Animated, {
   withSpring,
   withTiming,
   runOnJS,
-  interpolate,
-  Extrapolation,
 } from "react-native-reanimated";
 import {
   Gesture,
@@ -27,6 +25,11 @@ import { RADIUS } from "@/src/theme";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
+export type BottomSheetHandle = {
+  scrollTo: (y: number) => void;
+  scrollToEnd: () => void;
+};
+
 type BottomSheetProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -34,48 +37,59 @@ type BottomSheetProps = {
   children: React.ReactNode;
 };
 
-export function BottomSheet({
+export const BottomSheet = forwardRef<BottomSheetHandle, BottomSheetProps>(function BottomSheet({
   isOpen,
   onClose,
   snapPoint = 0.5,
   children,
-}: BottomSheetProps) {
+}: BottomSheetProps, ref) {
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const backdropOpacity = useSharedValue(0);
   const context = useSharedValue(0);
-  const keyboardHeight = useSharedValue(0);
-  // Track current keyboard height so we don't re-animate if it hasn't changed
-  const currentKbHeight = useRef(0);
+
+  useImperativeHandle(ref, () => ({
+    scrollTo: (y: number) => scrollRef.current?.scrollTo({ y, animated: true }),
+    scrollToEnd: () => scrollRef.current?.scrollToEnd({ animated: true }),
+  }));
+
+  // Track keyboard height as plain state — no sheet movement.
+  // iOS UIScrollView natively scrolls to the first responder when
+  // there is enough paddingBottom below it, which we provide here.
+  // Android "pan" mode in app.json handles it at the OS level.
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
     const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
 
     const onShow = Keyboard.addListener(showEvent, (e) => {
-      const h = e.endCoordinates.height;
-      if (h === currentKbHeight.current) return; // no change, avoid jump
-      currentKbHeight.current = h;
-      const duration = Platform.OS === "ios" ? e.duration : 200;
-      keyboardHeight.value = withTiming(h, { duration });
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const onHide = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
     });
 
-    const onHide = Keyboard.addListener(hideEvent, (e) => {
-      currentKbHeight.current = 0;
-      const duration = Platform.OS === "ios" ? e.duration : 200;
-      keyboardHeight.value = withTiming(0, { duration });
-    });
-
-    return () => { onShow.remove(); onHide.remove(); };
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
   }, []);
 
   const maxTranslate = SCREEN_HEIGHT * (1 - snapPoint);
+
+  const handleClose = () => {
+    Keyboard.dismiss();
+    onClose();
+  };
 
   useEffect(() => {
     if (isOpen) {
       translateY.value = withSpring(maxTranslate, { damping: 25, stiffness: 200 });
       backdropOpacity.value = withTiming(1, { duration: 200 });
     } else {
+      Keyboard.dismiss();
       translateY.value = withSpring(SCREEN_HEIGHT, { damping: 25, stiffness: 200 });
       backdropOpacity.value = withTiming(0, { duration: 200 });
     }
@@ -91,22 +105,15 @@ export function BottomSheet({
       if (event.translationY > 100 || event.velocityY > 500) {
         translateY.value = withSpring(SCREEN_HEIGHT, { damping: 25, stiffness: 200 });
         backdropOpacity.value = withTiming(0, { duration: 200 });
-        runOnJS(onClose)();
+        runOnJS(handleClose)();
       } else {
         translateY.value = withSpring(maxTranslate, { damping: 25, stiffness: 200 });
       }
     });
 
-  const sheetStyle = useAnimatedStyle(() => {
-    // Fade out the keyboard offset as the sheet closes so there's no jump
-    const keyboardOffset = interpolate(
-      translateY.value,
-      [maxTranslate, SCREEN_HEIGHT],
-      [keyboardHeight.value, 0],
-      Extrapolation.CLAMP,
-    );
-    return { transform: [{ translateY: translateY.value - keyboardOffset }] };
-  });
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: backdropOpacity.value,
@@ -114,8 +121,16 @@ export function BottomSheet({
 
   if (!isOpen) return null;
 
+  const basePadding = Math.max(insets.bottom, 20) + 40;
+
   return (
-    <Modal visible={isOpen} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
+    <Modal
+      visible={isOpen}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={handleClose}
+    >
       <GestureHandlerRootView style={{ flex: 1 }}>
         {/* Backdrop */}
         <Animated.View
@@ -124,7 +139,7 @@ export function BottomSheet({
             backdropStyle,
           ]}
         >
-          <Pressable style={{ flex: 1 }} onPress={onClose} />
+          <Pressable style={{ flex: 1 }} onPress={handleClose} />
         </Animated.View>
 
         {/* Sheet */}
@@ -154,10 +169,16 @@ export function BottomSheet({
             </View>
 
             <ScrollView
+              ref={scrollRef}
               bounces={false}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 20) + 20 }}
+              contentContainerStyle={{
+                // When keyboard is visible: add its height as extra bottom padding.
+                // This gives iOS's native UIScrollView first-responder scroll
+                // enough room to bring any input above the keyboard.
+                paddingBottom: basePadding + keyboardHeight,
+              }}
             >
               {children}
             </ScrollView>
@@ -166,4 +187,4 @@ export function BottomSheet({
       </GestureHandlerRootView>
     </Modal>
   );
-}
+});
