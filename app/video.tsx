@@ -1,14 +1,19 @@
-import { View, ActivityIndicator, Pressable, Text } from "react-native";
+import { View, Pressable, Text } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { WebView } from "react-native-webview";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { PALETTE, FONT, FONT_FAMILY } from "@/src/theme";
+import { FONT, FONT_FAMILY } from "@/src/theme";
 
 export default function VideoScreen() {
   const { url } = useLocalSearchParams<{ url: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  const player = useVideoPlayer(url || null, (p) => {
+    p.loop = true;
+    p.play();
+  });
 
   if (!url) {
     return (
@@ -23,6 +28,13 @@ export default function VideoScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
+      <VideoView
+        player={player}
+        style={{ flex: 1 }}
+        contentFit="contain"
+        nativeControls={false}
+      />
+
       {/* Close button */}
       <View style={{ position: "absolute", top: insets.top + 8, left: 16, zIndex: 10 }}>
         <Pressable
@@ -39,19 +51,6 @@ export default function VideoScreen() {
           <Ionicons name="close" size={24} color="#FFFFFF" />
         </Pressable>
       </View>
-
-      <WebView
-        source={{ uri: url }}
-        style={{ flex: 1 }}
-        allowsInlineMediaPlayback
-        mediaPlaybackRequiresUserAction={false}
-        startInLoadingState
-        renderLoading={() => (
-          <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center", backgroundColor: "#000" }}>
-            <ActivityIndicator size="large" color={PALETTE.sarcelle} />
-          </View>
-        )}
-      />
     </View>
   );
 }
