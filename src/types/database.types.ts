@@ -398,6 +398,39 @@ export interface Database {
         };
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: "like" | "comment" | "friend_request" | "friend_accepted" | "tournament_new" | "video_new";
+          title: string;
+          body: string;
+          data: Record<string, unknown> | null;
+          read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: "like" | "comment" | "friend_request" | "friend_accepted" | "tournament_new" | "video_new";
+          title: string;
+          body: string;
+          data?: Record<string, unknown> | null;
+          read?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          type?: "like" | "comment" | "friend_request" | "friend_accepted" | "tournament_new" | "video_new";
+          title?: string;
+          body?: string;
+          data?: Record<string, unknown> | null;
+          read?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

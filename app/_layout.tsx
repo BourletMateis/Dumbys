@@ -10,6 +10,9 @@ import "react-native-reanimated";
 import { queryClient } from "@/src/lib/queryClient";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { useRealtimeSubscriptions } from "@/src/hooks/useRealtimeSubscriptions";
+import { usePushSetup } from "@/src/features/notifications/usePushSetup";
+import { useOnboardingStore } from "@/src/store/useOnboardingStore";
+import { useThemeStore } from "@/src/store/useThemeStore";
 import { ThemeProvider } from "@/src/providers/ThemeProvider";
 import { useColorScheme } from "@/components/useColorScheme";
 
@@ -88,6 +91,14 @@ function RootLayoutNav() {
   const { session, isInitialized, initialize } = useAuthStore();
 
   useRealtimeSubscriptions();
+  usePushSetup();
+  const { hasSeenOnboarding, initialize: initOnboarding } = useOnboardingStore();
+  const initTheme = useThemeStore((s) => s.initialize);
+
+  useEffect(() => {
+    initOnboarding();
+    initTheme();
+  }, []);
 
   useEffect(() => {
     const cleanup = initialize();
@@ -103,8 +114,10 @@ function RootLayoutNav() {
       router.replace("/(auth)/login");
     } else if (session && inAuthGroup) {
       router.replace("/(tabs)");
+    } else if (session && hasSeenOnboarding === false && segments[0] !== "onboarding") {
+      router.replace("/onboarding");
     }
-  }, [session, isInitialized, segments, router]);
+  }, [session, isInitialized, segments, router, hasSeenOnboarding]);
 
   const colorScheme = useColorScheme();
   const navTheme = colorScheme === "dark" ? AppDarkTheme : AppLightTheme;
@@ -113,6 +126,9 @@ function RootLayoutNav() {
     <NavThemeProvider value={navTheme}>
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       <Stack>
+        <Stack.Screen name="notifications" options={{ headerShown: false, animation: "slide_from_right" }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false, animation: "fade", gestureEnabled: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false, animation: "slide_from_right" }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: "modal" }} />

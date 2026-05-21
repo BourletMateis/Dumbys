@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { PALETTE, FONT, FONT_FAMILY, RADIUS } from "@/src/theme";
 import { useMyGroups } from "@/src/features/groups/useMyGroups";
-import { useUploadGroupVideo } from "@/src/features/groups/useUploadGroupVideo";
+import { useUploadGroupVideoToGroups } from "@/src/features/groups/useUploadGroupVideo";
 import { useTimelineLogic } from "@/src/hooks/useTimelineLogic";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { PUBLIC_CATEGORIES } from "@/src/features/groups/usePublicGroups";
@@ -25,36 +25,44 @@ export default function PostScreen() {
   const insets = useSafeAreaInsets();
   const { videoUri, thumbnailUri } = useLocalSearchParams<{ videoUri: string; thumbnailUri: string }>();
   const { data: myGroups } = useMyGroups();
-  const uploadMutation = useUploadGroupVideo();
+  const uploadMutation = useUploadGroupVideoToGroups();
   const { weekNumber, year } = useTimelineLogic();
 
   const [description, setDescription] = useState("");
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-
-  // Auto-select first group when groups load
-  useEffect(() => {
-    if (myGroups && myGroups.length > 0 && !selectedGroupId) {
-      setSelectedGroupId(myGroups[0].id);
-    }
-  }, [myGroups]);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  const toggleGroup = (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedGroupIds((prev) =>
+      prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]
+    );
+  };
+
   const handlePublish = () => {
     if (!videoUri) return;
-    if (!selectedGroupId) {
-      Alert.alert("Groupe requis", "Sélectionne un groupe pour publier ta vidéo.");
+    if (selectedGroupIds.length === 0) {
+      Alert.alert("Groupe requis", "Sélectionne au moins un groupe pour publier ta vidéo.");
       return;
     }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setIsUploading(true);
     uploadMutation.mutate(
-      { videoUri, groupId: selectedGroupId, weekNumber, year, description: description.trim() || undefined, category: selectedCategory ?? undefined },
+      {
+        videoUri,
+        groupIds: selectedGroupIds,
+        weekNumber,
+        year,
+        description: description.trim() || undefined,
+        category: selectedCategory ?? undefined,
+      },
       {
         onSuccess: () => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert("Publié 🔥", "Ta vidéo est en ligne !", [
+          const label = selectedGroupIds.length > 1 ? `${selectedGroupIds.length} groupes` : "1 groupe";
+          Alert.alert("Publié 🔥", `Ta vidéo est en ligne dans ${label} !`, [
             { text: "OK", onPress: () => router.dismissAll() },
           ]);
         },
@@ -143,7 +151,7 @@ export default function PostScreen() {
             <TextInput
               value={description}
               onChangeText={setDescription}
-              placeholder={"Décris ta vidéo...\n#défi #dumbys 🔥"}
+              placeholder={"Décris ta vidéo...\n#défi #dumbeez 🔥"}
               placeholderTextColor="rgba(255,255,255,0.2)"
               multiline
               style={{
@@ -187,19 +195,26 @@ export default function PostScreen() {
 
         {/* ── Groupe ──────────────────────────────────────────────── */}
         <View style={{ paddingHorizontal: 20, marginBottom: 28 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 }}>
-            <Ionicons name="people-outline" size={18} color={PALETTE.sarcelle} />
-            <Text
-              style={{
-                color: "rgba(255,255,255,0.5)",
-                fontFamily: FONT_FAMILY.bold,
-                fontSize: FONT.sizes.xs,
-                textTransform: "uppercase",
-                letterSpacing: 1.4,
-              }}
-            >
-              Groupe
-            </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Ionicons name="people-outline" size={18} color={PALETTE.sarcelle} />
+              <Text
+                style={{
+                  color: "rgba(255,255,255,0.5)",
+                  fontFamily: FONT_FAMILY.bold,
+                  fontSize: FONT.sizes.xs,
+                  textTransform: "uppercase",
+                  letterSpacing: 1.4,
+                }}
+              >
+                Groupes
+              </Text>
+            </View>
+            {selectedGroupIds.length > 0 && (
+              <Text style={{ color: PALETTE.sarcelle, fontFamily: FONT_FAMILY.semibold, fontSize: FONT.sizes.xs }}>
+                {selectedGroupIds.length} sélectionné{selectedGroupIds.length > 1 ? "s" : ""}
+              </Text>
+            )}
           </View>
           <ScrollView
             horizontal
@@ -211,36 +226,40 @@ export default function PostScreen() {
                 Crée d'abord un groupe dans l'onglet Déposer.
               </Text>
             )}
-            {(myGroups ?? []).map((g) => (
-              <Pressable
-                key={g.id}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSelectedGroupId(g.id);
-                }}
-                style={{
-                  paddingHorizontal: 20,
-                  paddingVertical: 10,
-                  borderRadius: RADIUS.full,
-                  backgroundColor:
-                    selectedGroupId === g.id ? `${PALETTE.sarcelle}20` : "rgba(255,255,255,0.05)",
-                  borderWidth: 1.5,
-                  borderColor:
-                    selectedGroupId === g.id ? PALETTE.sarcelle : "rgba(255,255,255,0.1)",
-                }}
-              >
-                <Text
+            {(myGroups ?? []).map((g) => {
+              const isSelected = selectedGroupIds.includes(g.id);
+              return (
+                <Pressable
+                  key={g.id}
+                  onPress={() => toggleGroup(g.id)}
                   style={{
-                    color: selectedGroupId === g.id ? PALETTE.sarcelle : "rgba(255,255,255,0.45)",
-                    fontFamily: FONT_FAMILY.semibold,
-                    fontSize: FONT.sizes.sm,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    borderRadius: RADIUS.full,
+                    backgroundColor: isSelected ? `${PALETTE.sarcelle}20` : "rgba(255,255,255,0.05)",
+                    borderWidth: 1.5,
+                    borderColor: isSelected ? PALETTE.sarcelle : "rgba(255,255,255,0.1)",
                   }}
-                  numberOfLines={1}
                 >
-                  {g.name}
-                </Text>
-              </Pressable>
-            ))}
+                  {isSelected && (
+                    <Ionicons name="checkmark-circle" size={15} color={PALETTE.sarcelle} />
+                  )}
+                  <Text
+                    style={{
+                      color: isSelected ? PALETTE.sarcelle : "rgba(255,255,255,0.45)",
+                      fontFamily: FONT_FAMILY.semibold,
+                      fontSize: FONT.sizes.sm,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {g.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </ScrollView>
         </View>
 

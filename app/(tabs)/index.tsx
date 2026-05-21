@@ -22,12 +22,14 @@ import { useMyTournaments } from "@/src/features/groups/useTournamentFeed";
 import { BottomSheet } from "@/src/components/ui/BottomSheet";
 import { useUserProfile } from "@/src/features/profile/useUserProfile";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
+import { useUnreadCount } from "@/src/features/notifications/useNotifications";
 import {
   PALETTE,
   RADIUS,
   FONT,
   FONT_FAMILY,
 } from "@/src/theme";
+import { useTheme } from "@/src/providers/ThemeProvider";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GROUP_CARD_WIDTH = SCREEN_WIDTH * 0.72;
@@ -60,7 +62,7 @@ function GroupCard({
   group: GroupWithRole;
   onPress: () => void;
 }) {
-  // Deterministic color from group name
+  const { colors, isDark } = useTheme();
   const GROUP_COLORS = [PALETTE.sarcelle, PALETTE.fuchsia, "#3B82F6", "#22C55E", "#F59E0B", "#8B5CF6"];
   let hash = 0;
   for (let i = 0; i < group.name.length; i++) {
@@ -74,21 +76,19 @@ function GroupCard({
       onPress={onPress}
       style={{
         width: GROUP_CARD_WIDTH,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.card,
         borderRadius: 20,
         padding: 20,
         borderWidth: 1,
-        borderColor: "rgba(0,0,0,0.06)",
+        borderColor: colors.border,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
+        shadowOpacity: isDark ? 0 : 0.04,
         shadowRadius: 8,
-        elevation: 2,
+        elevation: isDark ? 0 : 2,
       }}
     >
-      {/* Top row: avatar + info */}
       <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 14 }}>
-        {/* Avatar circle */}
         {group.cover_url ? (
           <Image
             source={{ uri: group.cover_url }}
@@ -114,30 +114,27 @@ function GroupCard({
 
         <View style={{ marginLeft: 12, flex: 1 }}>
           <Text
-            style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: "#1A1A1A" }}
+            style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: colors.textPrimary }}
             numberOfLines={1}
           >
             {group.name}
           </Text>
-          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold, color: "#AAA", textTransform: "uppercase", letterSpacing: 0.8, marginTop: 2 }}>
+          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold, color: colors.textTertiary, textTransform: "uppercase", letterSpacing: 0.8, marginTop: 2 }}>
             {group.member_count} MEMBRES • ACTIF
           </Text>
         </View>
       </View>
 
-      {/* Description */}
       {group.description ? (
         <Text
-          style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#666", lineHeight: 20, marginBottom: 14 }}
+          style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: colors.textSecondary, lineHeight: 20, marginBottom: 14 }}
           numberOfLines={2}
         >
           {group.description}
         </Text>
       ) : null}
 
-      {/* Member avatars row */}
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        {/* Stack of small circles */}
         {[0, 1, 2, 3].map((i) => (
           <View
             key={i}
@@ -147,7 +144,7 @@ function GroupCard({
               borderRadius: 14,
               backgroundColor: GROUP_COLORS[(Math.abs(hash) + i) % GROUP_COLORS.length] + "30",
               borderWidth: 2,
-              borderColor: "#FFFFFF",
+              borderColor: colors.card,
               marginLeft: i > 0 ? -8 : 0,
               alignItems: "center",
               justifyContent: "center",
@@ -187,8 +184,10 @@ const DEMO_GROUPS_DATA = [
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const { data: profile } = useUserProfile();
   const { data: myGroups, isPending: groupsPending, refetch, isRefetching } = useMyGroups();
+  const { data: unreadCount = 0 } = useUnreadCount();
 
   const { data: myTournaments, isPending: tournamentsPending } = useMyTournaments();
   const createGroup = useCreateGroup();
@@ -220,14 +219,14 @@ export default function HomeScreen() {
 
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       {/* Decorative blobs */}
       <Blob size={200} color={PALETTE.sarcelle} top={-40} right={-60} />
       <Blob size={160} color={PALETTE.fuchsia} top={300} left={-70} />
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 160 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={PALETTE.sarcelle} />
@@ -263,25 +262,39 @@ export default function HomeScreen() {
           {/* Search + Notification */}
           <View style={{ flexDirection: "row", gap: 16, alignItems: "center" }}>
             <Pressable hitSlop={8}>
-              <Ionicons name="search-outline" size={24} color="#333" />
+              <Ionicons name="search-outline" size={24} color={colors.textSecondary} />
             </Pressable>
-            <Pressable hitSlop={8}>
+            <Pressable
+              hitSlop={8}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push("/notifications");
+              }}
+            >
               <View style={{ position: "relative" }}>
-                <Ionicons name="notifications-outline" size={24} color="#333" />
-                {/* Red notification dot */}
-                <View
-                  style={{
-                    position: "absolute",
-                    top: -2,
-                    right: -2,
-                    width: 10,
-                    height: 10,
-                    borderRadius: 5,
-                    backgroundColor: PALETTE.fuchsia,
-                    borderWidth: 2,
-                    borderColor: "#FFFFFF",
-                  }}
-                />
+                <Ionicons name="notifications-outline" size={24} color={colors.textSecondary} />
+                {unreadCount > 0 && (
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: -4,
+                      right: -4,
+                      minWidth: 16,
+                      height: 16,
+                      borderRadius: 8,
+                      backgroundColor: PALETTE.fuchsia,
+                      borderWidth: 2,
+                      borderColor: colors.bg,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      paddingHorizontal: 3,
+                    }}
+                  >
+                    <Text style={{ fontSize: 9, fontFamily: FONT_FAMILY.bold, color: "#FFF" }}>
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </Text>
+                  </View>
+                )}
               </View>
             </Pressable>
           </View>
@@ -289,10 +302,10 @@ export default function HomeScreen() {
 
         {/* ─── Greeting ─────────────────────────────────────────── */}
         <View style={{ paddingHorizontal: 20, marginTop: 20, marginBottom: 28 }}>
-          <Text style={{ fontSize: FONT.sizes["4xl"], fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
+          <Text style={{ fontSize: FONT.sizes["4xl"], fontFamily: FONT_FAMILY.extrabold, color: colors.textPrimary }}>
             {"Salut " + username + " ! 🤘"}
           </Text>
-          <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#999", marginTop: 4 }}>
+          <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: colors.textTertiary, marginTop: 4 }}>
             {"Prêt pour un nouveau défi aujourd'hui ?"}
           </Text>
         </View>
@@ -301,7 +314,7 @@ export default function HomeScreen() {
         <View style={{ marginBottom: 32 }}>
           {/* Section header */}
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, marginBottom: 16 }}>
-            <Text style={{ fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
+            <Text style={{ fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.extrabold, color: colors.textPrimary }}>
               Mes Groupes
             </Text>
             <Pressable
@@ -359,7 +372,7 @@ export default function HomeScreen() {
         <View style={{ marginBottom: 32 }}>
           {/* Section header */}
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16, paddingHorizontal: 20 }}>
-            <Text style={{ fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
+            <Text style={{ fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.extrabold, color: colors.textPrimary }}>
               Mes Tournois
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -457,38 +470,38 @@ export default function HomeScreen() {
       {/* Create Group Bottom Sheet */}
       <BottomSheet isOpen={showCreateGroup} onClose={() => { setShowCreateGroup(false); setNewGroupName(""); setNewGroupDesc(""); }} snapPoint={0.5}>
         <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
-          <Text style={{ color: "#1A1A1A", fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.bold, marginBottom: 20 }}>
+          <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.bold, marginBottom: 20 }}>
             Créer un groupe
           </Text>
-          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#B0B0B0", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8 }}>
+          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: colors.textTertiary, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8 }}>
             NOM DU GROUPE *
           </Text>
           <TextInput
             value={newGroupName}
             onChangeText={setNewGroupName}
             placeholder="Ex: Les Champions 🏆"
-            placeholderTextColor="#CCC"
-            style={{ backgroundColor: "#F8F8FA", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#1A1A1A", borderWidth: 1, borderColor: "rgba(0,0,0,0.06)", marginBottom: 16 }}
+            placeholderTextColor={colors.textMuted}
+            style={{ backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: colors.textPrimary, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}
             maxLength={60}
             autoFocus
           />
-          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#B0B0B0", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8 }}>
+          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: colors.textTertiary, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8 }}>
             DESCRIPTION (optionnel)
           </Text>
           <TextInput
             value={newGroupDesc}
             onChangeText={setNewGroupDesc}
             placeholder="Décris ton groupe..."
-            placeholderTextColor="#CCC"
+            placeholderTextColor={colors.textMuted}
             multiline
             numberOfLines={2}
-            style={{ backgroundColor: "#F8F8FA", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#1A1A1A", borderWidth: 1, borderColor: "rgba(0,0,0,0.06)", marginBottom: 24, minHeight: 72, textAlignVertical: "top" }}
+            style={{ backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: colors.textPrimary, borderWidth: 1, borderColor: colors.border, marginBottom: 24, minHeight: 72, textAlignVertical: "top" }}
             maxLength={200}
           />
           <AnimatedPressable
             onPress={handleCreateGroup}
             disabled={!newGroupName.trim() || isCreating}
-            style={{ backgroundColor: newGroupName.trim() ? PALETTE.sarcelle : "#DDD", paddingVertical: 16, borderRadius: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+            style={{ backgroundColor: newGroupName.trim() ? PALETTE.sarcelle : (isDark ? "#2C2C2C" : "#DDD"), paddingVertical: 16, borderRadius: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
           >
             {isCreating ? (
               <ActivityIndicator color="#FFFFFF" />

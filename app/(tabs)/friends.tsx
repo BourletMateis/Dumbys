@@ -25,6 +25,7 @@ import { UserSearchResult } from "@/src/features/friends/UserSearchResult";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { PALETTE, RADIUS, FONT, FONT_FAMILY, SPACING } from "@/src/theme";
+import { useTheme } from "@/src/providers/ThemeProvider";
 import type { UserRow } from "@/src/features/friends/useSearchUsers";
 
 type FriendStatus = "none" | "pending_sent" | "pending_received" | "accepted";
@@ -49,6 +50,7 @@ function Blob({ size, color, top, left, right, bottom }: {
 export default function FriendsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -100,14 +102,14 @@ export default function FriendsScreen() {
   const friendsCount = friendships?.accepted.length ?? 0;
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Blob size={180} color={PALETTE.sarcelle} top={-40} right={-50} />
       <Blob size={120} color={PALETTE.fuchsia} bottom={200} left={-40} />
 
       {/* ─── Header ──────────────────────────────────────────── */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 12 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <Text style={{ fontSize: FONT.sizes["4xl"], fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
+          <Text style={{ fontSize: FONT.sizes["4xl"], fontFamily: FONT_FAMILY.extrabold, color: colors.textPrimary }}>
             Amis
           </Text>
           <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
@@ -125,7 +127,7 @@ export default function FriendsScreen() {
               </View>
             )}
             <Pressable hitSlop={8}>
-              <Ionicons name="person-add-outline" size={22} color="#333" />
+              <Ionicons name="person-add-outline" size={22} color={colors.textSecondary} />
             </Pressable>
           </View>
         </View>
@@ -135,23 +137,23 @@ export default function FriendsScreen() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: "#F2F2F2",
+            backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#F2F2F2",
             borderRadius: 14,
             paddingHorizontal: 14,
             gap: 10,
           }}
         >
-          <Ionicons name="search" size={18} color="#B0B0B0" />
+          <Ionicons name="search" size={18} color={colors.textTertiary} />
           <TextInput
             value={searchInput}
             onChangeText={setSearchInput}
             placeholder="Rechercher un ami..."
-            placeholderTextColor="#CCCCCC"
+            placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
             style={{
               flex: 1,
-              color: "#1A1A1A",
+              color: colors.textPrimary,
               fontSize: FONT.sizes.lg,
               fontFamily: FONT_FAMILY.regular,
               paddingVertical: 12,
@@ -159,7 +161,7 @@ export default function FriendsScreen() {
           />
           {searchInput.length > 0 && (
             <Pressable onPress={() => setSearchInput("")}>
-              <Ionicons name="close-circle" size={18} color="#CCC" />
+              <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
             </Pressable>
           )}
         </View>
@@ -175,11 +177,11 @@ export default function FriendsScreen() {
           )}
           {!searchPending && searchResults?.length === 0 && (
             <View style={{ alignItems: "center", paddingVertical: 40 }}>
-              <Ionicons name="search-outline" size={48} color="#D0D0D0" />
-              <Text style={{ color: "#999", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold, marginTop: 12 }}>
+              <Ionicons name="search-outline" size={48} color={colors.textMuted} />
+              <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold, marginTop: 12 }}>
                 Aucun résultat
               </Text>
-              <Text style={{ color: "#BBB", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, marginTop: 4 }}>
+              <Text style={{ color: colors.textMuted, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, marginTop: 4 }}>
                 {`Pas de résultat pour "${debouncedSearch}"`}
               </Text>
             </View>
@@ -189,7 +191,7 @@ export default function FriendsScreen() {
               data={searchResults}
               keyExtractor={(item) => item.id}
               renderItem={renderSearchItem}
-              contentContainerStyle={{ paddingBottom: 120 }}
+              contentContainerStyle={{ paddingBottom: 160 }}
             />
           )}
         </View>
@@ -197,7 +199,7 @@ export default function FriendsScreen() {
         /* ─── Default Mode ─────────────────────────────────── */
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 120 }}
+          contentContainerStyle={{ paddingBottom: 160 }}
           showsVerticalScrollIndicator={false}
         >
           {friendsPending ? (
@@ -210,7 +212,7 @@ export default function FriendsScreen() {
               {suggestions && suggestions.length > 0 && (
                 <View style={{ marginBottom: 24 }}>
                   <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, marginBottom: 14 }}>
-                    <Text style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
+                    <Text style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold, color: colors.textPrimary }}>
                       {"Suggestions 💡"}
                     </Text>
                     <Pressable>
@@ -233,17 +235,17 @@ export default function FriendsScreen() {
                           style={{
                             width: 130,
                             alignItems: "center",
-                            backgroundColor: "#FFFFFF",
+                            backgroundColor: colors.card,
                             borderRadius: 20,
                             paddingVertical: 20,
                             paddingHorizontal: 10,
                             borderWidth: 1,
-                            borderColor: "rgba(0,0,0,0.06)",
+                            borderColor: colors.border,
                             shadowColor: "#000",
                             shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.04,
+                            shadowOpacity: isDark ? 0 : 0.04,
                             shadowRadius: 8,
-                            elevation: 2,
+                            elevation: isDark ? 0 : 2,
                           }}
                         >
                           <Avatar url={user.avatar_url} username={user.username} size={56} />
@@ -251,7 +253,7 @@ export default function FriendsScreen() {
                             style={{
                               fontSize: FONT.sizes.base,
                               fontFamily: FONT_FAMILY.bold,
-                              color: "#1A1A1A",
+                              color: colors.textPrimary,
                               marginTop: 10,
                               textAlign: "center",
                             }}
@@ -259,7 +261,7 @@ export default function FriendsScreen() {
                           >
                             {user.username}
                           </Text>
-                          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: "#AAA", marginTop: 2 }}>
+                          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: colors.textTertiary, marginTop: 2 }}>
                             {user.shared_groups} groupe{user.shared_groups !== 1 ? "s" : ""} en commun
                           </Text>
 
@@ -285,14 +287,14 @@ export default function FriendsScreen() {
                           {status === "pending_sent" && (
                             <View
                               style={{
-                                backgroundColor: "#F2F2F2",
+                                backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#F2F2F2",
                                 paddingHorizontal: 20,
                                 paddingVertical: 7,
                                 borderRadius: 14,
                                 marginTop: 12,
                               }}
                             >
-                              <Text style={{ color: "#BBB", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold }}>
+                              <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold }}>
                                 Envoyé
                               </Text>
                             </View>
@@ -308,7 +310,7 @@ export default function FriendsScreen() {
               {friendships.pendingReceived.length > 0 && (
                 <View style={{ marginBottom: 24 }}>
                   <View style={{ paddingHorizontal: 20, marginBottom: 14 }}>
-                    <Text style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
+                    <Text style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold, color: colors.textPrimary }}>
                       {"Demandes reçues 🔔"}
                     </Text>
                   </View>
@@ -321,24 +323,24 @@ export default function FriendsScreen() {
                         alignItems: "center",
                         marginHorizontal: 20,
                         marginBottom: 10,
-                        backgroundColor: "#FFFFFF",
+                        backgroundColor: colors.card,
                         borderRadius: 16,
                         padding: 14,
                         borderWidth: 1,
                         borderColor: PALETTE.sarcelle + "25",
                         shadowColor: "#000",
                         shadowOffset: { width: 0, height: 1 },
-                        shadowOpacity: 0.03,
+                        shadowOpacity: isDark ? 0 : 0.03,
                         shadowRadius: 4,
-                        elevation: 1,
+                        elevation: isDark ? 0 : 1,
                       }}
                     >
                       <Avatar url={item.otherUser.avatar_url} username={item.otherUser.username} size={48} />
                       <View style={{ flex: 1, marginLeft: 12 }}>
-                        <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: "#1A1A1A" }} numberOfLines={1}>
+                        <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: colors.textPrimary }} numberOfLines={1}>
                           {item.otherUser.username}
                         </Text>
-                        <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: "#AAA", marginTop: 2 }}>
+                        <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: colors.textTertiary, marginTop: 2 }}>
                           Veut devenir ton ami
                         </Text>
                       </View>
@@ -369,13 +371,13 @@ export default function FriendsScreen() {
                           }}
                           disabled={removeFriendship.isPending && removeFriendship.variables === item.id}
                           style={{
-                            backgroundColor: "#F2F2F2",
+                            backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#F2F2F2",
                             paddingHorizontal: 14,
                             paddingVertical: 8,
                             borderRadius: 12,
                           }}
                         >
-                          <Ionicons name="close" size={18} color="#999" />
+                          <Ionicons name="close" size={18} color={colors.textTertiary} />
                         </AnimatedPressable>
                       </View>
                     </View>
@@ -387,7 +389,7 @@ export default function FriendsScreen() {
               {friendships.pendingSent.length > 0 && (
                 <View style={{ marginBottom: 24 }}>
                   <View style={{ paddingHorizontal: 20, marginBottom: 14 }}>
-                    <Text style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
+                    <Text style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold, color: colors.textPrimary }}>
                       Envoyées
                     </Text>
                   </View>
@@ -404,20 +406,20 @@ export default function FriendsScreen() {
                     >
                       <Avatar url={item.otherUser.avatar_url} username={item.otherUser.username} size={44} />
                       <Text
-                        style={{ flex: 1, marginLeft: 12, fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold, color: "#1A1A1A" }}
+                        style={{ flex: 1, marginLeft: 12, fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold, color: colors.textPrimary }}
                         numberOfLines={1}
                       >
                         {item.otherUser.username}
                       </Text>
                       <View
                         style={{
-                          backgroundColor: "#F2F2F2",
+                          backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#F2F2F2",
                           paddingHorizontal: 14,
                           paddingVertical: 6,
                           borderRadius: 12,
                         }}
                       >
-                        <Text style={{ color: "#BBB", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.semibold }}>
+                        <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.semibold }}>
                           En attente
                         </Text>
                       </View>
@@ -429,10 +431,10 @@ export default function FriendsScreen() {
               {/* ── Mes Amis ── */}
               <View style={{ paddingHorizontal: 20, marginBottom: 14 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                  <Text style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold, color: "#1A1A1A" }}>
+                  <Text style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold, color: colors.textPrimary }}>
                     {"Mes Amis 🤝"}
                   </Text>
-                  <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: "#BBB" }}>
+                  <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: colors.textMuted }}>
                     {friendsCount}
                   </Text>
                 </View>
@@ -450,10 +452,10 @@ export default function FriendsScreen() {
                   >
                     <Ionicons name="people-outline" size={36} color={PALETTE.sarcelle} />
                   </View>
-                  <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: "#1A1A1A", textAlign: "center" }}>
+                  <Text style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: colors.textPrimary, textAlign: "center" }}>
                     Pas encore d'amis
                   </Text>
-                  <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: "#AAA", textAlign: "center", marginTop: 6 }}>
+                  <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: colors.textTertiary, textAlign: "center", marginTop: 6 }}>
                     Recherche des utilisateurs pour ajouter tes premiers amis !
                   </Text>
                 </View>
@@ -467,16 +469,15 @@ export default function FriendsScreen() {
                       alignItems: "center",
                       marginHorizontal: 20,
                       marginBottom: 6,
-                      backgroundColor: "#FFFFFF",
+                      backgroundColor: colors.card,
                       borderRadius: 16,
                       padding: 14,
                       borderWidth: 1,
-                      borderColor: "rgba(0,0,0,0.04)",
+                      borderColor: colors.border,
                     }}
                   >
                     <View style={{ position: "relative" }}>
                       <Avatar url={item.otherUser.avatar_url} username={item.otherUser.username} size={52} />
-                      {/* Online dot */}
                       <View
                         style={{
                           position: "absolute",
@@ -484,24 +485,23 @@ export default function FriendsScreen() {
                           width: 14, height: 14, borderRadius: 7,
                           backgroundColor: "#10B981",
                           borderWidth: 2.5,
-                          borderColor: "#FFFFFF",
+                          borderColor: colors.card,
                         }}
                       />
                     </View>
                     <View style={{ flex: 1, marginLeft: 14 }}>
                       <Text
-                        style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: "#1A1A1A" }}
+                        style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: colors.textPrimary }}
                         numberOfLines={1}
                       >
                         {item.otherUser.username}
                       </Text>
-                      <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: "#BBB", marginTop: 2 }}>
+                      <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: colors.textTertiary, marginTop: 2 }}>
                         Ami
                       </Text>
                     </View>
 
                     <View style={{ flexDirection: "row", gap: 8 }}>
-                      {/* Message */}
                       <Pressable
                         onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
                         style={{
@@ -512,7 +512,6 @@ export default function FriendsScreen() {
                       >
                         <Ionicons name="chatbubble-outline" size={18} color={PALETTE.sarcelle} />
                       </Pressable>
-                      {/* More */}
                       <Pressable
                         onPress={() => {
                           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -521,14 +520,14 @@ export default function FriendsScreen() {
                         disabled={removeFriendship.isPending && removeFriendship.variables === item.id}
                         style={{
                           width: 38, height: 38, borderRadius: 12,
-                          backgroundColor: "#F2F2F2",
+                          backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#F2F2F2",
                           alignItems: "center", justifyContent: "center",
                         }}
                       >
                         {removeFriendship.isPending && removeFriendship.variables === item.id ? (
-                          <ActivityIndicator size="small" color="#BBB" />
+                          <ActivityIndicator size="small" color={colors.textTertiary} />
                         ) : (
-                          <Ionicons name="ellipsis-horizontal" size={18} color="#999" />
+                          <Ionicons name="ellipsis-horizontal" size={18} color={colors.textTertiary} />
                         )}
                       </Pressable>
                     </View>
