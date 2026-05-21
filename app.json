@@ -1,24 +1,27 @@
 {
   "expo": {
-    "name": "Dumbys",
-    "slug": "dumbys",
-    "version": "1.0.0",
+    "name": "Dumbeez",
+    "slug": "dumbeez",
+    "version": "1.2.0",
     "orientation": "portrait",
-    "icon": "./assets/images/Dumbys-avatar.png",
-    "scheme": "dumbys",
+    "icon": "./assets/images/Dumbeez-avatar.png",
+    "scheme": "dumbeez",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/Dumbys-avatar.png",
+      "image": "./assets/images/Dumbeez-avatar.png",
       "resizeMode": "contain",
       "backgroundColor": "#080F0F"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dumbeez.app",
+      "buildNumber": "2"
     },
     "android": {
-      "package": "com.dumbys.app",
+      "package": "com.dumbeez.app",
+      "versionCode": 2,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/Dumbys-avatar.png",
+        "foregroundImage": "./assets/images/Dumbeez-avatar.png",
         "backgroundColor": "#080F0F"
       },
       "predictiveBackGestureEnabled": false,
