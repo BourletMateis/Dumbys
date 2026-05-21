@@ -6,6 +6,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
+import Toast from "react-native-toast-message";
 
 import { queryClient } from "@/src/lib/queryClient";
 import { useAuthStore } from "@/src/store/useAuthStore";
@@ -176,6 +177,7 @@ function RootLayoutNav() {
           }}
         />
       </Stack>
+      <Toast />
     </NavThemeProvider>
   );
 }
