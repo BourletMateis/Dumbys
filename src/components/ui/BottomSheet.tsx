@@ -21,6 +21,7 @@ import {
   GestureDetector,
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
+import { useTheme } from "@/src/providers/ThemeProvider";
 import { RADIUS } from "@/src/theme";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -39,6 +40,7 @@ export function BottomSheet({
   children,
 }: BottomSheetProps) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const backdropOpacity = useSharedValue(0);
   const context = useSharedValue(0);
@@ -103,7 +105,7 @@ export function BottomSheet({
                 left: 0,
                 right: 0,
                 height: SCREEN_HEIGHT,
-                backgroundColor: "#FFFFFF",
+                backgroundColor: colors.card,
                 borderTopLeftRadius: RADIUS.xl,
                 borderTopRightRadius: RADIUS.xl,
                 shadowColor: "#000",
@@ -117,7 +119,7 @@ export function BottomSheet({
           >
             {/* Handle */}
             <View style={{ alignItems: "center", paddingTop: 12, paddingBottom: 8 }}>
-              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: "#D0D0D0" }} />
+              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: isDark ? "rgba(255,255,255,0.15)" : "#D0D0D0" }} />
             </View>
 
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
