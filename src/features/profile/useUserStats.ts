@@ -17,22 +17,20 @@ export function useUserStats() {
     queryFn: async () => {
       if (!user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase
-        .from("user_stats")
+      const { data, error } = await (supabase.from("user_stats" as any) as any)
         .select("video_count, group_count, win_count")
         .eq("user_id", user.id)
         .single();
 
       if (error) {
-        // View may not exist in all envs — return zeros rather than crash
         console.warn("[useUserStats]", error.message);
         return { video_count: 0, group_count: 0, win_count: 0 };
       }
 
       return {
-        video_count: Number(data.video_count ?? 0),
-        group_count: Number(data.group_count ?? 0),
-        win_count: Number(data.win_count ?? 0),
+        video_count: Number(data?.video_count ?? 0),
+        group_count: Number(data?.group_count ?? 0),
+        win_count: Number(data?.win_count ?? 0),
       };
     },
     enabled: !!user,
