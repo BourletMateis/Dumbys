@@ -1,24 +1,24 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir *)",
-      "PowerShell(npx expo start --tunnel 2>&1 | Select-Object -First 30)",
-      "PowerShell(npx expo start 2>&1)",
-      "Read(//mnt/c/Users/cleme/Desktop/Workspace/Dumbys/**)",
-      "Bash(flyctl apps *)",
-      "PowerShell(iwr https://fly.io/install.ps1 -useb | iex 2>&1)",
-      "PowerShell(flyctl apps *)",
-      "PowerShell(Compress-Archive *)",
-      "PowerShell(npm install *)",
-      "PowerShell(discloud *)",
-      "PowerShell(pm2 *)",
-      "Bash(npx ts-node *)",
+      "Bash(git show *)",
+      "Bash(chmod +x /volume1/docker/sites/Dumbys/entrypoint.sh)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
       "Bash(git checkout *)",
-      "Bash(git pull *)",
-      "Bash(git merge *)",
-      "Bash(eas build *)",
-      "Bash(eas build:view 1982a3ef-61db-47e7-8f84-f55f8a2c1bce)",
-      "Bash(eas build:logs 1982a3ef-61db-47e7-8f84-f55f8a2c1bce)"
+      "Bash(git fetch *)",
+      "Bash(git ls-remote *)",
+      "Bash(gh api *)",
+      "Bash(mkdir -p /volume1/docker/sites/Dumbys/.claude)",
+      "Bash(cp /tmp/claude-settings-backup.json /volume1/docker/sites/Dumbys/.claude/settings.local.json)",
+      "Bash(awk '{print $2}')",
+      "Bash(awk '{print $1, $2}')",
+      "Bash([ -f \"/volume1/docker/sites/Dumbys/$f\" ])",
+      "Bash(docker exec *)",
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(docker restart *)"
     ]
   }
 }
