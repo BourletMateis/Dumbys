@@ -1,0 +1,15 @@
+app = "dumbeez-bot"
+primary_region = "cdg"
+
+[build]
+
+[env]
+  NODE_ENV = "production"
+
+# Pas de port ni de service HTTP — le bot tourne en worker
+[processes]
+  app = "node dist/index.js"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

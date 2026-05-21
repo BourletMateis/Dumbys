@@ -74,7 +74,7 @@ export default function LoginScreen() {
                 letterSpacing: -1.5,
               }}
             >
-              Dumbys
+              Dumbeez
             </Text>
             <Text
               style={{

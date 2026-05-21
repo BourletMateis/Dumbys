@@ -6,11 +6,14 @@ import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { PALETTE, FONT, FONT_FAMILY } from "@/src/theme";
+import { useTheme } from "@/src/providers/ThemeProvider";
 
 const FAB_SIZE = 60;
 const FAB_BORDER = 5;
 const FAB_TOTAL = FAB_SIZE + FAB_BORDER * 2; // 70
-const FAB_OVERLAP = FAB_TOTAL / 2; // half sticks above the bar
+const FAB_OVERLAP = 20; // how much the FAB sticks above the bar
+
+export const TAB_BOTTOM_INSET = 56 + 20; // base bar + overlap — use for paddingBottom in screens
 
 const TABS: readonly {
   name: string;
@@ -28,6 +31,7 @@ const TABS: readonly {
 
 function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
   const TAB_BAR_HEIGHT = 56 + Math.max(insets.bottom, 8);
 
   const findTabIndex = (name: string) => state.routes.findIndex((r) => r.name === name);
@@ -52,7 +56,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   };
 
   const activeColor = PALETTE.sarcelle;
-  const inactiveColor = "#B0B0B0";
+  const inactiveColor = isDark ? "#505050" : "#B0B0B0";
 
   return (
     <View
@@ -124,9 +128,9 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           left: 0,
           right: 0,
           height: TAB_BAR_HEIGHT,
-          backgroundColor: "#FFFFFF",
+          backgroundColor: isDark ? "#121212" : "#FFFFFF",
           borderTopWidth: 1,
-          borderTopColor: "rgba(0,0,0,0.05)",
+          borderTopColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
           flexDirection: "row",
           alignItems: "flex-start",
           justifyContent: "space-around",

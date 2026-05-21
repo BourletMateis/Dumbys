@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useMemo } from "react";
 import { useColorScheme } from "@/components/useColorScheme";
 import { COLORS, COLORS_LIGHT } from "@/src/theme";
+import { useThemeStore } from "@/src/store/useThemeStore";
 
 type ThemeColors = typeof COLORS;
 type ThemeMode = "light" | "dark";
@@ -18,16 +19,18 @@ const ThemeContext = createContext<ThemeContextValue>({
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const colorScheme = useColorScheme();
+  const systemScheme = useColorScheme();
+  const { preference } = useThemeStore();
 
   const value = useMemo<ThemeContextValue>(() => {
-    const isDark = colorScheme === "dark";
+    const effective = preference === "system" ? systemScheme : preference;
+    const isDark = effective === "dark";
     return {
       colors: isDark ? COLORS : (COLORS_LIGHT as unknown as ThemeColors),
-      mode: colorScheme,
+      mode: effective as ThemeMode,
       isDark,
     };
-  }, [colorScheme]);
+  }, [preference, systemScheme]);
 
   return (
     <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
