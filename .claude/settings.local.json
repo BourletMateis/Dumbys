@@ -18,7 +18,10 @@
       "Bash(docker exec *)",
       "Bash(npm --version)",
       "Bash(npm install *)",
-      "Bash(docker restart *)"
+      "Bash(docker restart *)",
+      "Bash(rtk ls *)",
+      "Bash(rtk grep *)",
+      "Bash(rtk read *)"
     ]
   }
 }

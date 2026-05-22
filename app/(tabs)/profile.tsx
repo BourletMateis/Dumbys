@@ -8,24 +8,19 @@ import {
   RefreshControl,
   Dimensions,
   Alert,
-  TextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useUserProfile } from "@/src/features/profile/useUserProfile";
 import { useMyVideos } from "@/src/features/profile/useMyVideos";
 import { useMyGroups } from "@/src/features/groups/useMyGroups";
+import { useAllPublicTournaments } from "@/src/features/groups/useAllPublicTournaments";
 import { useDeleteVideo } from "@/src/features/feed/useDeleteVideo";
-import { useAuthStore } from "@/src/store/useAuthStore";
 import { useUpdateAvatar } from "@/src/features/profile/useUpdateAvatar";
-import { useThemeStore, type ThemePreference } from "@/src/store/useThemeStore";
-import { useOnboardingStore } from "@/src/store/useOnboardingStore";
-import { supabase } from "@/src/lib/supabase";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { PALETTE, RADIUS, FONT, FONT_FAMILY } from "@/src/theme";
@@ -33,7 +28,7 @@ import { useTheme } from "@/src/providers/ThemeProvider";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-type GalleryTab = "videos" | "parametres";
+type GalleryTab = "videos" | "groupes";
 
 function VideoGalleryCard({ title, emoji, views, date, thumbnailUrl, width, onPress, onDelete }: {
   title: string;
@@ -117,46 +112,25 @@ function Blob({ size, color, top, left, right, bottom }: {
   );
 }
 
-const THEME_OPTIONS: { key: ThemePreference; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: "light",  label: "Clair",   icon: "sunny" },
-  { key: "dark",   label: "Sombre",  icon: "moon" },
-  { key: "system", label: "Système", icon: "phone-portrait" },
-];
-
 export default function ProfileScreen() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const signOut = useAuthStore((s) => s.signOut);
-  const authLoading = useAuthStore((s) => s.isLoading);
   const updateAvatar = useUpdateAvatar();
-  const { preference, setPreference } = useThemeStore();
-  const { reset: resetOnboarding } = useOnboardingStore();
 
   const { data: profile, isPending: profilePending, isError: profileError, refetch, isRefetching } = useUserProfile();
   const { data: myVideos } = useMyVideos();
   const { data: groups } = useMyGroups();
+  const publicTournaments = useAllPublicTournaments();
+  const myTournaments = (publicTournaments.data ?? []).filter((t) => t.is_member);
   const deleteVideo = useDeleteVideo();
 
   const [galleryTab, setGalleryTab] = useState<GalleryTab>("videos");
-  const [editingUsername, setEditingUsername] = useState(false);
-  const [newUsername, setNewUsername] = useState("");
-  const [savingUsername, setSavingUsername] = useState(false);
 
   const videosCount = (myVideos ?? []).length;
   const challengesCount = (groups ?? []).length;
   const CARD_GAP = 12;
   const CARD_WIDTH = (SCREEN_WIDTH - 40 - CARD_GAP) / 2;
-
-  const saveUsername = async () => {
-    const trimmed = newUsername.trim();
-    if (!trimmed || trimmed === profile?.username) { setEditingUsername(false); return; }
-    setSavingUsername(true);
-    const { error } = await supabase.from("users").update({ username: trimmed }).eq("id", profile!.id);
-    setSavingUsername(false);
-    if (error) Alert.alert("Erreur", error.message);
-    else setEditingUsername(false);
-  };
 
   if (profilePending) {
     return (
@@ -195,7 +169,7 @@ export default function ProfileScreen() {
           </Text>
           <Pressable
             hitSlop={12}
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setGalleryTab("parametres"); }}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/settings"); }}
           >
             <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
           </Pressable>
@@ -262,7 +236,7 @@ export default function ProfileScreen() {
         {/* ─── Gallery / Paramètres tabs ───────────────────────── */}
         <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
           <Text style={{ fontSize: FONT.sizes["3xl"], fontFamily: FONT_FAMILY.extrabold, color: colors.textPrimary, marginBottom: 16 }}>
-            {galleryTab === "videos" ? "Ma Galerie Vidéo" : "Paramètres"}
+            {galleryTab === "videos" ? "Ma Galerie Vidéo" : "Mes Groupes"}
           </Text>
 
           {/* Tab selector */}
@@ -277,7 +251,7 @@ export default function ProfileScreen() {
           >
             {([
               { key: "videos" as const, label: "Vidéos", icon: "videocam-outline" as const },
-              { key: "parametres" as const, label: "Paramètres", icon: "settings-outline" as const },
+              { key: "groupes" as const, label: "Groupes", icon: "people-outline" as const },
             ]).map(({ key, label, icon }) => {
               const active = galleryTab === key;
               return (
@@ -385,189 +359,109 @@ export default function ProfileScreen() {
               </View>
             </View>
           ) : (
-            /* ── Paramètres tab content ──────────────────────────── */
+            /* ── Groupes & Tournois tab content ─────────────────── */
             <View>
 
-              {/* ── Compte ── */}
-              <View
-                style={{
-                  borderRadius: RADIUS.xl,
-                  backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  overflow: "hidden",
-                  marginBottom: 24,
-                }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", padding: 16, gap: 14 }}>
-                  <Avatar url={profile.avatar_url} username={profile.username} size={48} />
-                  <View style={{ flex: 1 }}>
-                    {editingUsername ? (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                        <TextInput
-                          value={newUsername}
-                          onChangeText={setNewUsername}
-                          autoFocus
-                          style={{
-                            flex: 1,
-                            fontSize: FONT.sizes.base,
-                            fontFamily: FONT_FAMILY.semibold,
-                            color: colors.textPrimary,
-                            borderBottomWidth: 1.5,
-                            borderBottomColor: PALETTE.sarcelle,
-                            paddingBottom: 4,
-                          }}
-                          onSubmitEditing={saveUsername}
-                          returnKeyType="done"
-                        />
-                        {savingUsername ? (
-                          <ActivityIndicator size="small" color={PALETTE.sarcelle} />
-                        ) : (
-                          <Pressable onPress={saveUsername} hitSlop={8}>
-                            <Ionicons name="checkmark-circle" size={24} color={PALETTE.sarcelle} />
-                          </Pressable>
-                        )}
-                      </View>
-                    ) : (
-                      <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.semibold, color: colors.textPrimary }}>
-                        {profile.username}
-                      </Text>
-                    )}
-                    <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular, color: colors.textTertiary, marginTop: 2 }}>
-                      {profile.role ?? "Membre"}
-                    </Text>
-                  </View>
-                  {!editingUsername && (
-                    <Pressable onPress={() => { setNewUsername(profile.username); setEditingUsername(true); }} hitSlop={8}>
-                      <Ionicons name="pencil-outline" size={18} color={colors.textTertiary} />
-                    </Pressable>
-                  )}
-                </View>
-              </View>
-
-              {/* ── Apparence ── */}
+              {/* ── Mes Groupes ── */}
               <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: isDark ? "#505050" : "#AAAAAA", textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 10 }}>
-                Apparence
+                Mes groupes
               </Text>
-              <View
-                style={{
-                  borderRadius: RADIUS.xl,
-                  backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  padding: 16,
-                  marginBottom: 24,
-                }}
-              >
-                <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.medium, color: colors.textSecondary, marginBottom: 12 }}>
-                  Thème de l'application
-                </Text>
-                <View style={{ flexDirection: "row", gap: 10 }}>
-                  {THEME_OPTIONS.map((opt) => {
-                    const active = preference === opt.key;
-                    return (
-                      <AnimatedPressable
-                        key={opt.key}
-                        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setPreference(opt.key); }}
-                        style={{
-                          flex: 1,
-                          alignItems: "center",
-                          paddingVertical: 12,
-                          borderRadius: RADIUS.lg,
-                          backgroundColor: active ? `${PALETTE.sarcelle}18` : (isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)"),
-                          borderWidth: active ? 1.5 : 1,
-                          borderColor: active ? PALETTE.sarcelle : colors.border,
-                          gap: 6,
-                        }}
-                      >
-                        <Ionicons name={opt.icon} size={18} color={active ? PALETTE.sarcelle : colors.textTertiary} />
-                        <Text style={{ fontSize: FONT.sizes.xs, fontFamily: active ? FONT_FAMILY.semibold : FONT_FAMILY.regular, color: active ? PALETTE.sarcelle : colors.textTertiary }}>
-                          {opt.label}
-                        </Text>
-                      </AnimatedPressable>
-                    );
-                  })}
-                </View>
-              </View>
 
-              {/* ── Application ── */}
-              <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: isDark ? "#505050" : "#AAAAAA", textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 10 }}>
-                Application
-              </Text>
-              <View
-                style={{
-                  borderRadius: RADIUS.xl,
-                  backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  overflow: "hidden",
-                  marginBottom: 24,
-                }}
-              >
-                <Pressable
-                  onPress={async () => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    await resetOnboarding();
-                    router.push("/onboarding");
-                  }}
-                  style={({ pressed }) => ({
-                    backgroundColor: pressed ? (isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)") : "transparent",
-                  })}
-                >
-                  <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14 }}>
-                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", alignItems: "center", justifyContent: "center", marginRight: 14 }}>
-                      <Ionicons name="book-outline" size={16} color={isDark ? "#A0A0A0" : "#666"} />
-                    </View>
-                    <Text style={{ flex: 1, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.medium, color: colors.textPrimary }}>
-                      Revoir le guide
-                    </Text>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
-                  </View>
-                </Pressable>
-                <View style={{ height: 1, backgroundColor: colors.border, marginHorizontal: 16 }} />
-                <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14 }}>
-                  <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", alignItems: "center", justifyContent: "center", marginRight: 14 }}>
-                    <Ionicons name="information-circle-outline" size={16} color={isDark ? "#A0A0A0" : "#666"} />
-                  </View>
-                  <Text style={{ flex: 1, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.medium, color: colors.textPrimary }}>
-                    Version
+              {(groups ?? []).length === 0 ? (
+                <View style={{ alignItems: "center", paddingVertical: 28 }}>
+                  <Ionicons name="people-outline" size={36} color={isDark ? "#404040" : "#D0D0D0"} />
+                  <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.medium, color: colors.textMuted, marginTop: 8 }}>
+                    Aucun groupe pour l'instant
                   </Text>
-                  <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular, color: colors.textTertiary }}>1.0.0</Text>
                 </View>
-              </View>
-
-              {/* ── Déconnexion ── */}
-              <View
-                style={{
-                  borderRadius: RADIUS.xl,
-                  backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  overflow: "hidden",
-                }}
-              >
-                <Pressable
-                  onPress={() => {
-                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                    Alert.alert("Se déconnecter", "Tu veux vraiment te déconnecter ?", [
-                      { text: "Annuler", style: "cancel" },
-                      { text: "Déconnecter", style: "destructive", onPress: signOut },
-                    ]);
+              ) : (groups ?? []).map((group) => (
+                <AnimatedPressable
+                  key={group.id}
+                  onPress={() => router.push(`/groups/${group.id}` as any)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 14,
+                    backgroundColor: colors.card,
+                    borderRadius: RADIUS.xl,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    padding: 14,
+                    marginBottom: 10,
                   }}
-                  style={({ pressed }) => ({
-                    backgroundColor: pressed ? "rgba(244,63,94,0.06)" : "transparent",
-                  })}
                 >
-                  <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14 }}>
-                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "rgba(244,63,94,0.12)", alignItems: "center", justifyContent: "center", marginRight: 14 }}>
-                      <Ionicons name="log-out-outline" size={16} color="#F43F5E" />
+                  {group.cover_url ? (
+                    <Image source={{ uri: group.cover_url }} style={{ width: 48, height: 48, borderRadius: RADIUS.sm }} contentFit="cover" />
+                  ) : (
+                    <View style={{ width: 48, height: 48, borderRadius: RADIUS.sm, backgroundColor: `${PALETTE.sarcelle}18`, alignItems: "center", justifyContent: "center" }}>
+                      <Ionicons name="people" size={22} color={PALETTE.sarcelle} />
                     </View>
-                    <Text style={{ flex: 1, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.medium, color: "#F43F5E" }}>
-                      {authLoading ? "Déconnexion…" : "Se déconnecter"}
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.semibold, color: colors.textPrimary }} numberOfLines={1}>
+                      {group.name}
+                    </Text>
+                    <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: colors.textTertiary, marginTop: 2 }}>
+                      {group.member_count} membre{group.member_count !== 1 ? "s" : ""} · {group.role === "owner" ? "Admin" : "Membre"}
                     </Text>
                   </View>
-                </Pressable>
-              </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+                </AnimatedPressable>
+              ))}
+
+              {/* ── Mes Tournois ── */}
+              <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: isDark ? "#505050" : "#AAAAAA", textTransform: "uppercase", letterSpacing: 1.4, marginTop: 24, marginBottom: 10 }}>
+                Mes tournois
+              </Text>
+
+              {publicTournaments.isLoading ? (
+                <ActivityIndicator color={PALETTE.sarcelle} style={{ paddingVertical: 20 }} />
+              ) : myTournaments.length === 0 ? (
+                <View style={{ alignItems: "center", paddingVertical: 28 }}>
+                  <Ionicons name="trophy-outline" size={36} color={isDark ? "#404040" : "#D0D0D0"} />
+                  <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.medium, color: colors.textMuted, marginTop: 8 }}>
+                    Aucun tournoi rejoint
+                  </Text>
+                </View>
+              ) : myTournaments.map((t) => (
+                <AnimatedPressable
+                  key={t.id}
+                  onPress={() => router.push(`/groups/${t.group.id}?tournamentId=${t.id}` as any)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 14,
+                    backgroundColor: colors.card,
+                    borderRadius: RADIUS.xl,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    padding: 14,
+                    marginBottom: 10,
+                  }}
+                >
+                  <View style={{ width: 48, height: 48, borderRadius: RADIUS.sm, backgroundColor: `${PALETTE.fuchsia}15`, alignItems: "center", justifyContent: "center" }}>
+                    <Ionicons name="trophy" size={22} color={PALETTE.fuchsia} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.semibold, color: colors.textPrimary }} numberOfLines={1}>
+                      {t.title}
+                    </Text>
+                    <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: colors.textTertiary, marginTop: 2 }}>
+                      {t.group.name} · {t.challenge_count} défi{t.challenge_count !== 1 ? "s" : ""}
+                    </Text>
+                  </View>
+                  {t.reward ? (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <Ionicons name="gift-outline" size={13} color={PALETTE.jaune} />
+                      <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.medium, color: PALETTE.jaune }} numberOfLines={1}>
+                        {t.reward}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+                  )}
+                </AnimatedPressable>
+              ))}
             </View>
           )}
         </View>

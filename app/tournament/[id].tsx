@@ -23,10 +23,8 @@ import {
   RADIUS,
   FONT,
   FONT_FAMILY,
-  CARD_STYLE,
-  INPUT_STYLE,
-  SECTION_HEADER_STYLE,
 } from "@/src/theme";
+import { useTheme } from "@/src/providers/ThemeProvider";
 
 function ChallengeCard({
   challenge,
@@ -39,11 +37,16 @@ function ChallengeCard({
   onDelete: () => void;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
+
   return (
     <AnimatedPressable onPress={onPress}>
       <View
         style={{
-          ...CARD_STYLE,
+          backgroundColor: colors.card,
+          borderRadius: RADIUS.xl,
+          borderWidth: 1,
+          borderColor: colors.border,
           padding: 16,
           marginBottom: 12,
           flexDirection: "row",
@@ -67,7 +70,7 @@ function ChallengeCard({
         <View style={{ flex: 1 }}>
           <Text
             style={{
-              color: "#1A1A1A",
+              color: colors.textPrimary,
               fontSize: FONT.sizes.base,
               fontFamily: FONT_FAMILY.semibold,
             }}
@@ -78,7 +81,7 @@ function ChallengeCard({
           {challenge.description && (
             <Text
               style={{
-                color: "#999",
+                color: colors.textTertiary,
                 fontSize: FONT.sizes.sm,
                 fontFamily: FONT_FAMILY.regular,
                 marginTop: 2,
@@ -96,7 +99,7 @@ function ChallengeCard({
               <Ionicons name="trash-outline" size={16} color="#F43F5E" />
             </AnimatedPressable>
           )}
-          <Ionicons name="chevron-forward" size={16} color="#CCC" />
+          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
         </View>
       </View>
     </AnimatedPressable>
@@ -109,6 +112,7 @@ export default function TournamentScreen() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
 
+  const { colors, isDark } = useTheme();
   const { data: tournament, isPending: tournamentPending, isError } = useGroupTournament(id!);
   const { data: challenges, isPending: challengesPending } = useTournamentChallenges(id!);
   const createChallenge = useCreateChallenge();
@@ -156,7 +160,7 @@ export default function TournamentScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+      <View style={{ flex: 1, backgroundColor: colors.bg }}>
 
         {/* Header */}
         <View
@@ -175,20 +179,20 @@ export default function TournamentScreen() {
               width: 40,
               height: 40,
               borderRadius: RADIUS.sm,
-              backgroundColor: "rgba(0,0,0,0.04)",
+              backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)",
               alignItems: "center",
               justifyContent: "center",
               borderWidth: 1,
-              borderColor: "rgba(0,0,0,0.06)",
+              borderColor: colors.border,
             }}
           >
-            <Ionicons name="arrow-back" size={22} color="#1A1A1A" />
+            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
           </AnimatedPressable>
 
           <Text
             style={{
               flex: 1,
-              color: "#1A1A1A",
+              color: colors.textPrimary,
               fontSize: FONT.sizes.xl,
               fontFamily: FONT_FAMILY.bold,
             }}
@@ -240,7 +244,7 @@ export default function TournamentScreen() {
             showsVerticalScrollIndicator={false}
           >
             {/* Card info tournoi */}
-            <View style={{ ...CARD_STYLE, padding: 20, marginBottom: 20 }}>
+            <View style={{ backgroundColor: colors.card, borderRadius: RADIUS.xl, borderWidth: 1, borderColor: colors.border, padding: 20, marginBottom: 20 }}>
 
               {/* Badge reward */}
               {tournament.reward && (
@@ -272,7 +276,7 @@ export default function TournamentScreen() {
 
               <Text
                 style={{
-                  color: "#1A1A1A",
+                  color: colors.textPrimary,
                   fontSize: FONT.sizes["3xl"],
                   fontFamily: FONT_FAMILY.extrabold,
                   marginBottom: tournament.description ? 10 : 0,
@@ -284,7 +288,7 @@ export default function TournamentScreen() {
               {tournament.description && (
                 <Text
                   style={{
-                    color: "#666",
+                    color: colors.textSecondary,
                     fontSize: FONT.sizes.base,
                     fontFamily: FONT_FAMILY.regular,
                     lineHeight: 22,
@@ -306,7 +310,7 @@ export default function TournamentScreen() {
             >
               <Text
                 style={{
-                  color: "#1A1A1A",
+                  color: colors.textPrimary,
                   fontSize: FONT.sizes.xl,
                   fontFamily: FONT_FAMILY.bold,
                 }}
@@ -315,7 +319,7 @@ export default function TournamentScreen() {
               </Text>
               <Text
                 style={{
-                  color: "#999",
+                  color: colors.textTertiary,
                   fontSize: FONT.sizes.sm,
                   fontFamily: FONT_FAMILY.regular,
                 }}
@@ -366,7 +370,7 @@ export default function TournamentScreen() {
           <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
             <Text
               style={{
-                color: "#1A1A1A",
+                color: colors.textPrimary,
                 fontSize: FONT.sizes["2xl"],
                 fontFamily: FONT_FAMILY.bold,
                 marginBottom: 20,
@@ -375,31 +379,48 @@ export default function TournamentScreen() {
               Nouveau défi
             </Text>
 
-            <Text style={{ ...SECTION_HEADER_STYLE, marginBottom: 8 }}>
+            <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>
               Titre *
             </Text>
             <TextInput
               value={newTitle}
               onChangeText={setNewTitle}
               placeholder="Ex : Faire une vidéo déguisé..."
-              placeholderTextColor="#BBB"
-              style={{ ...INPUT_STYLE, marginBottom: 16 }}
+              placeholderTextColor={colors.textMuted}
+              style={{
+                backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                borderWidth: 1,
+                borderColor: colors.border,
+                color: colors.textPrimary,
+                paddingHorizontal: 18,
+                paddingVertical: 15,
+                borderRadius: RADIUS.md,
+                fontSize: FONT.sizes.lg,
+                marginBottom: 16,
+              }}
               maxLength={100}
               autoFocus
             />
 
-            <Text style={{ ...SECTION_HEADER_STYLE, marginBottom: 8 }}>
+            <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>
               Description (optionnel)
             </Text>
             <TextInput
               value={newDesc}
               onChangeText={setNewDesc}
               placeholder="Explique les règles du défi..."
-              placeholderTextColor="#BBB"
+              placeholderTextColor={colors.textMuted}
               multiline
               numberOfLines={3}
               style={{
-                ...INPUT_STYLE,
+                backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                borderWidth: 1,
+                borderColor: colors.border,
+                color: colors.textPrimary,
+                paddingHorizontal: 18,
+                paddingVertical: 15,
+                borderRadius: RADIUS.md,
+                fontSize: FONT.sizes.lg,
                 marginBottom: 24,
                 minHeight: 80,
                 textAlignVertical: "top",

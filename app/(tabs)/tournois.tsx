@@ -19,6 +19,7 @@ import {
 } from "@/src/features/groups/useAllPublicTournaments";
 import { PhaseIndicator } from "@/src/components/ui/PhaseIndicator";
 import { FONT, FONT_FAMILY, PALETTE, RADIUS, SPACING } from "@/src/theme";
+import { useTheme } from "@/src/providers/ThemeProvider";
 
 type Tab = "mes-tournois" | "decouvrir";
 
@@ -30,16 +31,17 @@ function TournamentCard({
   onPress: () => void;
 }) {
   const joinGroup = useJoinTournamentGroup();
+  const { colors } = useTheme();
 
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => ({
         opacity: pressed ? 0.85 : 1,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.card,
         borderRadius: RADIUS.xl,
         borderWidth: 1,
-        borderColor: "rgba(0,0,0,0.06)",
+        borderColor: colors.border,
         marginHorizontal: SPACING["2xl"],
         marginBottom: SPACING.base,
         overflow: "hidden",
@@ -76,12 +78,12 @@ function TournamentCard({
             marginBottom: SPACING.xs,
           }}
         >
-          <Ionicons name="people-outline" size={12} color="#999" />
+          <Ionicons name="people-outline" size={12} color={colors.textTertiary} />
           <Text
             style={{
               fontSize: FONT.sizes.xs,
               fontFamily: FONT_FAMILY.medium,
-              color: "#999",
+              color: colors.textTertiary,
             }}
           >
             {tournament.group.name}
@@ -93,7 +95,7 @@ function TournamentCard({
           style={{
             fontSize: FONT.sizes.lg,
             fontFamily: FONT_FAMILY.bold,
-            color: "#1A1A1A",
+            color: colors.textPrimary,
             marginBottom: SPACING.xs,
           }}
           numberOfLines={2}
@@ -107,7 +109,7 @@ function TournamentCard({
             style={{
               fontSize: FONT.sizes.sm,
               fontFamily: FONT_FAMILY.regular,
-              color: "#666",
+              color: colors.textSecondary,
               marginBottom: SPACING.base,
             }}
             numberOfLines={2}
@@ -127,12 +129,12 @@ function TournamentCard({
           <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.base }}>
             {/* Challenge count */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Ionicons name="flag-outline" size={13} color="#BBB" />
+              <Ionicons name="flag-outline" size={13} color={colors.textMuted} />
               <Text
                 style={{
                   fontSize: FONT.sizes.xs,
                   fontFamily: FONT_FAMILY.medium,
-                  color: "#BBB",
+                  color: colors.textMuted,
                 }}
               >
                 {tournament.challenge_count} défi{tournament.challenge_count !== 1 ? "s" : ""}
@@ -141,12 +143,12 @@ function TournamentCard({
 
             {/* Member count */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Ionicons name="people-outline" size={13} color="#BBB" />
+              <Ionicons name="people-outline" size={13} color={colors.textMuted} />
               <Text
                 style={{
                   fontSize: FONT.sizes.xs,
                   fontFamily: FONT_FAMILY.medium,
-                  color: "#BBB",
+                  color: colors.textMuted,
                 }}
               >
                 {tournament.group.member_count}
@@ -224,6 +226,7 @@ function TournamentCard({
 
 export default function TournoisScreen() {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const [activeTab, setActiveTab] = useState<Tab>("mes-tournois");
 
   const myTournaments = useMyTournaments();
@@ -250,16 +253,16 @@ export default function TournoisScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#F8F8FA" }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       {/* Header */}
       <View
         style={{
           paddingTop: insets.top + SPACING.base,
           paddingHorizontal: SPACING["2xl"],
           paddingBottom: SPACING.lg,
-          backgroundColor: "#FFFFFF",
+          backgroundColor: colors.surface,
           borderBottomWidth: 1,
-          borderBottomColor: "rgba(0,0,0,0.05)",
+          borderBottomColor: colors.border,
         }}
       >
         <View
@@ -274,7 +277,7 @@ export default function TournoisScreen() {
             style={{
               fontSize: FONT.sizes["3xl"],
               fontFamily: FONT_FAMILY.black,
-              color: "#1A1A1A",
+              color: colors.textPrimary,
             }}
           >
             Tournois
@@ -286,7 +289,7 @@ export default function TournoisScreen() {
         <View
           style={{
             flexDirection: "row",
-            backgroundColor: "rgba(0,0,0,0.04)",
+            backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
             borderRadius: RADIUS.lg,
             padding: 3,
           }}
@@ -305,7 +308,7 @@ export default function TournoisScreen() {
                 paddingVertical: 7,
                 alignItems: "center",
                 borderRadius: RADIUS.md,
-                backgroundColor: activeTab === tab.key ? "#FFFFFF" : "transparent",
+                backgroundColor: activeTab === tab.key ? colors.elevated : "transparent",
                 shadowColor: activeTab === tab.key ? "#000" : "transparent",
                 shadowOffset: { width: 0, height: 1 },
                 shadowOpacity: 0.06,
@@ -318,7 +321,7 @@ export default function TournoisScreen() {
                   fontSize: FONT.sizes.sm,
                   fontFamily:
                     activeTab === tab.key ? FONT_FAMILY.semibold : FONT_FAMILY.medium,
-                  color: activeTab === tab.key ? "#1A1A1A" : "#999",
+                  color: activeTab === tab.key ? colors.textPrimary : colors.textTertiary,
                 }}
               >
                 {tab.label}
@@ -357,13 +360,13 @@ export default function TournoisScreen() {
                 paddingHorizontal: SPACING["2xl"],
               }}
             >
-              <Ionicons name="trophy-outline" size={48} color="#DDD" />
+              <Ionicons name="trophy-outline" size={48} color={colors.textMuted} />
               <Text
                 style={{
                   marginTop: SPACING.lg,
                   fontSize: FONT.sizes.lg,
                   fontFamily: FONT_FAMILY.semibold,
-                  color: "#CCC",
+                  color: colors.textMuted,
                   textAlign: "center",
                 }}
               >
@@ -377,7 +380,7 @@ export default function TournoisScreen() {
                     marginTop: SPACING.xs,
                     fontSize: FONT.sizes.sm,
                     fontFamily: FONT_FAMILY.regular,
-                    color: "#DDD",
+                    color: colors.textMuted,
                     textAlign: "center",
                   }}
                 >

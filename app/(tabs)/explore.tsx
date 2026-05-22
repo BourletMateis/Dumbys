@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   ViewToken,
   Animated,
+  TextInput,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -19,17 +21,21 @@ import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCategoryFeed, type CategoryVideo } from "@/src/features/groups/useCategoryFeed";
 import { useDiscoverFeed } from "@/src/features/groups/useDiscoverFeed";
-import { useMyTournaments, useTournamentFeed } from "@/src/features/groups/useTournamentFeed";
-import { PUBLIC_CATEGORIES } from "@/src/features/groups/usePublicGroups";
+import { usePublicGroups, PUBLIC_CATEGORIES } from "@/src/features/groups/usePublicGroups";
+import { useCreateGroup, useJoinPublicGroup } from "@/src/features/groups/useGroupActions";
+import { useMyGroups } from "@/src/features/groups/useMyGroups";
+import { useAllPublicTournaments } from "@/src/features/groups/useAllPublicTournaments";
+import { useCreateGroupTournament } from "@/src/features/groups/useGroupTournaments";
 import { useLikeCount, useHasLiked, useToggleLike } from "@/src/features/feed/useLikes";
 import { useCommentCount } from "@/src/features/feed/useComments";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
+import { BottomSheet } from "@/src/components/ui/BottomSheet";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { COLORS, PALETTE, GRADIENTS, RADIUS, FONT, FONT_FAMILY } from "@/src/theme";
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
 
-type ExploreTab = "decouvrir" | "categories" | "tournois";
+type ExploreTab = "decouvrir" | "categories" | "arene";
 
 // ─── TikTok-style Feed Item ─────────────────────────────────────
 function ExploreFeedItem({
@@ -331,34 +337,40 @@ function ExploreFeedItem({
 // ─── Main Explore Screen ─────────────────────────────────────────
 export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<ExploreTab>("decouvrir");
   const [activeIndex, setActiveIndex] = useState(0);
   const [isFocused, setIsFocused] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>("comedy");
   const [categoryListOpen, setCategoryListOpen] = useState(false);
-  const [tournamentListOpen, setTournamentListOpen] = useState(false);
-  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
 
-  // Hooks data par section — enabled uniquement quand l'onglet est actif
+  // Groupes tab state
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [showCreateTournament, setShowCreateTournament] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [groupDesc, setGroupDesc] = useState("");
+  const [tournamentTitle, setTournamentTitle] = useState("");
+  const [tournamentReward, setTournamentReward] = useState("");
+  const [selectedGroupForTournament, setSelectedGroupForTournament] = useState<string | null>(null);
+
+  // Video feed queries — enabled uniquement quand l'onglet est actif
   const discoverQuery = useDiscoverFeed({ enabled: activeTab === "decouvrir" });
   const categoryQuery = useCategoryFeed(selectedCategory ?? "", { enabled: activeTab === "categories" && !!selectedCategory });
 
-  const { data: myTournaments } = useMyTournaments();
+  // Community queries — enabled quand l'onglet groupes est actif
+  const publicGroupsQuery = usePublicGroups();
+  const myGroupsQuery = useMyGroups();
+  const tournamentsQuery = useAllPublicTournaments();
+  const myTournaments = (tournamentsQuery.data ?? []).filter((t) => t.is_member);
 
-  // Récupère le nom du groupe depuis myTournaments pour éviter une requête supplémentaire
-  const selectedTournament = (myTournaments ?? []).find((t) => t.id === selectedTournamentId);
-  const tournamentFeedQuery = useTournamentFeed(selectedTournamentId ?? "", selectedTournament?.group_name);
+  const joinGroup = useJoinPublicGroup();
+  const createGroup = useCreateGroup();
+  const createTournament = useCreateGroupTournament();
 
-  // Sélection du bon feed selon l'onglet actif
-  const activeQuery =
-    activeTab === "decouvrir" ? discoverQuery
-    : activeTab === "categories" ? categoryQuery
-    : tournamentFeedQuery;
-
+  const activeQuery = activeTab === "decouvrir" ? discoverQuery : categoryQuery;
   const videos = activeQuery.data;
   const isPending = activeQuery.isPending;
 
-  // Track screen focus to pause videos when navigating away
   useFocusEffect(
     useCallback(() => {
       setIsFocused(true);
@@ -380,14 +392,51 @@ export default function ExploreScreen() {
       <ExploreFeedItem
         video={item}
         isActive={index === activeIndex && isFocused}
-        forcePaused={!isFocused}
+        forcePaused={!isFocused || activeTab !== "decouvrir" && activeTab !== "categories"}
       />
     ),
-    [activeIndex, isFocused],
+    [activeIndex, isFocused, activeTab],
   );
+
+  const handleCreateGroup = () => {
+    if (!groupName.trim()) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    createGroup.mutate(
+      { name: groupName.trim(), description: groupDesc.trim() || undefined, isPublic: true },
+      {
+        onSuccess: () => { setShowCreateGroup(false); setGroupName(""); setGroupDesc(""); },
+        onError: (err) => Alert.alert("Erreur", err.message),
+      },
+    );
+  };
+
+  const handleCreateTournament = () => {
+    if (!tournamentTitle.trim() || !selectedGroupForTournament) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    createTournament.mutate(
+      {
+        groupId: selectedGroupForTournament,
+        title: tournamentTitle.trim(),
+        reward: tournamentReward.trim() || undefined,
+      },
+      {
+        onSuccess: (data) => {
+          setShowCreateTournament(false);
+          setTournamentTitle("");
+          setTournamentReward("");
+          setSelectedGroupForTournament(null);
+          if (data?.id) router.push(`/tournament/${data.id}` as any);
+        },
+        onError: (err) => Alert.alert("Erreur", err.message),
+      },
+    );
+  };
+
+  const TABS_HEIGHT = insets.top + 56;
 
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
+
       {/* ── Top tabs overlay ── */}
       <View
         style={{
@@ -405,7 +454,7 @@ export default function ExploreScreen() {
           {([
             { key: "decouvrir" as const, label: "DÉCOUVRIR" },
             { key: "categories" as const, label: "CATÉGORIES" },
-            { key: "tournois" as const, label: "TOURNOIS" },
+            { key: "arene" as const, label: "ARÈNE" },
           ]).map(({ key, label }) => (
             <Pressable
               key={key}
@@ -418,15 +467,9 @@ export default function ExploreScreen() {
                     setActiveTab(key);
                     setCategoryListOpen(true);
                   }
-                } else if (key === "tournois") {
-                  if (activeTab === "tournois") {
-                    setTournamentListOpen((v) => !v);
-                  } else {
-                    setActiveTab(key);
-                    setTournamentListOpen(true);
-                  }
                 } else {
                   setActiveTab(key);
+                  setCategoryListOpen(false);
                 }
               }}
               style={{ paddingVertical: 10, paddingHorizontal: 4 }}
@@ -458,7 +501,7 @@ export default function ExploreScreen() {
           ))}
         </View>
 
-        {/* Category pills (show when categories tab is active and list is open) */}
+        {/* Category pills */}
         {activeTab === "categories" && categoryListOpen && (
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
             {PUBLIC_CATEGORIES.map((cat) => (
@@ -493,101 +536,328 @@ export default function ExploreScreen() {
             ))}
           </View>
         )}
+      </View>
 
-        {/* Tournament pills (show when tournois tab is active and list is open) */}
-        {activeTab === "tournois" && tournamentListOpen && (myTournaments ?? []).length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8, paddingVertical: 4 }}
-            style={{ marginTop: 12 }}
-          >
-            {(myTournaments ?? []).map((t) => (
-              <AnimatedPressable
-                key={t.id}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSelectedTournamentId(t.id);
-                  setTournamentListOpen(false);
-                }}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 6,
-                  backgroundColor: selectedTournamentId === t.id ? PALETTE.fuchsia : "rgba(255,255,255,0.12)",
-                  paddingHorizontal: 12,
-                  paddingVertical: 7,
-                  borderRadius: 16,
-                }}
-              >
-                <Ionicons name="trophy-outline" size={14} color={selectedTournamentId === t.id ? "#FFF" : PALETTE.jaune} />
-                <Text
-                  style={{
-                    fontSize: FONT.sizes.xs,
-                    fontFamily: FONT_FAMILY.semibold,
-                    color: selectedTournamentId === t.id ? "#FFF" : "rgba(255,255,255,0.8)",
+      {/* ── GROUPES community tab ── */}
+      {activeTab === "arene" ? (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingTop: TABS_HEIGHT + 16,
+            paddingBottom: 140,
+            paddingHorizontal: 16,
+          }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Create buttons */}
+          <View style={{ flexDirection: "row", gap: 12, marginBottom: 32 }}>
+            <AnimatedPressable
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShowCreateGroup(true); }}
+              style={{
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                backgroundColor: PALETTE.sarcelle,
+                paddingVertical: 14,
+                borderRadius: RADIUS.xl,
+              }}
+            >
+              <Ionicons name="people" size={18} color="#FFF" />
+              <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.bold, color: "#FFF" }}>
+                Nouveau groupe
+              </Text>
+            </AnimatedPressable>
+            <AnimatedPressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                if ((myGroupsQuery.data ?? []).length === 0) {
+                  Alert.alert("Aucun groupe", "Crée ou rejoins un groupe d'abord pour pouvoir créer un tournoi.");
+                  return;
+                }
+                setSelectedGroupForTournament((myGroupsQuery.data ?? [])[0]?.id ?? null);
+                setShowCreateTournament(true);
+              }}
+              style={{
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                backgroundColor: PALETTE.fuchsia,
+                paddingVertical: 14,
+                borderRadius: RADIUS.xl,
+              }}
+            >
+              <Ionicons name="trophy" size={18} color="#FFF" />
+              <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.bold, color: "#FFF" }}>
+                Nouveau tournoi
+              </Text>
+            </AnimatedPressable>
+          </View>
+
+          {/* Public groups */}
+          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 12 }}>
+            Groupes publics
+          </Text>
+          {publicGroupsQuery.isLoading ? (
+            <ActivityIndicator color={PALETTE.sarcelle} style={{ paddingVertical: 20 }} />
+          ) : (publicGroupsQuery.data ?? []).length === 0 ? (
+            <Text style={{ color: "rgba(255,255,255,0.3)", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular, paddingVertical: 16 }}>
+              Aucun groupe public pour l'instant.
+            </Text>
+          ) : (publicGroupsQuery.data ?? []).map((group) => (
+            <AnimatedPressable
+              key={group.id}
+              onPress={() => router.push(`/group/${group.id}` as any)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 14,
+                backgroundColor: "rgba(255,255,255,0.06)",
+                borderRadius: RADIUS.xl,
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.08)",
+                padding: 14,
+                marginBottom: 10,
+              }}
+            >
+              {group.cover_url ? (
+                <Image source={{ uri: group.cover_url }} style={{ width: 52, height: 52, borderRadius: RADIUS.sm }} contentFit="cover" />
+              ) : (
+                <View style={{ width: 52, height: 52, borderRadius: RADIUS.sm, backgroundColor: `${PALETTE.sarcelle}20`, alignItems: "center", justifyContent: "center" }}>
+                  <Ionicons name="people" size={24} color={PALETTE.sarcelle} />
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.bold, color: "#FFF" }} numberOfLines={1}>
+                  {group.name}
+                </Text>
+                <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>
+                  {group.member_count} membre{group.member_count !== 1 ? "s" : ""}
+                  {group.prize ? ` · 🎁 ${group.prize}` : ""}
+                </Text>
+              </View>
+              {group.is_member ? (
+                <View style={{ backgroundColor: `${PALETTE.sarcelle}20`, borderRadius: RADIUS.full, paddingHorizontal: 12, paddingVertical: 5 }}>
+                  <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold, color: PALETTE.sarcelle }}>Membre</Text>
+                </View>
+              ) : (
+                <AnimatedPressable
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    joinGroup.mutate(group.id);
                   }}
-                  numberOfLines={1}
+                  style={{ backgroundColor: PALETTE.fuchsia, borderRadius: RADIUS.full, paddingHorizontal: 12, paddingVertical: 5 }}
                 >
+                  <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "#FFF" }}>Rejoindre</Text>
+                </AnimatedPressable>
+              )}
+            </AnimatedPressable>
+          ))}
+
+          {/* Mes tournois */}
+          <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: 1.4, marginTop: 28, marginBottom: 12 }}>
+            Mes tournois
+          </Text>
+          {tournamentsQuery.isLoading ? (
+            <ActivityIndicator color={PALETTE.sarcelle} style={{ paddingVertical: 20 }} />
+          ) : myTournaments.length === 0 ? (
+            <Text style={{ color: "rgba(255,255,255,0.3)", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular, paddingVertical: 16 }}>
+              Rejoins un groupe pour voir ses tournois.
+            </Text>
+          ) : myTournaments.map((t) => (
+            <AnimatedPressable
+              key={t.id}
+              onPress={() => router.push(`/tournament/${t.id}` as any)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 14,
+                backgroundColor: "rgba(255,255,255,0.06)",
+                borderRadius: RADIUS.xl,
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.08)",
+                padding: 14,
+                marginBottom: 10,
+              }}
+            >
+              <View style={{ width: 52, height: 52, borderRadius: RADIUS.sm, backgroundColor: `${PALETTE.fuchsia}20`, alignItems: "center", justifyContent: "center" }}>
+                <Ionicons name="trophy" size={24} color={PALETTE.fuchsia} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.bold, color: "#FFF" }} numberOfLines={1}>
                   {t.title}
+                </Text>
+                <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>
+                  {t.group.name} · {t.challenge_count} défi{t.challenge_count !== 1 ? "s" : ""}
+                  {t.reward ? ` · 🎁 ${t.reward}` : ""}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />
+            </AnimatedPressable>
+          ))}
+        </ScrollView>
+      ) : (
+        /* ── Video Feed (DÉCOUVRIR & CATÉGORIES) ── */
+        <>
+          {isPending ? (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+              <ActivityIndicator size="large" color={PALETTE.sarcelle} />
+            </View>
+          ) : !videos || videos.length === 0 ? (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 }}>
+              <Ionicons name="videocam-outline" size={56} color="#555" />
+              <Text style={{ color: "#888", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold, marginTop: 16, textAlign: "center" }}>
+                Aucune vidéo pour l'instant
+              </Text>
+              <Text style={{ color: "#666", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, marginTop: 6, textAlign: "center" }}>
+                Sois le premier à poster dans cette catégorie !
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              style={{ flex: 1 }}
+              data={videos}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              pagingEnabled
+              snapToAlignment="start"
+              decelerationRate="fast"
+              showsVerticalScrollIndicator={false}
+              onViewableItemsChanged={onViewableItemsChanged}
+              viewabilityConfig={viewabilityConfig}
+              windowSize={3}
+              maxToRenderPerBatch={3}
+              removeClippedSubviews={false}
+              getItemLayout={(_, index) => ({
+                length: SCREEN_HEIGHT,
+                offset: SCREEN_HEIGHT * index,
+                index,
+              })}
+            />
+          )}
+        </>
+      )}
+
+      {/* ── BottomSheet : Créer un groupe ── */}
+      <BottomSheet isOpen={showCreateGroup} onClose={() => { setShowCreateGroup(false); setGroupName(""); setGroupDesc(""); }} snapPoint={0.55}>
+        <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
+          <Text style={{ color: "#FFF", fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.bold, marginBottom: 20 }}>
+            Nouveau groupe
+          </Text>
+          <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 8 }}>
+            Nom *
+          </Text>
+          <TextInput
+            value={groupName}
+            onChangeText={setGroupName}
+            placeholder="Ex : Gym Bros, Dance Crew..."
+            placeholderTextColor="rgba(255,255,255,0.25)"
+            style={{ backgroundColor: "rgba(255,255,255,0.08)", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", color: "#FFF", paddingHorizontal: 18, paddingVertical: 15, borderRadius: RADIUS.md, fontSize: FONT.sizes.lg, marginBottom: 16 }}
+            maxLength={60}
+            autoFocus
+          />
+          <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 8 }}>
+            Description (optionnel)
+          </Text>
+          <TextInput
+            value={groupDesc}
+            onChangeText={setGroupDesc}
+            placeholder="De quoi parle ce groupe ?"
+            placeholderTextColor="rgba(255,255,255,0.25)"
+            multiline
+            numberOfLines={2}
+            style={{ backgroundColor: "rgba(255,255,255,0.08)", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", color: "#FFF", paddingHorizontal: 18, paddingVertical: 15, borderRadius: RADIUS.md, fontSize: FONT.sizes.lg, marginBottom: 24, minHeight: 64, textAlignVertical: "top" }}
+            maxLength={200}
+          />
+          <AnimatedPressable
+            onPress={handleCreateGroup}
+            disabled={!groupName.trim() || createGroup.isPending}
+            style={{ backgroundColor: groupName.trim() ? PALETTE.sarcelle : "rgba(255,255,255,0.1)", paddingVertical: 16, borderRadius: RADIUS.md, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 }}
+          >
+            {createGroup.isPending ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <>
+                <Ionicons name="people" size={18} color={groupName.trim() ? "#FFF" : "rgba(255,255,255,0.3)"} />
+                <Text style={{ color: groupName.trim() ? "#FFF" : "rgba(255,255,255,0.3)", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>
+                  Créer le groupe
+                </Text>
+              </>
+            )}
+          </AnimatedPressable>
+        </View>
+      </BottomSheet>
+
+      {/* ── BottomSheet : Créer un tournoi ── */}
+      <BottomSheet isOpen={showCreateTournament} onClose={() => { setShowCreateTournament(false); setTournamentTitle(""); setTournamentReward(""); }} snapPoint={0.7}>
+        <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
+          <Text style={{ color: "#FFF", fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.bold, marginBottom: 20 }}>
+            Nouveau tournoi
+          </Text>
+
+          {/* Group picker */}
+          <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 8 }}>
+            Dans quel groupe ?
+          </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ marginBottom: 20 }}>
+            {(myGroupsQuery.data ?? []).map((g) => (
+              <AnimatedPressable
+                key={g.id}
+                onPress={() => setSelectedGroupForTournament(g.id)}
+                style={{ backgroundColor: selectedGroupForTournament === g.id ? PALETTE.fuchsia : "rgba(255,255,255,0.1)", borderRadius: RADIUS.full, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: selectedGroupForTournament === g.id ? PALETTE.fuchsia : "rgba(255,255,255,0.12)" }}
+              >
+                <Text style={{ color: "#FFF", fontSize: FONT.sizes.sm, fontFamily: selectedGroupForTournament === g.id ? FONT_FAMILY.bold : FONT_FAMILY.regular }}>
+                  {g.name}
                 </Text>
               </AnimatedPressable>
             ))}
           </ScrollView>
-        )}
-      </View>
 
-      {/* ── Video Feed ── */}
-      {activeTab === "tournois" && !selectedTournamentId ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 }}>
-          <Ionicons name="trophy-outline" size={56} color="#555" />
-          <Text style={{ color: "#888", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold, marginTop: 16, textAlign: "center" }}>
-            {(myTournaments ?? []).length === 0
-              ? "Aucun tournoi disponible"
-              : "Sélectionne un tournoi"}
+          <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 8 }}>
+            Titre *
           </Text>
-          <Text style={{ color: "#666", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, marginTop: 6, textAlign: "center" }}>
-            {(myTournaments ?? []).length === 0
-              ? "Rejoins un groupe pour voir ses tournois."
-              : "Choisis un tournoi ci-dessus pour voir ses vidéos."}
+          <TextInput
+            value={tournamentTitle}
+            onChangeText={setTournamentTitle}
+            placeholder="Ex : Tournoi été 2025..."
+            placeholderTextColor="rgba(255,255,255,0.25)"
+            style={{ backgroundColor: "rgba(255,255,255,0.08)", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", color: "#FFF", paddingHorizontal: 18, paddingVertical: 15, borderRadius: RADIUS.md, fontSize: FONT.sizes.lg, marginBottom: 16 }}
+            maxLength={80}
+          />
+          <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 8 }}>
+            Récompense (optionnel)
           </Text>
+          <TextInput
+            value={tournamentReward}
+            onChangeText={setTournamentReward}
+            placeholder="Ex : Pizza party, 50€..."
+            placeholderTextColor="rgba(255,255,255,0.25)"
+            style={{ backgroundColor: "rgba(255,255,255,0.08)", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", color: "#FFF", paddingHorizontal: 18, paddingVertical: 15, borderRadius: RADIUS.md, fontSize: FONT.sizes.lg, marginBottom: 24 }}
+            maxLength={100}
+          />
+          <AnimatedPressable
+            onPress={handleCreateTournament}
+            disabled={!tournamentTitle.trim() || !selectedGroupForTournament || createTournament.isPending}
+            style={{ backgroundColor: tournamentTitle.trim() && selectedGroupForTournament ? PALETTE.fuchsia : "rgba(255,255,255,0.1)", paddingVertical: 16, borderRadius: RADIUS.md, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 }}
+          >
+            {createTournament.isPending ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <>
+                <Ionicons name="trophy" size={18} color={tournamentTitle.trim() && selectedGroupForTournament ? "#FFF" : "rgba(255,255,255,0.3)"} />
+                <Text style={{ color: tournamentTitle.trim() && selectedGroupForTournament ? "#FFF" : "rgba(255,255,255,0.3)", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold }}>
+                  Créer le tournoi
+                </Text>
+              </>
+            )}
+          </AnimatedPressable>
         </View>
-      ) : isPending ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator size="large" color={PALETTE.sarcelle} />
-        </View>
-      ) : !videos || videos.length === 0 ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 }}>
-          <Ionicons name="videocam-outline" size={56} color="#555" />
-          <Text style={{ color: "#888", fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.semibold, marginTop: 16, textAlign: "center" }}>
-            Aucune vidéo pour l'instant
-          </Text>
-          <Text style={{ color: "#666", fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, marginTop: 6, textAlign: "center" }}>
-            Sois le premier à poster dans cette catégorie !
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          style={{ flex: 1 }}
-          data={videos}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          pagingEnabled
-          snapToAlignment="start"
-          decelerationRate="fast"
-          showsVerticalScrollIndicator={false}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewabilityConfig}
-          windowSize={3}
-          maxToRenderPerBatch={3}
-          removeClippedSubviews={false}
-          getItemLayout={(_, index) => ({
-            length: SCREEN_HEIGHT,
-            offset: SCREEN_HEIGHT * index,
-            index,
-          })}
-        />
-      )}
+      </BottomSheet>
+
     </View>
   );
 }

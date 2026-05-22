@@ -4,11 +4,11 @@
     "slug": "dumbys",
     "version": "1.2.0",
     "orientation": "portrait",
-    "icon": "./assets/images/Dumbeez-avatar.png",
+    "icon": "./assets/images/Dumbys-avatar.png",
     "scheme": "dumbeez",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/Dumbeez-avatar.png",
+      "image": "./assets/images/Dumbys-avatar.png",
       "resizeMode": "contain",
       "backgroundColor": "#080F0F"
     },
@@ -21,7 +21,7 @@
       "package": "com.dumbeez.app",
       "versionCode": 2,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/Dumbeez-avatar.png",
+        "foregroundImage": "./assets/images/Dumbys-avatar.png",
         "backgroundColor": "#080F0F"
       },
       "predictiveBackGestureEnabled": false,
