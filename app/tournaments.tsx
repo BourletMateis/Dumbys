@@ -32,7 +32,7 @@ function TournamentCard({ tournament }: { tournament: PublicTournament }) {
     joinGroup.mutate(tournament.group.id, {
       onSuccess: () => {
         setJoining(false);
-        Alert.alert("🎉 Rejoint !", `Tu fais maintenant partie de ${tournament.group.name} et tu peux voir ses tournois.`);
+        Alert.alert("Rejoint !", `Tu fais maintenant partie de ${tournament.group.name} et tu peux voir ses tournois.`);
       },
       onError: (err) => {
         setJoining(false);

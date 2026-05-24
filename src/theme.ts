@@ -1,11 +1,11 @@
-// Dumbys Design System — Identity Refresh 2026
+// Dumbeez Design System — Identity Refresh 2026
 // Dark mode: "Nuit Electrique" | Light mode: Clean & Vibrant
 
 // ─── Color Palette ───────────────────────────────────────────────
 export const PALETTE = {
   // Brand Colors (shared across modes)
   fuchsia: "#FF2D7D",       // Fuchsia Defi — energy, action
-  sarcelle: "#3FD0C9",      // Sarcelle Dumbys — modernity, freshness
+  sarcelle: "#3FD0C9",      // Sarcelle Dumbeez — modernity, freshness
   jaune: "#FDB813",         // Jaune Sourire — joy, success
 
   // Dark Mode: Nuit Electrique

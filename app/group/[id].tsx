@@ -620,9 +620,30 @@ export default function GroupScreen() {
               </Text>
               {podium.map((entry) => (
                 <View key={entry.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8 }}>
-                  <Text style={{ fontSize: 22, marginRight: 12 }}>
-                    {entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}
-                  </Text>
+                  <View
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 16,
+                      marginRight: 12,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor:
+                        entry.rank === 1 ? PALETTE.jaune + "22"
+                        : entry.rank === 2 ? "rgba(192,192,192,0.15)"
+                        : "rgba(180,120,60,0.15)",
+                    }}
+                  >
+                    <Ionicons
+                      name="trophy"
+                      size={16}
+                      color={
+                        entry.rank === 1 ? PALETTE.jaune
+                        : entry.rank === 2 ? "#C0C0C0"
+                        : "#CD7F32"
+                      }
+                    />
+                  </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: colors.textPrimary, fontFamily: FONT_FAMILY.semibold }}>{entry.user.username}</Text>
                     <Text style={{ color: colors.textTertiary, fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.regular }}>
@@ -667,7 +688,7 @@ export default function GroupScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: colors.textPrimary, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.semibold }} numberOfLines={1}>{t.title}</Text>
                     {t.reward ? (
-                      <Text style={{ color: PALETTE.jaune, fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.medium, marginTop: 2 }} numberOfLines={1}>🏅 {t.reward}</Text>
+                      <Text style={{ color: PALETTE.jaune, fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.medium, marginTop: 2 }} numberOfLines={1}>{t.reward}</Text>
                     ) : null}
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
@@ -1000,7 +1021,7 @@ export default function GroupScreen() {
             <TextInput
               value={tournamentTitle}
               onChangeText={setTournamentTitle}
-              placeholder="Ex: Kickflip Masters 🏆"
+              placeholder="Ex: Kickflip Masters"
               placeholderTextColor={colors.textMuted}
               style={{ ...inputStyle, marginBottom: 16 }}
               maxLength={80}
@@ -1021,7 +1042,7 @@ export default function GroupScreen() {
             <TextInput
               value={tournamentReward}
               onChangeText={setTournamentReward}
-              placeholder="Ex: Pizza pour l'équipe 🍕"
+              placeholder="Ex: Pizza pour l'équipe"
               placeholderTextColor={colors.textMuted}
               style={{ ...inputStyle, marginBottom: 24 }}
               maxLength={100}

@@ -273,7 +273,7 @@ export default function ChallengeFeedScreen() {
             Aucune vidéo pour ce défi
           </Text>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")}
             style={{ marginTop: 24, backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}
           >
             <Text style={{ color: "white", fontWeight: "600" }}>Retour</Text>
@@ -301,7 +301,7 @@ export default function ChallengeFeedScreen() {
         }}
       >
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")}
           style={{
             width: 40,
             height: 40,

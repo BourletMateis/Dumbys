@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useEffect, useMemo } from "react";
+import { useCallback, useRef, useState, useEffect, useMemo, memo } from "react";
 import {
   View,
   Text,
@@ -33,7 +33,7 @@ import { PALETTE, COLORS, GRADIENTS, RADIUS, FONT, FONT_FAMILY, INPUT_STYLE, SEC
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
 
-function FeedItem({
+const FeedItem = memo(function FeedItem({
   video,
   isActive,
   canVote,
@@ -499,7 +499,7 @@ function FeedItem({
       </View>
     </Pressable>
   );
-}
+});
 
 export default function FeedScreen() {
   const { groupId, startIndex, userId, videoIds: videoIdsParam } = useLocalSearchParams<{
@@ -707,7 +707,7 @@ export default function FeedScreen() {
         {/* Left: back + upload */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")}
             style={{
               width: 42,
               height: 42,
@@ -811,7 +811,9 @@ export default function FeedScreen() {
           index,
         })}
         windowSize={3}
-        maxToRenderPerBatch={3}
+        maxToRenderPerBatch={2}
+        initialNumToRender={1}
+        updateCellsBatchingPeriod={50}
         removeClippedSubviews={false}
       />
 

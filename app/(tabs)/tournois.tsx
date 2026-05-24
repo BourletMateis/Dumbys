@@ -249,7 +249,7 @@ export default function TournoisScreen() {
   const data = activeTab === "mes-tournois" ? myTournamentsData : discoverData;
 
   const handleTournamentPress = (tournament: PublicTournament) => {
-    router.push(`/groups/${tournament.group.id}?tournamentId=${tournament.id}` as any);
+    router.push({ pathname: "/tournament/[id]", params: { id: tournament.id } });
   };
 
   return (

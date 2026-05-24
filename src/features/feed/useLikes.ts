@@ -73,7 +73,33 @@ export function useToggleLike(videoId: string) {
         return true; // liked
       }
     },
-    onSuccess: () => {
+    onMutate: async () => {
+      // Cancel in-flight queries to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ["liked", videoId, user?.id] });
+      await queryClient.cancelQueries({ queryKey: ["likes", videoId] });
+
+      // Snapshot current values for rollback
+      const prevHasLiked = queryClient.getQueryData<boolean>(["liked", videoId, user?.id]);
+      const prevCount = queryClient.getQueryData<number>(["likes", videoId]);
+
+      // Optimistically flip the like state immediately
+      const newHasLiked = !prevHasLiked;
+      queryClient.setQueryData(["liked", videoId, user?.id], newHasLiked);
+      queryClient.setQueryData(["likes", videoId], (old: number = 0) =>
+        newHasLiked ? old + 1 : Math.max(0, old - 1),
+      );
+
+      return { prevHasLiked, prevCount };
+    },
+    onError: (_err, _vars, context) => {
+      // Rollback on error
+      if (context) {
+        queryClient.setQueryData(["liked", videoId, user?.id], context.prevHasLiked);
+        queryClient.setQueryData(["likes", videoId], context.prevCount);
+      }
+    },
+    onSettled: () => {
+      // Sync with server after mutation
       queryClient.invalidateQueries({ queryKey: ["likes", videoId] });
       queryClient.invalidateQueries({ queryKey: ["liked", videoId] });
     },

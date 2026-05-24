@@ -62,7 +62,7 @@ export default function PostScreen() {
         onSuccess: () => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           const label = selectedGroupIds.length > 1 ? `${selectedGroupIds.length} groupes` : "1 groupe";
-          Alert.alert("Publié 🔥", `Ta vidéo est en ligne dans ${label} !`, [
+          Alert.alert("Publié !", `Ta vidéo est en ligne dans ${label} !`, [
             { text: "OK", onPress: () => router.dismissAll() },
           ]);
         },
@@ -151,7 +151,7 @@ export default function PostScreen() {
             <TextInput
               value={description}
               onChangeText={setDescription}
-              placeholder={"Décris ta vidéo...\n#défi #dumbeez 🔥"}
+              placeholder={"Décris ta vidéo...\n#défi #dumbeez"}
               placeholderTextColor="rgba(255,255,255,0.2)"
               multiline
               style={{

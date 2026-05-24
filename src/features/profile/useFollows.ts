@@ -59,7 +59,6 @@ export function useToggleFollow(userId: string) {
     mutationFn: async () => {
       if (!me) throw new Error("Not authenticated");
 
-      // Check current state
       const { data: existing } = await supabase
         .from("follows")
         .select("id")
@@ -73,16 +72,40 @@ export function useToggleFollow(userId: string) {
           .delete()
           .eq("id", existing.id);
         if (error) throw error;
-        return false; // unfollowed
+        return false;
       } else {
         const { error } = await supabase
           .from("follows")
           .insert({ follower_id: me.id, following_id: userId });
         if (error) throw error;
-        return true; // followed
+        return true;
       }
     },
-    onSuccess: () => {
+    onMutate: async () => {
+      // Cancel in-flight queries
+      await queryClient.cancelQueries({ queryKey: ["is-following", me?.id, userId] });
+      await queryClient.cancelQueries({ queryKey: ["follower-count", userId] });
+
+      // Snapshot
+      const prevIsFollowing = queryClient.getQueryData<boolean>(["is-following", me?.id, userId]);
+      const prevCount = queryClient.getQueryData<number>(["follower-count", userId]);
+
+      // Optimistic flip — instant UI response
+      queryClient.setQueryData(["is-following", me?.id, userId], !prevIsFollowing);
+      queryClient.setQueryData(["follower-count", userId], (old: number = 0) =>
+        prevIsFollowing ? Math.max(0, old - 1) : old + 1,
+      );
+
+      return { prevIsFollowing, prevCount };
+    },
+    onError: (_err, _vars, context) => {
+      // Rollback on error
+      if (context) {
+        queryClient.setQueryData(["is-following", me?.id, userId], context.prevIsFollowing);
+        queryClient.setQueryData(["follower-count", userId], context.prevCount);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["is-following", me?.id, userId] });
       queryClient.invalidateQueries({ queryKey: ["follower-count", userId] });
       queryClient.invalidateQueries({ queryKey: ["following-count", me?.id] });

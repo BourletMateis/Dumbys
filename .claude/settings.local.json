@@ -21,7 +21,8 @@
       "Bash(docker restart *)",
       "Bash(rtk ls *)",
       "Bash(rtk grep *)",
-      "Bash(rtk read *)"
+      "Bash(rtk read *)",
+      "PowerShell(Copy-Item *)"
     ]
   }
 }

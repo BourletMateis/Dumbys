@@ -122,7 +122,7 @@ export function BottomSheet({
               <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: isDark ? "rgba(255,255,255,0.15)" : "#D0D0D0" }} />
             </View>
 
-            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
               <ScrollView
                 bounces={false}
                 showsVerticalScrollIndicator={false}

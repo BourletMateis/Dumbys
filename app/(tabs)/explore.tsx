@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useEffect } from "react";
+import { useCallback, useRef, useState, useEffect, memo } from "react";
 import {
   View,
   Text,
@@ -28,6 +28,8 @@ import { useAllPublicTournaments } from "@/src/features/groups/useAllPublicTourn
 import { useCreateGroupTournament } from "@/src/features/groups/useGroupTournaments";
 import { useLikeCount, useHasLiked, useToggleLike } from "@/src/features/feed/useLikes";
 import { useCommentCount } from "@/src/features/feed/useComments";
+import { useIsFollowing, useToggleFollow } from "@/src/features/profile/useFollows";
+import { useAuthStore } from "@/src/store/useAuthStore";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { BottomSheet } from "@/src/components/ui/BottomSheet";
 import { Avatar } from "@/src/components/ui/Avatar";
@@ -38,7 +40,7 @@ const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
 type ExploreTab = "decouvrir" | "categories" | "arene";
 
 // ─── TikTok-style Feed Item ─────────────────────────────────────
-function ExploreFeedItem({
+const ExploreFeedItem = memo(function ExploreFeedItem({
   video,
   isActive,
   forcePaused,
@@ -53,10 +55,14 @@ function ExploreFeedItem({
   const [descExpanded, setDescExpanded] = useState(false);
   const pauseIconAnim = useRef(new Animated.Value(0)).current;
 
+  const currentUser = useAuthStore((s) => s.user);
   const { data: likeCount } = useLikeCount(video.id);
   const { data: hasLiked } = useHasLiked(video.id);
   const toggleLike = useToggleLike(video.id);
   const { data: commentCount } = useCommentCount(video.id);
+  const isOwnVideo = currentUser?.id === video.submitter.id;
+  const { data: isFollowing } = useIsFollowing(video.submitter.id);
+  const toggleFollow = useToggleFollow(video.submitter.id);
 
   const player = useVideoPlayer(video.source_url ?? null, (p) => {
     p.loop = true;
@@ -293,28 +299,48 @@ function ExploreFeedItem({
               </Text>
             </Pressable>
 
-            {/* SUIVRE button */}
-            <AnimatedPressable
-              onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
-              style={{
-                backgroundColor: PALETTE.sarcelle,
-                paddingHorizontal: 14,
-                paddingVertical: 6,
-                borderRadius: 14,
-                marginLeft: 10,
-              }}
-            >
-              <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold }}>
-                SUIVRE
-              </Text>
-            </AnimatedPressable>
+            {/* Follow button — caché pour ses propres vidéos */}
+            {!isOwnVideo && (
+              <AnimatedPressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  toggleFollow.mutate();
+                }}
+                disabled={toggleFollow.isPending}
+                style={{
+                  backgroundColor: isFollowing ? "rgba(255,255,255,0.12)" : PALETTE.sarcelle,
+                  paddingHorizontal: 14,
+                  paddingVertical: 6,
+                  borderRadius: 14,
+                  marginLeft: 10,
+                  borderWidth: isFollowing ? 1 : 0,
+                  borderColor: "rgba(255,255,255,0.3)",
+                  minWidth: 72,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {toggleFollow.isPending ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={{
+                    color: "#FFFFFF",
+                    fontSize: FONT.sizes.xs,
+                    fontFamily: FONT_FAMILY.bold,
+                  }}>
+                    {isFollowing ? "ABONNÉ" : "SUIVRE"}
+                  </Text>
+                )}
+              </AnimatedPressable>
+            )}
           </View>
 
           {/* Challenge name */}
           {video.group?.name ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <Ionicons name="trophy" size={12} color={PALETTE.jaune} />
               <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.semibold }}>
-                {"🏆 " + video.group.name.toUpperCase()}
+                {video.group.name.toUpperCase()}
               </Text>
             </View>
           ) : null}
@@ -332,7 +358,7 @@ function ExploreFeedItem({
       </View>
     </Pressable>
   );
-}
+});
 
 // ─── Main Explore Screen ─────────────────────────────────────────
 export default function ExploreScreen() {
@@ -636,7 +662,7 @@ export default function ExploreScreen() {
                 </Text>
                 <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>
                   {group.member_count} membre{group.member_count !== 1 ? "s" : ""}
-                  {group.prize ? ` · 🎁 ${group.prize}` : ""}
+                  {group.prize ? ` · ${group.prize}` : ""}
                 </Text>
               </View>
               {group.is_member ? (
@@ -693,7 +719,7 @@ export default function ExploreScreen() {
                 </Text>
                 <Text style={{ fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.regular, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>
                   {t.group.name} · {t.challenge_count} défi{t.challenge_count !== 1 ? "s" : ""}
-                  {t.reward ? ` · 🎁 ${t.reward}` : ""}
+                  {t.reward ? ` · ${t.reward}` : ""}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />

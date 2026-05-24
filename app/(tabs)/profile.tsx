@@ -198,7 +198,7 @@ export default function ProfileScreen() {
 
           <View style={{ marginLeft: 16, flex: 1 }}>
             <Text style={{ fontSize: FONT.sizes["3xl"], fontFamily: FONT_FAMILY.extrabold, color: colors.textPrimary }}>
-              {"Salut, " + profile.username + " ! 👋"}
+              {"Salut, " + profile.username + " !"}
             </Text>
             <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: colors.textTertiary, marginTop: 2 }}>
               {"@" + profile.username}
@@ -377,7 +377,7 @@ export default function ProfileScreen() {
               ) : (groups ?? []).map((group) => (
                 <AnimatedPressable
                   key={group.id}
-                  onPress={() => router.push(`/groups/${group.id}` as any)}
+                  onPress={() => router.push({ pathname: "/group/[id]", params: { id: group.id } })}
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
@@ -426,7 +426,7 @@ export default function ProfileScreen() {
               ) : myTournaments.map((t) => (
                 <AnimatedPressable
                   key={t.id}
-                  onPress={() => router.push(`/groups/${t.group.id}?tournamentId=${t.id}` as any)}
+                  onPress={() => router.push({ pathname: "/tournament/[id]", params: { id: t.id } })}
                   style={{
                     flexDirection: "row",
                     alignItems: "center",

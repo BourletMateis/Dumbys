@@ -7,6 +7,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
 import Toast from "react-native-toast-message";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { queryClient } from "@/src/lib/queryClient";
 import { useAuthStore } from "@/src/store/useAuthStore";
@@ -31,7 +32,7 @@ const AppDarkTheme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    background: "#121212",    // Charbon Dumbys
+    background: "#121212",    // Charbon Dumbeez
     card: "#1F1F1F",          // Gris Ardoise
     border: "#2C2C2C",        // Gris Plomb
     primary: "#FF2D7D",       // Fuchsia Defi
@@ -77,11 +78,13 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <RootLayoutNav />
-      </ThemeProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <RootLayoutNav />
+        </ThemeProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -153,6 +156,20 @@ function RootLayoutNav() {
           }}
         />
         <Stack.Screen
+          name="tournament/[id]"
+          options={{
+            headerShown: false,
+            animation: "slide_from_right",
+          }}
+        />
+        <Stack.Screen
+          name="challenge/[id]"
+          options={{
+            headerShown: false,
+            animation: "slide_from_right",
+          }}
+        />
+        <Stack.Screen
           name="user/[id]"
           options={{
             headerStyle: { backgroundColor: "#121212" },
@@ -162,6 +179,10 @@ function RootLayoutNav() {
         />
         <Stack.Screen
           name="feed/[groupId]"
+          options={{ headerShown: false, animation: "fade" }}
+        />
+        <Stack.Screen
+          name="feed/challenge/[id]"
           options={{ headerShown: false, animation: "fade" }}
         />
         <Stack.Screen

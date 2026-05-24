@@ -131,6 +131,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           backgroundColor: isDark ? "#121212" : "#FFFFFF",
           borderTopWidth: 1,
           borderTopColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+          elevation: 12,      // Android shadow
           flexDirection: "row",
           alignItems: "flex-start",
           justifyContent: "space-around",

@@ -145,7 +145,7 @@ function SectionTitle({ label, isDark }: { label: string; isDark: boolean }) {
       color: isDark ? "#666" : "#999",
       textTransform: "uppercase",
       letterSpacing: 1.2,
-      paddingHorizontal: SPACING.xl,
+      paddingHorizontal: SPACING.lg,   // aligné avec marginHorizontal des Cards
       marginTop: SPACING["3xl"],
       marginBottom: SPACING.sm,
     }}>

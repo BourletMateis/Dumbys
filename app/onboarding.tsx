@@ -21,7 +21,6 @@ const { width: W, height: H } = Dimensions.get("window");
 
 type Slide = {
   key: string;
-  emoji: string;
   icon: keyof typeof Ionicons.glyphMap;
   iconColor: string;
   gradientColors: [string, string];
@@ -33,7 +32,6 @@ type Slide = {
 const SLIDES: Slide[] = [
   {
     key: "welcome",
-    emoji: "🐝",
     icon: "flash",
     iconColor: PALETTE.jaune,
     gradientColors: ["#0D1A1A", "#080F0F"],
@@ -43,77 +41,71 @@ const SLIDES: Slide[] = [
   },
   {
     key: "feed",
-    emoji: "🎬",
     icon: "home",
     iconColor: PALETTE.sarcelle,
     gradientColors: ["#0A1818", "#080F0F"],
     title: "Feed & Explore",
     subtitle: "Ton hub principal pour voir l'activité de ta communauté.",
     tips: [
-      "🏠  Feed — les vidéos de tes groupes en temps réel",
-      "🧭  Explore — découvre par catégorie en mode TikTok",
-      "🔔  Cloche — toutes tes notifications en un clic",
+      "Feed — les vidéos de tes groupes en temps réel",
+      "Explore — découvre par catégorie en mode TikTok",
+      "Cloche — toutes tes notifications en un clic",
     ],
   },
   {
     key: "groups",
-    emoji: "🤝",
     icon: "people",
     iconColor: PALETTE.sarcelle,
     gradientColors: ["#0A1818", "#080F0F"],
     title: "Groupes Privés",
     subtitle: "Lance des défis dans un cercle fermé avec tes amis.",
     tips: [
-      "➕  Crée un groupe depuis l'onglet Upload",
-      "🔑  Partage le code d'invitation à tes amis",
-      "📹  Chaque membre poste sa vidéo de la semaine",
+      "Crée un groupe depuis l'onglet Upload",
+      "Partage le code d'invitation à tes amis",
+      "Chaque membre poste sa vidéo de la semaine",
     ],
   },
   {
     key: "tournaments",
-    emoji: "🏆",
     icon: "trophy",
     iconColor: PALETTE.jaune,
     gradientColors: ["#1A1208", "#080F0F"],
     title: "Tournois & Défis",
     subtitle: "Organise des compétitions et récompense le meilleur.",
     tips: [
-      "🏆  Crée un tournoi dans un groupe existant",
-      "🗳️  Les membres votent pour leur vidéo préférée",
-      "🎁  Définis une récompense pour motiver tout le monde",
+      "Crée un tournoi dans un groupe existant",
+      "Les membres votent pour leur vidéo préférée",
+      "Définis une récompense pour motiver tout le monde",
     ],
   },
   {
     key: "upload",
-    emoji: "🎥",
     icon: "add-circle",
     iconColor: PALETTE.fuchsia,
     gradientColors: ["#1A0810", "#080F0F"],
     title: "Poste ta Vidéo",
     subtitle: "Le bouton + au centre de la barre — c'est ton portail vers le fun.",
     tips: [
-      "📷  Enregistrer — ouvre la caméra directement",
-      "🖼️  Déposer — choisie depuis ta galerie",
-      "👥  Sélectionne le groupe avant de publier",
+      "Enregistrer — ouvre la caméra directement",
+      "Déposer — choisie depuis ta galerie",
+      "Sélectionne le groupe avant de publier",
     ],
   },
   {
     key: "friends",
-    emoji: "👯",
     icon: "people-circle",
     iconColor: PALETTE.sarcelle,
     gradientColors: ["#0A1818", "#080F0F"],
     title: "Amis & Social",
     subtitle: "Plus tu es connecté, plus c'est fun.",
     tips: [
-      "🔍  Recherche tes amis par username",
-      "💬  Commente et like les vidéos du feed",
-      "👤  Visite les profils pour voir leurs stats",
+      "Recherche tes amis par username",
+      "Commente et like les vidéos du feed",
+      "Visite les profils pour voir leurs stats",
     ],
   },
   {
     key: "ready",
-    emoji: "🔥",
     icon: "rocket",
     iconColor: PALETTE.fuchsia,
     gradientColors: ["#1A0810", "#080F0F"],
@@ -163,7 +155,7 @@ function SlideItem({ slide, insets }: { slide: Slide; insets: ReturnType<typeof 
           }}
         >
           {isFirst ? (
-            <Text style={{ fontSize: 56 }}>{slide.emoji}</Text>
+            <Ionicons name={slide.icon} size={52} color={slide.iconColor} />
           ) : (
             <Ionicons name={slide.icon} size={isFirst ? 52 : 44} color={slide.iconColor} />
           )}
@@ -241,7 +233,7 @@ function SlideItem({ slide, insets }: { slide: Slide; insets: ReturnType<typeof 
               }}
             >
               <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: "#FFF" }}>
-                Dumbeez 🐝
+                Dumbeez
               </Text>
             </LinearGradient>
           </View>

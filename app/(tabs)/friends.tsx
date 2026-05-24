@@ -213,7 +213,7 @@ export default function FriendsScreen() {
                 <View style={{ marginBottom: 24 }}>
                   <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, marginBottom: 14 }}>
                     <Text style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold, color: colors.textPrimary }}>
-                      {"Suggestions 💡"}
+                      {"Suggestions"}
                     </Text>
                     <Pressable>
                       <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: PALETTE.sarcelle, textTransform: "uppercase" }}>
@@ -311,7 +311,7 @@ export default function FriendsScreen() {
                 <View style={{ marginBottom: 24 }}>
                   <View style={{ paddingHorizontal: 20, marginBottom: 14 }}>
                     <Text style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold, color: colors.textPrimary }}>
-                      {"Demandes reçues 🔔"}
+                      {"Demandes reçues"}
                     </Text>
                   </View>
 
@@ -432,7 +432,7 @@ export default function FriendsScreen() {
               <View style={{ paddingHorizontal: 20, marginBottom: 14 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                   <Text style={{ fontSize: FONT.sizes.xl, fontFamily: FONT_FAMILY.extrabold, color: colors.textPrimary }}>
-                    {"Mes Amis 🤝"}
+                    {"Mes Amis"}
                   </Text>
                   <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: colors.textMuted }}>
                     {friendsCount}

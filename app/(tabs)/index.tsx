@@ -303,7 +303,7 @@ export default function HomeScreen() {
         {/* ─── Greeting ─────────────────────────────────────────── */}
         <View style={{ paddingHorizontal: 20, marginTop: 20, marginBottom: 28 }}>
           <Text style={{ fontSize: FONT.sizes["4xl"], fontFamily: FONT_FAMILY.extrabold, color: colors.textPrimary }}>
-            {"Salut " + username + " ! 🤘"}
+            {"Salut " + username + " !"}
           </Text>
           <Text style={{ fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: colors.textTertiary, marginTop: 4 }}>
             {"Prêt pour un nouveau défi aujourd'hui ?"}
@@ -479,7 +479,7 @@ export default function HomeScreen() {
           <TextInput
             value={newGroupName}
             onChangeText={setNewGroupName}
-            placeholder="Ex: Les Champions 🏆"
+            placeholder="Ex: Les Champions"
             placeholderTextColor={colors.textMuted}
             style={{ backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: colors.textPrimary, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}
             maxLength={60}

@@ -15,7 +15,7 @@ module.exports = {
           dark: "#D4135F",
         },
         sarcelle: {
-          DEFAULT: "#3FD0C9", // Sarcelle Dumbys
+          DEFAULT: "#3FD0C9", // Sarcelle Dumbeez
           dark: "#2BB5AE",
         },
         jaune: {

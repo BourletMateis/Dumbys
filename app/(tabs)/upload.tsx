@@ -427,7 +427,7 @@ export default function UploadScreen() {
           {/* Header row */}
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <Text style={{ fontSize: FONT.sizes["2xl"], fontFamily: FONT_FAMILY.extrabold, color: colors.textPrimary }}>
-              {"Groupes Privés 🤝"}
+              {"Groupes Privés"}
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Text style={{ fontSize: FONT.sizes.sm, fontFamily: FONT_FAMILY.bold, color: PALETTE.sarcelle, textTransform: "uppercase" }}>
@@ -646,7 +646,7 @@ export default function UploadScreen() {
                 marginBottom: 20,
               }}
             >
-              {"Créer un Tournoi 🏆"}
+              {"Créer un Tournoi"}
             </Text>
 
             {/* Group selector */}
@@ -684,7 +684,7 @@ export default function UploadScreen() {
             <TextInput
               value={challengeName}
               onChangeText={setChallengeName}
-              placeholder="Ex: Kickflip Masters ✏️"
+              placeholder="Ex: Kickflip Masters"
               placeholderTextColor={colors.textMuted}
               style={{ backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 14, fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.regular, color: colors.textPrimary, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}
               maxLength={60}
@@ -696,7 +696,7 @@ export default function UploadScreen() {
             <TextInput
               value={tournamentReward}
               onChangeText={setTournamentReward}
-              placeholder="Ex: Pizza pour l'équipe 🍕"
+              placeholder="Ex: Pizza pour l'équipe"
               placeholderTextColor={colors.textMuted}
               style={{ backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 14, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: colors.textPrimary, borderWidth: 1, borderColor: colors.border, marginBottom: 24 }}
               maxLength={100}
@@ -733,7 +733,7 @@ export default function UploadScreen() {
           <TextInput
             value={newGroupName}
             onChangeText={setNewGroupName}
-            placeholder="Ex: Les Champions 🏆"
+            placeholder="Ex: Les Champions"
             placeholderTextColor={colors.textMuted}
             style={{ backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, fontSize: FONT.sizes.base, fontFamily: FONT_FAMILY.regular, color: colors.textPrimary, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}
             maxLength={60}
