@@ -11,6 +11,7 @@ import {
   Animated,
   ScrollView,
   Alert,
+  Share,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from "expo-router";
@@ -163,6 +164,26 @@ const FeedItem = memo(function FeedItem({
         avatarUrl: video.submitter.avatar_url ?? "",
       },
     });
+  };
+
+  const handleShare = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const title = video.title ?? "Vidéo Dumbys";
+      const author = `@${video.submitter.username}`;
+      const message = `🎬 ${title} — ${author} sur Dumbys !\n\nViens relever le défi 👊`;
+
+      // iOS : on n'inclut url que si elle est non-vide (une string vide fait planter Share sur iOS)
+      const shareContent: { title: string; message: string; url?: string } = { title, message };
+      if (video.source_url) shareContent.url = video.source_url;
+
+      await Share.share(shareContent, {
+        dialogTitle: "Partager cette vidéo",
+        subject: title,
+      });
+    } catch (err) {
+      console.error("[Share] erreur :", err);
+    }
   };
 
   return (
@@ -319,7 +340,7 @@ const FeedItem = memo(function FeedItem({
         </Pressable>
 
         {/* Like */}
-        <Pressable onPress={handleLike} style={{ alignItems: "center" }}>
+        <Pressable onPress={(e) => { e.stopPropagation(); handleLike(); }} hitSlop={8} style={{ alignItems: "center" }}>
           <View
             style={{
               width: 46,
@@ -342,7 +363,7 @@ const FeedItem = memo(function FeedItem({
         </Pressable>
 
         {/* Comments */}
-        <Pressable onPress={openComments} style={{ alignItems: "center" }}>
+        <Pressable onPress={(e) => { e.stopPropagation(); openComments(); }} hitSlop={8} style={{ alignItems: "center" }}>
           <View
             style={{
               width: 46,
@@ -360,13 +381,38 @@ const FeedItem = memo(function FeedItem({
           </Text>
         </Pressable>
 
+        {/* Share */}
+        <Pressable
+          onPress={(e) => { e.stopPropagation(); handleShare(); }}
+          hitSlop={8}
+          style={{ alignItems: "center" }}
+        >
+          <View
+            style={{
+              width: 46,
+              height: 46,
+              borderRadius: RADIUS.full,
+              backgroundColor: "rgba(255,255,255,0.15)",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name="arrow-redo-outline" size={24} color="#FFFFFF" />
+          </View>
+          <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.semibold, marginTop: 3 }}>
+            Partager
+          </Text>
+        </Pressable>
+
         {/* Vote (weekend only) */}
         {canVote && (
           <Pressable
-            onPress={() => {
+            onPress={(e) => {
+              e.stopPropagation();
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               onVote();
             }}
+            hitSlop={8}
             style={{ alignItems: "center" }}
           >
             <View

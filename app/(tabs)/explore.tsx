@@ -11,6 +11,7 @@ import {
   Animated,
   TextInput,
   Alert,
+  Share,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -150,6 +151,20 @@ const ExploreFeedItem = memo(function ExploreFeedItem({
     });
   };
 
+  const handleShare = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const title = video.title ?? "Vidéo Dumbys";
+      const author = `@${video.submitter.username}`;
+      const message = `🎬 ${title} — ${author} sur Dumbys !\n\nViens relever le défi 👊`;
+      const shareContent: { title: string; message: string; url?: string } = { title, message };
+      if (video.source_url) shareContent.url = video.source_url;
+      await Share.share(shareContent, { dialogTitle: "Partager cette vidéo", subject: title });
+    } catch (err) {
+      console.error("[Share] erreur :", err);
+    }
+  };
+
   const formatCount = (n: number) => {
     if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "K";
     return String(n);
@@ -231,7 +246,7 @@ const ExploreFeedItem = memo(function ExploreFeedItem({
         }}
       >
         {/* Like */}
-        <Pressable onPress={handleLike} style={{ alignItems: "center" }}>
+        <Pressable onPress={(e) => { e.stopPropagation(); handleLike(); }} hitSlop={8} style={{ alignItems: "center" }}>
           <Ionicons
             name={hasLiked ? "heart" : "heart-outline"}
             size={32}
@@ -243,7 +258,7 @@ const ExploreFeedItem = memo(function ExploreFeedItem({
         </Pressable>
 
         {/* Comments */}
-        <Pressable onPress={openComments} style={{ alignItems: "center" }}>
+        <Pressable onPress={(e) => { e.stopPropagation(); openComments(); }} hitSlop={8} style={{ alignItems: "center" }}>
           <Ionicons name="chatbubble-ellipses-outline" size={30} color="#FFFFFF" />
           <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, marginTop: 2 }}>
             {formatCount(commentCount ?? 0)}
@@ -252,10 +267,14 @@ const ExploreFeedItem = memo(function ExploreFeedItem({
 
         {/* Share */}
         <Pressable
-          onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+          onPress={(e) => { e.stopPropagation(); handleShare(); }}
+          hitSlop={8}
           style={{ alignItems: "center" }}
         >
           <Ionicons name="share-social-outline" size={30} color="#FFFFFF" />
+          <Text style={{ color: "#FFFFFF", fontSize: FONT.sizes.xs, fontFamily: FONT_FAMILY.bold, marginTop: 2 }}>
+            Partager
+          </Text>
         </Pressable>
       </View>
 

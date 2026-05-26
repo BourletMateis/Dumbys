@@ -1,3 +1,9 @@
+/**
+ * settings.tsx — Dumbys Settings Screen
+ * Layout: explicit padding instead of flexbox centering for icons,
+ * no `gap`, every dimension is a named constant.
+ */
+
 import { useState } from "react";
 import {
   View,
@@ -7,7 +13,7 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  Switch,
+  StyleSheet,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,9 +28,26 @@ import { useUpdateAvatar } from "@/src/features/profile/useUpdateAvatar";
 import { supabase } from "@/src/lib/supabase";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
-import { PALETTE, FONT, FONT_FAMILY, RADIUS, SPACING } from "@/src/theme";
+import { PALETTE, FONT_FAMILY } from "@/src/theme";
 
-// ─── Types ────────────────────────────────────────────────────────
+// ─── Layout constants (single source of truth) ───────────────────
+// Tuned for an iOS-Settings / Telegram premium feel:
+// compact icon box, generous tap target, perfect vertical rhythm.
+const ROW_PH        = 16;   // horizontal padding inside each row
+const ICON_BOX      = 30;   // icon container: width & height  (iOS-like)
+const ICON_SIZE     = 16;   // Ionicons glyph size inside the box
+const ICON_PAD      = (ICON_BOX - ICON_SIZE) / 2; // = 7 → explicit centering
+const ICON_RADIUS   = 8;    // border-radius of icon box
+const GAP           = 12;   // horizontal gap between icon box and text
+const ROW_H         = 52;   // min-height of each row (safety floor)
+const ROW_PV        = 10;   // vertical padding (real height driver)
+const CARD_MH       = 16;   // card horizontal margin
+const CARD_RADIUS   = 18;   // card border-radius
+const SEP_INDENT    = ROW_PH + ICON_BOX + GAP; // = 58 → text-aligned separator
+
+// ─── Types ───────────────────────────────────────────────────────
+type Colors = ReturnType<typeof useTheme>["colors"];
+
 type RowProps = {
   icon: keyof typeof Ionicons.glyphMap;
   iconColor: string;
@@ -32,150 +55,216 @@ type RowProps = {
   label: string;
   sublabel?: string;
   value?: string;
+  right?: React.ReactNode;
   onPress?: () => void;
   danger?: boolean;
-  last?: boolean;
-  colors: any;
+  showSep?: boolean;
+  colors: Colors;
   isDark: boolean;
-  right?: React.ReactNode;
 };
 
-// ─── Row ──────────────────────────────────────────────────────────
-function Row({ icon, iconColor, iconBg, label, sublabel, value, onPress, danger, last, colors, isDark, right }: RowProps) {
+// ─── SettingsRow ─────────────────────────────────────────────────
+function SettingsRow({
+  icon,
+  iconColor,
+  iconBg,
+  label,
+  sublabel,
+  value,
+  right,
+  onPress,
+  danger,
+  showSep = false,
+  colors,
+  isDark,
+}: RowProps) {
+  const resolvedIconColor  = danger ? "#FF3B30" : iconColor;
+  const resolvedIconBg     = danger ? "rgba(255,59,48,0.15)" : iconBg;
+  const resolvedLabelColor = danger ? "#FF3B30" : colors.textPrimary;
+
   return (
     <>
+      {/* Pressable handles ONLY tap + press feedback. */}
+      {/* The flex-row layout lives on an inner <View> — this works around */}
+      {/* a Pressable+style-function bug on iOS where the array style can */}
+      {/* swallow flexDirection:"row", stacking children vertically. */}
       <Pressable
         onPress={onPress}
-        style={({ pressed }) => ({
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: SPACING.lg,
-          paddingVertical: SPACING.base,
-          minHeight: 54,
-          backgroundColor: pressed && onPress
-            ? isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)"
-            : "transparent",
-        })}
+        disabled={!onPress}
+        android_ripple={
+          onPress
+            ? { color: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)" }
+            : undefined
+        }
+        style={({ pressed }) =>
+          pressed && onPress
+            ? {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.04)"
+                  : "rgba(0,0,0,0.03)",
+              }
+            : null
+        }
       >
-        {/* Icône colorée */}
-        <View style={{
-          width: 36,
-          height: 36,
-          borderRadius: 9,
-          backgroundColor: danger ? "rgba(244,63,94,0.15)" : iconBg,
-          alignItems: "center",
-          justifyContent: "center",
-          marginRight: SPACING.base,
-          flexShrink: 0,
-        }}>
-          <Ionicons name={icon} size={18} color={danger ? "#F43F5E" : iconColor} />
-        </View>
+        <View style={styles.row}>
+          {/* ── Icon box ── */}
+          <View
+            style={[
+              styles.iconBox,
+              {
+                backgroundColor: resolvedIconBg,
+                borderRadius: ICON_RADIUS,
+              },
+            ]}
+          >
+            <Ionicons name={icon} size={ICON_SIZE} color={resolvedIconColor} />
+          </View>
 
-        {/* Texte */}
-        <View style={{ flex: 1 }}>
-          <Text style={{
-            fontSize: FONT.sizes.base,
-            fontFamily: FONT_FAMILY.medium,
-            color: danger ? "#F43F5E" : colors.textPrimary,
-          }} numberOfLines={1}>
-            {label}
-          </Text>
-          {sublabel ? (
-            <Text style={{
-              fontSize: FONT.sizes.xs,
-              fontFamily: FONT_FAMILY.regular,
-              color: colors.textTertiary,
-              marginTop: 1,
-            }} numberOfLines={1}>
-              {sublabel}
+          {/* ── Text block ── */}
+          <View style={styles.rowBody}>
+            <Text
+              style={[styles.rowLabel, { color: resolvedLabelColor }]}
+              numberOfLines={1}
+            >
+              {label}
             </Text>
-          ) : null}
-        </View>
+            {sublabel ? (
+              <Text
+                style={[styles.rowSub, { color: colors.textTertiary }]}
+                numberOfLines={1}
+              >
+                {sublabel}
+              </Text>
+            ) : null}
+          </View>
 
-        {/* Droite */}
-        {right ? right : value ? (
-          <Text style={{
-            fontSize: FONT.sizes.sm,
-            fontFamily: FONT_FAMILY.regular,
-            color: colors.textTertiary,
-            marginLeft: SPACING.base,
-            flexShrink: 0,
-          }} numberOfLines={1}>
-            {value}
-          </Text>
-        ) : onPress ? (
-          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} style={{ marginLeft: SPACING.base }} />
-        ) : null}
+          {/* ── Right side ── */}
+          <View style={styles.rowRight}>
+            {right ? (
+              right
+            ) : value ? (
+              <Text
+                style={[styles.rowValue, { color: colors.textTertiary }]}
+                numberOfLines={1}
+              >
+                {value}
+              </Text>
+            ) : null}
+            {onPress && !right && !value ? (
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={isDark ? "#48484A" : "#C7C7CC"}
+              />
+            ) : null}
+            {onPress && (value || right) ? (
+              <Ionicons
+                name="chevron-forward"
+                size={14}
+                color={isDark ? "#48484A" : "#C7C7CC"}
+                style={styles.chevronAfter}
+              />
+            ) : null}
+          </View>
+        </View>
       </Pressable>
 
-      {/* Séparateur indenté (sauf sur la dernière row) */}
-      {!last && (
-        <View style={{
-          height: 1,
-          backgroundColor: colors.border,
-          marginLeft: 36 + SPACING.base + SPACING.lg, // align after icon
-        }} />
+      {/* ── Intra-card separator ── */}
+      {showSep && (
+        <View
+          style={[
+            styles.sep,
+            {
+              backgroundColor: isDark
+                ? "rgba(255,255,255,0.07)"
+                : "rgba(0,0,0,0.07)",
+              marginLeft: SEP_INDENT,
+            },
+          ]}
+        />
       )}
     </>
   );
 }
 
-// ─── Carte ────────────────────────────────────────────────────────
-function Card({ children, colors, isDark }: { children: React.ReactNode; colors: any; isDark: boolean }) {
+// ─── Card ────────────────────────────────────────────────────────
+function SettingsCard({
+  children,
+  isDark,
+}: {
+  children: React.ReactNode;
+  isDark: boolean;
+}) {
   return (
-    <View style={{
-      marginHorizontal: SPACING.lg,
-      borderRadius: RADIUS.xl,
-      backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF",
-      borderWidth: 1,
-      borderColor: colors.border,
-      overflow: "hidden",
-    }}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF",
+          borderColor: isDark
+            ? "rgba(255,255,255,0.09)"
+            : "rgba(0,0,0,0.08)",
+          shadowOpacity: isDark ? 0 : 0.07,
+        },
+      ]}
+    >
       {children}
     </View>
   );
 }
 
-// ─── Titre de section ─────────────────────────────────────────────
-function SectionTitle({ label, isDark }: { label: string; isDark: boolean }) {
+// ─── Section header ──────────────────────────────────────────────
+function SectionHeader({
+  label,
+  isDark,
+  first,
+}: {
+  label: string;
+  isDark: boolean;
+  first?: boolean;
+}) {
   return (
-    <Text style={{
-      fontSize: FONT.sizes.xs,
-      fontFamily: FONT_FAMILY.semibold,
-      color: isDark ? "#666" : "#999",
-      textTransform: "uppercase",
-      letterSpacing: 1.2,
-      paddingHorizontal: SPACING.lg,   // aligné avec marginHorizontal des Cards
-      marginTop: SPACING["3xl"],
-      marginBottom: SPACING.sm,
-    }}>
-      {label}
+    <Text
+      style={[
+        styles.sectionLabel,
+        {
+          color: isDark ? "#6E6E73" : "#8E8E93",
+          marginTop: first ? 10 : 30,
+        },
+      ]}
+    >
+      {label.toUpperCase()}
     </Text>
   );
 }
 
-// ─── Constantes thème ─────────────────────────────────────────────
-const THEME_OPTIONS: { key: ThemePreference; label: string; icon: keyof typeof Ionicons.glyphMap; color: string }[] = [
-  { key: "light",  label: "Clair",   icon: "sunny-outline",         color: PALETTE.jaune },
-  { key: "dark",   label: "Sombre",  icon: "moon-outline",          color: PALETTE.sarcelle },
-  { key: "system", label: "Auto",    icon: "contrast-outline",      color: PALETTE.fuchsia },
+// ─── Theme options ───────────────────────────────────────────────
+const THEME_OPTIONS: {
+  key: ThemePreference;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+}[] = [
+  { key: "light",  label: "Clair",  icon: "sunny-outline",    color: PALETTE.jaune },
+  { key: "dark",   label: "Sombre", icon: "moon-outline",     color: PALETTE.sarcelle },
+  { key: "system", label: "Auto",   icon: "contrast-outline", color: PALETTE.fuchsia },
 ];
 
-// ─── Écran ────────────────────────────────────────────────────────
+// ─── Screen ──────────────────────────────────────────────────────
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const { preference, setPreference } = useThemeStore();
   const { reset: resetOnboarding } = useOnboardingStore();
-  const signOut = useAuthStore((s) => s.signOut);
+  const signOut     = useAuthStore((s) => s.signOut);
   const authLoading = useAuthStore((s) => s.isLoading);
   const { data: profile } = useUserProfile();
   const updateAvatar = useUpdateAvatar();
 
   const [editingUsername, setEditingUsername] = useState(false);
-  const [newUsername, setNewUsername] = useState("");
-  const [savingUsername, setSavingUsername] = useState(false);
+  const [newUsername,     setNewUsername]     = useState("");
+  const [savingUsername,  setSavingUsername]  = useState(false);
 
   const openEdit = () => {
     setNewUsername(profile?.username ?? "");
@@ -185,137 +274,168 @@ export default function SettingsScreen() {
 
   const saveUsername = async () => {
     const trimmed = newUsername.trim();
-    if (!trimmed || trimmed === profile?.username) { setEditingUsername(false); return; }
+    if (!trimmed || trimmed === profile?.username) {
+      setEditingUsername(false);
+      return;
+    }
     setSavingUsername(true);
-    const { error } = await supabase.from("users").update({ username: trimmed }).eq("id", profile!.id);
+    const { error } = await supabase
+      .from("users")
+      .update({ username: trimmed })
+      .eq("id", profile!.id);
     setSavingUsername(false);
     if (error) Alert.alert("Erreur", error.message);
     else setEditingUsername(false);
   };
 
+  const pageBg = isDark ? "#000000" : "#F2F2F7";
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={{ flex: 1, backgroundColor: isDark ? "#000000" : "#F2F2F7" }}>
 
-        {/* ── Header ─────────────────────────────────────────────── */}
-        <View style={{
-          paddingTop: insets.top,
-          paddingHorizontal: SPACING.lg,
-          paddingBottom: SPACING.base,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: SPACING.base,
-          backgroundColor: isDark ? "#000000" : "#F2F2F7",
-        }}>
+      <View style={[styles.root, { backgroundColor: pageBg }]}>
+
+        {/* ── Header ──────────────────────────────────────────── */}
+        <View
+          style={[
+            styles.header,
+            {
+              paddingTop: insets.top + 8,
+              backgroundColor: pageBg,
+              borderBottomColor: isDark
+                ? "rgba(255,255,255,0.06)"
+                : "rgba(0,0,0,0.06)",
+            },
+          ]}
+        >
           <AnimatedPressable
             onPress={() => router.back()}
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: RADIUS.lg,
-              backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.07)",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            style={[
+              styles.backBtn,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.1)"
+                  : "rgba(0,0,0,0.07)",
+              },
+            ]}
           >
-            <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
+            <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
           </AnimatedPressable>
-          <Text style={{
-            fontSize: FONT.sizes["2xl"],
-            fontFamily: FONT_FAMILY.bold,
-            color: colors.textPrimary,
-            flex: 1,
-          }}>
+
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
             Réglages
           </Text>
         </View>
 
+        {/* ── Scrollable content ──────────────────────────────── */}
         <ScrollView
-          contentContainerStyle={{ paddingBottom: insets.bottom + 40, paddingTop: SPACING.sm }}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: insets.bottom + 48 },
+          ]}
         >
-
-          {/* ── Profil ──────────────────────────────────────────── */}
+          {/* ── PROFIL ───────────────────────────────────────── */}
           {profile && (
             <>
-              <SectionTitle label="Profil" isDark={isDark} />
-              <Card colors={colors} isDark={isDark}>
+              <SectionHeader label="Profil" isDark={isDark} first />
 
-                {/* Avatar */}
+              <SettingsCard isDark={isDark}>
+
+                {/* Avatar — same Pressable/inner-View split as SettingsRow */}
                 <Pressable
-                  onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); updateAvatar.mutate(); }}
-                  disabled={updateAvatar.isPending}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingHorizontal: SPACING.lg,
-                    paddingVertical: SPACING.lg,
-                    gap: SPACING.base,
-                    minHeight: 80,
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    updateAvatar.mutate();
                   }}
+                  disabled={updateAvatar.isPending}
+                  android_ripple={{ color: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)" }}
+                  style={({ pressed }) =>
+                    pressed
+                      ? {
+                          backgroundColor: isDark
+                            ? "rgba(255,255,255,0.04)"
+                            : "rgba(0,0,0,0.03)",
+                        }
+                      : null
+                  }
                 >
-                  <View>
-                    <Avatar url={profile.avatar_url} username={profile.username} size={56} />
-                    <View style={{
-                      position: "absolute",
-                      bottom: -2,
-                      right: -2,
-                      width: 22,
-                      height: 22,
-                      borderRadius: 11,
-                      backgroundColor: PALETTE.sarcelle,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      borderWidth: 2,
-                      borderColor: isDark ? "#1C1C1E" : "#FFFFFF",
-                    }}>
-                      {updateAvatar.isPending
-                        ? <ActivityIndicator size="small" color="#FFF" />
-                        : <Ionicons name="camera" size={11} color="#FFF" />}
+                  <View style={styles.avatarRow}>
+                    <View style={styles.avatarWrap}>
+                      <Avatar url={profile.avatar_url} username={profile.username} size={52} />
+                      <View
+                        style={[
+                          styles.cameraBadge,
+                          {
+                            backgroundColor: PALETTE.sarcelle,
+                            borderColor: isDark ? "#1C1C1E" : "#FFFFFF",
+                          },
+                        ]}
+                      >
+                        {updateAvatar.isPending ? (
+                          <ActivityIndicator size="small" color="#FFF" />
+                        ) : (
+                          <Ionicons name="camera" size={10} color="#FFF" />
+                        )}
+                      </View>
+                    </View>
+
+                    <View style={styles.avatarBody}>
+                      <Text
+                        style={[styles.avatarName, { color: colors.textPrimary }]}
+                        numberOfLines={1}
+                      >
+                        {profile.username}
+                      </Text>
+                      <Text
+                        style={[styles.avatarSub, { color: colors.textTertiary }]}
+                        numberOfLines={1}
+                      >
+                        {profile.role ?? "user"} · Appuie pour changer la photo
+                      </Text>
+                    </View>
+
+                    <View style={styles.rowRight}>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={16}
+                        color={isDark ? "#48484A" : "#C7C7CC"}
+                      />
                     </View>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{
-                      fontSize: FONT.sizes.lg,
-                      fontFamily: FONT_FAMILY.bold,
-                      color: colors.textPrimary,
-                    }}>
-                      {profile.username}
-                    </Text>
-                    <Text style={{
-                      fontSize: FONT.sizes.sm,
-                      fontFamily: FONT_FAMILY.regular,
-                      color: colors.textTertiary,
-                      marginTop: 2,
-                    }}>
-                      {profile.role ?? "Membre"} · Appuie pour changer la photo
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
                 </Pressable>
 
-                {/* Séparateur */}
-                <View style={{ height: 1, backgroundColor: colors.border, marginLeft: SPACING.lg }} />
+                {/* Divider after avatar row */}
+                <View
+                  style={[
+                    styles.fullSep,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.07)"
+                        : "rgba(0,0,0,0.07)",
+                      marginLeft: ROW_PH,
+                    },
+                  ]}
+                />
 
-                {/* Modifier le pseudo */}
+                {/* Modifier le pseudo — editing state */}
                 {editingUsername ? (
-                  <View style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingHorizontal: SPACING.lg,
-                    paddingVertical: SPACING.base,
-                    gap: SPACING.base,
-                    minHeight: 54,
-                  }}>
-                    <View style={{
-                      width: 36, height: 36, borderRadius: 9,
-                      backgroundColor: `${PALETTE.sarcelle}20`,
-                      alignItems: "center", justifyContent: "center",
-                      marginRight: SPACING.sm, flexShrink: 0,
-                    }}>
-                      <Ionicons name="pencil" size={16} color={PALETTE.sarcelle} />
+                  <View style={styles.editRow}>
+                    {/* Icon box — same dimensions as SettingsRow */}
+                    <View
+                      style={[
+                        styles.iconBox,
+                        {
+                          backgroundColor: "rgba(63,208,201,0.15)",
+                          borderRadius: ICON_RADIUS,
+                        },
+                      ]}
+                    >
+                      <Ionicons name="pencil" size={ICON_SIZE} color={PALETTE.sarcelle} />
                     </View>
+
+                    {/* Text input */}
                     <TextInput
                       value={newUsername}
                       onChangeText={setNewUsername}
@@ -323,87 +443,112 @@ export default function SettingsScreen() {
                       autoCapitalize="none"
                       returnKeyType="done"
                       onSubmitEditing={saveUsername}
-                      placeholder="Nouveau pseudo..."
-                      placeholderTextColor={colors.textMuted}
-                      style={{
-                        flex: 1,
-                        fontSize: FONT.sizes.base,
-                        fontFamily: FONT_FAMILY.semibold,
-                        color: colors.textPrimary,
-                        paddingVertical: SPACING.xs,
-                        borderBottomWidth: 1.5,
-                        borderBottomColor: PALETTE.sarcelle,
-                      }}
+                      placeholder="Nouveau pseudo…"
+                      placeholderTextColor={colors.textTertiary}
+                      style={[
+                        styles.usernameInput,
+                        {
+                          color: colors.textPrimary,
+                          borderBottomColor: PALETTE.sarcelle,
+                        },
+                      ]}
                     />
+
+                    {/* Confirm / cancel */}
                     {savingUsername ? (
-                      <ActivityIndicator size="small" color={PALETTE.sarcelle} style={{ marginLeft: SPACING.sm }} />
+                      <ActivityIndicator
+                        size="small"
+                        color={PALETTE.sarcelle}
+                        style={{ marginLeft: 10 }}
+                      />
                     ) : (
-                      <View style={{ flexDirection: "row", gap: SPACING.base, marginLeft: SPACING.sm }}>
-                        <Pressable onPress={() => setEditingUsername(false)} hitSlop={10}>
-                          <Ionicons name="close-circle" size={26} color={colors.textMuted} />
+                      <View style={styles.editActions}>
+                        <Pressable
+                          onPress={() => setEditingUsername(false)}
+                          hitSlop={10}
+                        >
+                          <Ionicons
+                            name="close-circle"
+                            size={26}
+                            color={isDark ? "#48484A" : "#C7C7CC"}
+                          />
                         </Pressable>
                         <Pressable onPress={saveUsername} hitSlop={10}>
-                          <Ionicons name="checkmark-circle" size={26} color={PALETTE.sarcelle} />
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={26}
+                            color={PALETTE.sarcelle}
+                          />
                         </Pressable>
                       </View>
                     )}
                   </View>
                 ) : (
-                  <Row
+                  <SettingsRow
                     icon="at-outline"
                     iconColor={PALETTE.sarcelle}
-                    iconBg={`${PALETTE.sarcelle}18`}
+                    iconBg="rgba(63,208,201,0.15)"
                     label="Modifier le pseudo"
-                    value={`@${profile.username}`}
+                    sublabel={`@${profile.username}`}
                     onPress={openEdit}
-                    last
                     colors={colors}
                     isDark={isDark}
                   />
                 )}
-              </Card>
+              </SettingsCard>
             </>
           )}
 
-          {/* ── Apparence ───────────────────────────────────────── */}
-          <SectionTitle label="Apparence" isDark={isDark} />
-          <Card colors={colors} isDark={isDark}>
-            <View style={{ padding: SPACING.lg }}>
-              <Text style={{
-                fontSize: FONT.sizes.sm,
-                fontFamily: FONT_FAMILY.medium,
-                color: colors.textSecondary,
-                marginBottom: SPACING.base,
-              }}>
+          {/* ── APPARENCE ────────────────────────────────────── */}
+          <SectionHeader label="Apparence" isDark={isDark} />
+          <SettingsCard isDark={isDark}>
+            <View style={styles.themeBlock}>
+              <Text style={[styles.themeTitle, { color: colors.textSecondary }]}>
                 Thème de l'application
               </Text>
-              <View style={{ flexDirection: "row", gap: SPACING.base }}>
+              <View style={styles.themeRow}>
                 {THEME_OPTIONS.map((opt) => {
                   const active = preference === opt.key;
                   return (
                     <AnimatedPressable
                       key={opt.key}
-                      onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setPreference(opt.key); }}
-                      style={{
-                        flex: 1,
-                        alignItems: "center",
-                        paddingVertical: SPACING.base,
-                        paddingHorizontal: SPACING.xs,
-                        borderRadius: RADIUS.lg,
-                        backgroundColor: active
-                          ? `${opt.color}18`
-                          : isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
-                        borderWidth: active ? 1.5 : 1,
-                        borderColor: active ? opt.color : colors.border,
-                        gap: SPACING.sm,
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setPreference(opt.key);
                       }}
+                      style={[
+                        styles.themeChip,
+                        {
+                          backgroundColor: active
+                            ? `${opt.color}1A`
+                            : isDark
+                            ? "rgba(255,255,255,0.05)"
+                            : "rgba(0,0,0,0.04)",
+                          borderWidth: active ? 1.5 : StyleSheet.hairlineWidth,
+                          borderColor: active
+                            ? opt.color
+                            : isDark
+                            ? "rgba(255,255,255,0.1)"
+                            : "rgba(0,0,0,0.08)",
+                        },
+                      ]}
                     >
-                      <Ionicons name={opt.icon} size={22} color={active ? opt.color : colors.textTertiary} />
-                      <Text style={{
-                        fontSize: FONT.sizes.xs,
-                        fontFamily: active ? FONT_FAMILY.bold : FONT_FAMILY.regular,
-                        color: active ? opt.color : colors.textTertiary,
-                      }}>
+                      <Ionicons
+                        name={opt.icon}
+                        size={22}
+                        color={active ? opt.color : colors.textTertiary}
+                      />
+                      <Text
+                        style={[
+                          styles.themeChipLabel,
+                          {
+                            color: active ? opt.color : colors.textTertiary,
+                            fontFamily: active
+                              ? FONT_FAMILY.bold
+                              : FONT_FAMILY.regular,
+                          },
+                        ]}
+                      >
                         {opt.label}
                       </Text>
                     </AnimatedPressable>
@@ -411,17 +556,18 @@ export default function SettingsScreen() {
                 })}
               </View>
             </View>
-          </Card>
+          </SettingsCard>
 
-          {/* ── Application ─────────────────────────────────────── */}
-          <SectionTitle label="Application" isDark={isDark} />
-          <Card colors={colors} isDark={isDark}>
-            <Row
+          {/* ── APPLICATION ──────────────────────────────────── */}
+          <SectionHeader label="Application" isDark={isDark} />
+          <SettingsCard isDark={isDark}>
+            <SettingsRow
               icon="compass-outline"
               iconColor="#34C759"
               iconBg="rgba(52,199,89,0.15)"
               label="Revoir le guide"
               sublabel="Redécouvrir l'onboarding"
+              showSep
               onPress={async () => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 await resetOnboarding();
@@ -430,42 +576,278 @@ export default function SettingsScreen() {
               colors={colors}
               isDark={isDark}
             />
-            <Row
+            <SettingsRow
               icon="code-slash-outline"
               iconColor="#5856D6"
               iconBg="rgba(88,86,214,0.15)"
               label="Version"
               value="1.2.0"
-              last
               colors={colors}
               isDark={isDark}
             />
-          </Card>
+          </SettingsCard>
 
-          {/* ── Compte ──────────────────────────────────────────── */}
-          <SectionTitle label="Compte" isDark={isDark} />
-          <Card colors={colors} isDark={isDark}>
-            <Row
+          {/* ── COMPTE ───────────────────────────────────────── */}
+          <SectionHeader label="Compte" isDark={isDark} />
+          <SettingsCard isDark={isDark}>
+            <SettingsRow
               icon="log-out-outline"
-              iconColor="#F43F5E"
-              iconBg="rgba(244,63,94,0.15)"
+              iconColor="#FF3B30"
+              iconBg="rgba(255,59,48,0.15)"
               label={authLoading ? "Déconnexion en cours…" : "Se déconnecter"}
               danger
-              last
               onPress={() => {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                Alert.alert("Se déconnecter", "Tu veux vraiment te déconnecter ?", [
-                  { text: "Annuler", style: "cancel" },
-                  { text: "Déconnecter", style: "destructive", onPress: signOut },
-                ]);
+                Alert.alert(
+                  "Se déconnecter",
+                  "Tu veux vraiment te déconnecter ?",
+                  [
+                    { text: "Annuler", style: "cancel" },
+                    {
+                      text: "Déconnecter",
+                      style: "destructive",
+                      onPress: signOut,
+                    },
+                  ]
+                );
               }}
               colors={colors}
               isDark={isDark}
             />
-          </Card>
+          </SettingsCard>
 
         </ScrollView>
       </View>
     </>
   );
 }
+
+// ─── StyleSheet ──────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+
+  // ── Header
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    gap: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  backBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontFamily: FONT_FAMILY.bold,
+    flex: 1,
+    includeFontPadding: false,
+  },
+
+  // ── Scroll
+  scrollContent: {
+    paddingHorizontal: CARD_MH,
+  },
+
+  // ── Section label
+  sectionLabel: {
+    fontSize: 11,
+    fontFamily: FONT_FAMILY.semibold,
+    letterSpacing: 0.7,
+    marginBottom: 6,
+    paddingHorizontal: 4,
+    includeFontPadding: false,
+  },
+
+  // ── Card container — must stretch to fill the scroll content width
+  card: {
+    width: "100%",
+    alignSelf: "stretch",
+    borderRadius: CARD_RADIUS,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 6,
+    elevation: 2,
+  },
+
+  // ── Settings row — fixed iOS-style geometry
+  // CRITICAL: width:"100%" + alignSelf:"stretch" forces the Pressable
+  // to fill its parent card. Without this, on iOS the Pressable can
+  // hug its content, leaving the chevron with no room on the right.
+  row: {
+    width: "100%",
+    alignSelf: "stretch",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: ROW_PH,
+    paddingVertical: ROW_PV,
+    minHeight: ROW_H,
+  },
+
+  // ── Icon box (30×30)
+  // Explicit padding + alignItems/justifyContent = belt-and-suspenders
+  // centering for the font-icon glyph (Ionicons renders as <Text>).
+  iconBox: {
+    width: ICON_BOX,
+    height: ICON_BOX,
+    padding: ICON_PAD,
+    alignItems: "center",
+    justifyContent: "center",
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+
+  // ── Text block (label + optional sublabel)
+  rowBody: {
+    flex: 1,
+    flexShrink: 1,
+    flexDirection: "column",
+    marginLeft: GAP,
+  },
+  rowLabel: {
+    fontSize: 15,
+    fontFamily: FONT_FAMILY.medium,
+    includeFontPadding: false,
+    lineHeight: 19,
+  },
+  rowSub: {
+    fontSize: 12,
+    fontFamily: FONT_FAMILY.regular,
+    marginTop: 2,
+    includeFontPadding: false,
+    lineHeight: 15,
+  },
+
+  // ── Right-side wrapper — always present, holds value + chevron in a row
+  rowRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 8,
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  rowValue: {
+    fontSize: 14,
+    fontFamily: FONT_FAMILY.regular,
+    maxWidth: 160,
+    textAlign: "right",
+    includeFontPadding: false,
+    lineHeight: 18,
+  },
+  chevronAfter: {
+    marginLeft: 4,
+  },
+
+  // ── Separators
+  sep: {
+    height: StyleSheet.hairlineWidth,
+  },
+  fullSep: {
+    height: StyleSheet.hairlineWidth,
+  },
+
+  // ── Avatar row — taller than a normal row to fit the 52px avatar
+  avatarRow: {
+    width: "100%",
+    alignSelf: "stretch",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: ROW_PH,
+    paddingVertical: 12,
+  },
+  avatarWrap: {
+    position: "relative",
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  cameraBadge: {
+    position: "absolute",
+    bottom: -1,
+    right: -1,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+  },
+  avatarBody: {
+    flex: 1,
+    flexShrink: 1,
+    flexDirection: "column",
+    marginLeft: GAP,
+  },
+  avatarName: {
+    fontSize: 16,
+    fontFamily: FONT_FAMILY.bold,
+    includeFontPadding: false,
+    lineHeight: 21,
+  },
+  avatarSub: {
+    fontSize: 12,
+    fontFamily: FONT_FAMILY.regular,
+    marginTop: 2,
+    includeFontPadding: false,
+    lineHeight: 16,
+  },
+
+  // ── Username edit row (mirrors the normal row layout)
+  editRow: {
+    width: "100%",
+    alignSelf: "stretch",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: ROW_PH,
+    paddingVertical: ROW_PV,
+    minHeight: ROW_H,
+  },
+  usernameInput: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: FONT_FAMILY.semibold,
+    paddingVertical: 4,
+    marginLeft: GAP,
+    borderBottomWidth: 1.5,
+    includeFontPadding: false,
+  },
+  editActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 10,
+    gap: 6,
+  },
+
+  // ── Theme picker
+  themeBlock: {
+    padding: 14,
+  },
+  themeTitle: {
+    fontSize: 13,
+    fontFamily: FONT_FAMILY.medium,
+    marginBottom: 10,
+    includeFontPadding: false,
+  },
+  themeRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  themeChip: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 14,
+    gap: 6,
+  },
+  themeChipLabel: {
+    fontSize: 12,
+    includeFontPadding: false,
+  },
+});

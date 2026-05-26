@@ -28,6 +28,7 @@ import { profil } from "./commands/profil";
 import { topGroupes } from "./commands/top-groupes";
 import { daily } from "./commands/daily";
 import { rapport } from "./commands/rapport";
+import { devlog } from "./commands/devlog";
 
 // ── Client ────────────────────────────────────────────────────────
 const client = new Client({
@@ -40,7 +41,7 @@ const client = new Client({
 
 // ── Commands registry ─────────────────────────────────────────────
 const commands = new Collection<string, any>();
-const commandList = [leaderboard, stats, challenges, invite, about, announce, say, setupTickets, suggestion, ping, profil, topGroupes, daily, rapport];
+const commandList = [leaderboard, stats, challenges, invite, about, announce, say, setupTickets, suggestion, ping, profil, topGroupes, daily, rapport, devlog];
 for (const cmd of commandList) commands.set(cmd.data.name, cmd);
 
 // ── Ready ─────────────────────────────────────────────────────────

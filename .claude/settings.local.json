@@ -22,7 +22,8 @@
       "Bash(rtk ls *)",
       "Bash(rtk grep *)",
       "Bash(rtk read *)",
-      "PowerShell(Copy-Item *)"
+      "PowerShell(Copy-Item *)",
+      "Bash(node -e ' *)"
     ]
   }
 }

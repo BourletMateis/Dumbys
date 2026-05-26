@@ -22,11 +22,14 @@ import {
 } from "@/src/features/friends/useFriendActions";
 import { useSuggestedFriends } from "@/src/features/friends/useSuggestedFriends";
 import { UserSearchResult } from "@/src/features/friends/UserSearchResult";
+import { FriendActionsSheet } from "@/src/features/friends/FriendActionsSheet";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { AnimatedPressable } from "@/src/components/ui/AnimatedPressable";
 import { PALETTE, RADIUS, FONT, FONT_FAMILY, SPACING } from "@/src/theme";
 import { useTheme } from "@/src/providers/ThemeProvider";
+import { toast } from "@/src/lib/toast";
 import type { UserRow } from "@/src/features/friends/useSearchUsers";
+import type { FriendshipWithUser } from "@/src/features/friends/useFriendships";
 
 type FriendStatus = "none" | "pending_sent" | "pending_received" | "accepted";
 
@@ -53,6 +56,8 @@ export default function FriendsScreen() {
   const { colors, isDark } = useTheme();
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [actionSheetTarget, setActionSheetTarget] = useState<FriendshipWithUser | null>(null);
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchInput.trim()), 300);
@@ -476,6 +481,7 @@ export default function FriendsScreen() {
                       borderColor: colors.border,
                     }}
                   >
+                    {/* Avatar + online dot */}
                     <View style={{ position: "relative" }}>
                       <Avatar url={item.otherUser.avatar_url} username={item.otherUser.username} size={52} />
                       <View
@@ -489,6 +495,8 @@ export default function FriendsScreen() {
                         }}
                       />
                     </View>
+
+                    {/* Name */}
                     <View style={{ flex: 1, marginLeft: 14 }}>
                       <Text
                         style={{ fontSize: FONT.sizes.lg, fontFamily: FONT_FAMILY.bold, color: colors.textPrimary }}
@@ -501,42 +509,72 @@ export default function FriendsScreen() {
                       </Text>
                     </View>
 
+                    {/* Action buttons — stop propagation so row tap doesn't fire */}
                     <View style={{ flexDirection: "row", gap: 8 }}>
+                      {/* Message */}
                       <Pressable
-                        onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-                        style={{
-                          width: 38, height: 38, borderRadius: 12,
-                          backgroundColor: PALETTE.sarcelle + "12",
-                          alignItems: "center", justifyContent: "center",
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          toast.info("Messagerie bientôt disponible ! 💬");
                         }}
+                        hitSlop={4}
+                        style={({ pressed }) => ({
+                          width: 38, height: 38, borderRadius: 12,
+                          backgroundColor: pressed
+                            ? PALETTE.sarcelle + "28"
+                            : PALETTE.sarcelle + "14",
+                          alignItems: "center", justifyContent: "center",
+                        })}
                       >
                         <Ionicons name="chatbubble-outline" size={18} color={PALETTE.sarcelle} />
                       </Pressable>
+
+                      {/* More options */}
                       <Pressable
-                        onPress={() => {
-                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                          removeFriendship.mutate(item.id);
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setActionSheetTarget(item);
+                          setActionSheetVisible(true);
                         }}
-                        disabled={removeFriendship.isPending && removeFriendship.variables === item.id}
-                        style={{
+                        hitSlop={4}
+                        style={({ pressed }) => ({
                           width: 38, height: 38, borderRadius: 12,
-                          backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#F2F2F2",
+                          backgroundColor: pressed
+                            ? isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)"
+                            : isDark ? "rgba(255,255,255,0.06)" : "#F2F2F2",
                           alignItems: "center", justifyContent: "center",
-                        }}
+                        })}
                       >
-                        {removeFriendship.isPending && removeFriendship.variables === item.id ? (
-                          <ActivityIndicator size="small" color={colors.textTertiary} />
-                        ) : (
-                          <Ionicons name="ellipsis-horizontal" size={18} color={colors.textTertiary} />
-                        )}
+                        <Ionicons name="ellipsis-horizontal" size={18} color={colors.textTertiary} />
                       </Pressable>
                     </View>
                   </AnimatedPressable>
                 ))
               )}
+
+              {/* placeholder — sheet rendered outside scroll view */}
             </>
           ) : null}
         </ScrollView>
+      )}
+
+      {/* ─── Friend Actions Bottom Sheet ──────────────────── */}
+      {actionSheetTarget && (
+        <FriendActionsSheet
+          visible={actionSheetVisible}
+          onClose={() => {
+            setActionSheetVisible(false);
+            // Give time for the close animation before clearing the target
+            setTimeout(() => setActionSheetTarget(null), 350);
+          }}
+          friendshipId={actionSheetTarget.id}
+          userId={actionSheetTarget.otherUser.id}
+          username={actionSheetTarget.otherUser.username}
+          avatarUrl={actionSheetTarget.otherUser.avatar_url}
+          onRemove={() => removeFriendship.mutate(actionSheetTarget.id)}
+        />
       )}
     </View>
   );
